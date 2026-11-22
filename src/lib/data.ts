@@ -100,9 +100,12 @@ export async function getSettings() {
 }
 
 export async function getPeople(includeInactive = false) {
-  const rows = await sql<PersonRow[]>`select id, short_name, full_name, email, role, day_cost, colour, active from people order by position, short_name`;
+  const rows = plain(await sql<PersonRow[]>`select id, short_name, full_name, email, role, day_cost, colour, active from people order by position, short_name`);
   return includeInactive ? rows : rows.filter((p) => p.active);
 }
+
+/** Query results as ordinary arrays, safe to hand to the screens. */
+const plain = <T,>(rows: readonly T[]): T[] => rows.map((r) => ({ ...r }));
 
 const hhmm = (t: string | null) => (t ? t.slice(0, 5) : null);
 
@@ -112,8 +115,9 @@ async function loadJobs(where: ReturnType<typeof sql> | null) {
       coalesce((select array_agg(jp.person_id) from job_people jp where jp.job_id = j.id), '{}') as people
     from jobs j left join clients c on c.id = j.client_id
     ${where ? sql`where ${where}` : sql``}
-    order by j.number desc nulls first, j.received desc nulls last, j.created_at desc`;
-  return rows;
+    order by (j.number is null and j.legacy_ref = '') desc, j.number desc nulls last,
+      j.legacy_ref like 'H-%', j.legacy_ref desc, j.received desc nulls last, j.created_at desc`;
+  return plain(rows);
 }
 
 /** Works out money for a set of jobs in a handful of queries. */
@@ -142,9 +146,11 @@ async function withMoney(jobs: JobRow[]): Promise<JobWithMoney[]> {
   const varByJob = group(variations);
 
   return jobs.map((j) => {
+    // A lost job earns nothing, so it shows no income or profit (its quote stays on the job).
+    const earns = j.stage !== "Lost";
     const money = jobMoney({
-      quoteValue: j.quote_value,
-      approvedVariations: (varByJob.get(j.id) ?? []).map((v) => v.amount),
+      quoteValue: earns ? j.quote_value : 0,
+      approvedVariations: earns ? (varByJob.get(j.id) ?? []).map((v) => v.amount) : [],
       invoicedNet: null, // from Phase 6
       visits: (vByJob.get(j.id) ?? []).map((v) => ({
         date: v.date,
@@ -198,32 +204,34 @@ export async function jobDetail(jobId: string) {
     sql<VariationRow[]>`select id, job_id, description, amount, approved, date from variations where job_id = ${jobId} order by created_at`,
     sql<CostRow[]>`select id, job_id, kind::text, description, amount, date, file_url from costs where job_id = ${jobId} order by date nulls last, created_at`,
   ]);
-  return { visits, variations, costs };
+  return { visits: plain(visits), variations: plain(variations), costs: plain(costs) };
 }
 
 export async function listClients() {
-  return sql<(ClientRow & { jobs: number; open_jobs: number; won_value: number })[]>`
+  return plain(await sql<(ClientRow & { jobs: number; open_jobs: number; won_value: number })[]>`
     select c.*, count(j.id)::int as jobs,
       count(j.id) filter (where j.stage in ('Enquiry','Draft quote','Quoted','Booked','In progress','Complete','Invoiced','On hold'))::int as open_jobs,
       coalesce(sum(j.quote_value) filter (where j.stage in ('Booked','In progress','Complete','Invoiced','Paid')), 0) as won_value
     from clients c left join jobs j on j.client_id = c.id and j.merged_into is null
-    group by c.id order by c.name`;
+    group by c.id order by c.name`);
 }
 
 export async function getClient(id: string) {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
   const [c] = await sql<ClientRow[]>`select * from clients where id = ${id}`;
-  return c ?? null;
+  return c ? { ...c } : null;
 }
 
-export async function listVisits(from: string, to: string) {
-  return sql<(VisitRow & { job_number: number | null; job_ref: string; client_name: string | null })[]>`
+export type DiaryVisit = VisitRow & { job_number: number | null; job_ref: string; client_name: string | null };
+
+export async function listVisits(from: string, to: string): Promise<DiaryVisit[]> {
+  return plain(await sql<DiaryVisit[]>`
     select v.id, v.job_id, v.date, v.start_time::text, v.end_time::text, v.work, v.site, v.confirmed, v.calendar_link, v.notes,
       coalesce((select array_agg(vp.person_id) from visit_people vp where vp.visit_id = v.id), '{}') as people,
       j.number as job_number, coalesce(j.legacy_ref, '') as job_ref, c.name as client_name
     from visits v left join jobs j on j.id = v.job_id left join clients c on c.id = j.client_id
     where v.date between ${from} and ${to}
-    order by v.date, v.start_time nulls first`;
+    order by v.date, v.start_time nulls first`);
 }
 
 export async function searchEverything(q: string) {
@@ -237,5 +245,5 @@ export async function searchEverything(q: string) {
       or j.contact ilike ${like} or j.notes ilike ${like} or c.name ilike ${like})`);
   const clients = await sql<ClientRow[]>`
     select * from clients where name ilike ${like} or contact ilike ${like} or email ilike ${like} or notes ilike ${like} order by name limit 20`;
-  return { jobs: await withMoney(jobRows.slice(0, 50)), clients };
+  return { jobs: await withMoney(jobRows.slice(0, 50)), clients: plain(clients) };
 }

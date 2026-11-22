@@ -1,13 +1,25 @@
-import { Wrench } from "lucide-react";
-import { EmptyState, PageHeader } from "@/components/page";
+import { Plus } from "lucide-react";
+import { PageHeader } from "@/components/page";
+import { ButtonLink } from "@/components/ui";
+import { getPeople, listJobs } from "@/lib/data";
+import { JobsList } from "./jobs-list";
 
 export const metadata = { title: "Jobs" };
 
-export default function JobsPage() {
+export default async function JobsPage({ searchParams }: { searchParams: Promise<{ show?: string }> }) {
+  const [{ show }, jobs, people] = await Promise.all([searchParams, listJobs(), getPeople(true)]);
   return (
     <>
-      <PageHeader title="Jobs" intro="Every enquiry, quote and job, by number." />
-      <EmptyState icon={Wrench} title="No jobs yet" text="All 49 jobs from the current app are brought in next. New jobs get the next number automatically." />
+      <PageHeader
+        title="Jobs"
+        intro="Every enquiry, quote and job, by number."
+        action={
+          <ButtonLink href="/jobs/new" primary>
+            <Plus className="h-5 w-5" aria-hidden="true" /> New job
+          </ButtonLink>
+        }
+      />
+      <JobsList jobs={jobs} people={people} show={show ?? "open"} />
     </>
   );
 }

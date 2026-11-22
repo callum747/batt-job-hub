@@ -3,7 +3,10 @@ import type postgres from "postgres";
 import { sql } from "./db";
 import { needsNumber, nextNumber, STAGES, type Stage } from "./jobs-rules";
 
-type Tx = postgres.TransactionSql<Record<string, unknown>>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Tx = postgres.TransactionSql<any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnySql = any; // the shared pool or a transaction
 
 /** Fixed key for the lock that makes sure two people can never be given the same job number. */
 const NUMBER_LOCK = 557_000;
@@ -27,7 +30,7 @@ export async function allocateNumber(tx: Tx, jobId: string): Promise<number> {
   return n;
 }
 
-export async function audit(tx: Tx | typeof sql, actor: string, action: string, entity: string, entityId: string, detail: object = {}) {
+export async function audit(tx: AnySql, actor: string, action: string, entity: string, entityId: string, detail: object = {}) {
   await tx`insert into audit_log (actor, action, entity, entity_id, detail) values (${actor}, ${action}, ${entity}, ${entityId}, ${tx.json(detail as never)})`;
 }
 
@@ -43,6 +46,6 @@ export async function changeStage(jobId: string, stage: Stage, actor: string) {
     if (needsNumber(stage, number)) number = await allocateNumber(tx, jobId);
     await tx`update jobs set stage = ${stage}, updated_at = now() where id = ${jobId}`;
     await audit(tx, actor, "stage", "job", jobId, { from: job.stage, to: stage, number });
-    return { number, from: job.stage };
+    return { number, numberBefore: job.number, from: job.stage };
   });
 }

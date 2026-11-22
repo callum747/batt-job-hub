@@ -1,29 +1,50 @@
 import { PageHeader } from "@/components/page";
+import { Card } from "@/components/ui";
+import { getPeople, getSettings } from "@/lib/data";
+import { gbp } from "@/lib/money";
+import { MarginsForm, PersonForm } from "./forms";
 
 export const metadata = { title: "Settings" };
 
-const PEOPLE = [
-  { name: "Cameron Batt", role: "Managing Director" },
-  { name: "Callum Blacknell", role: "Project Manager" },
-  { name: "Jed Stansfield", role: "Apprentice" },
-];
-
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const [people, settings] = await Promise.all([getPeople(true), getSettings()]);
+  const r = settings.rates;
   return (
-    <>
-      <PageHeader title="Settings" intro="People, rates and how the app behaves." />
-      <section className="rounded-2xl border border-line">
-        <h2 className="border-b border-line px-5 py-4 text-[18px] font-semibold">People</h2>
-        <ul>
-          {PEOPLE.map((p) => (
-            <li key={p.name} className="flex items-center justify-between border-b border-line px-5 py-4 last:border-0">
-              <span className="font-medium">{p.name}</span>
-              <span className="text-muted">{p.role}</span>
-            </li>
+    <div className="mx-auto max-w-4xl space-y-6">
+      <PageHeader title="Settings" intro="People, day costs and how the profit light works." />
+      <Card title="People">
+        <p className="mb-4 text-[15px] text-muted">
+          Day cost is what a day on site costs Batt for that person, at full cost with van, tools and overheads, worked out from the Labour Cost Rates sheet. It&apos;s used for profit, not for pricing.
+        </p>
+        <div className="space-y-6">
+          {people.map((p) => (
+            <PersonForm key={p.id} person={p} />
           ))}
-        </ul>
-      </section>
-      <p className="mt-4 text-[15px] text-muted">Rates, day costs and margin colours are set up with the jobs in the next step.</p>
-    </>
+        </div>
+      </Card>
+      <Card title="Profit light">
+        <MarginsForm green={settings.margins.green} red={settings.margins.red} />
+      </Card>
+      <Card title="Charge-out rates">
+        <dl className="grid gap-3 text-[15px] sm:grid-cols-2">
+          {[
+            ["Electrician (pricing sheet)", `${gbp(r.electricianDay)} a day`],
+            ["Apprentice (pricing sheet)", `${gbp(r.apprenticeDay)} a day`],
+            ["Day-rate clients, electrician", `${gbp(r.dayRate)} a day`],
+            ["Day-rate clients, trainee apprentice", `${gbp(r.apprenticeDayRate)} a day`],
+            ["Survey", `${gbp(r.surveyDay)} a day`],
+            ["Mileage", `${Math.round(r.perMile * 100)}p a mile`],
+            ["Materials markup", `${r.markupPct}%`],
+            ["VAT", `${r.vatPct}%`],
+          ].map(([k, v]) => (
+            <div key={k} className="flex justify-between gap-3 rounded-xl bg-surface px-4 py-3">
+              <dt className="text-muted">{k}</dt>
+              <dd className="font-medium tabular-nums">{v}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-3 text-[14px] text-muted">From the playbook. These are used for quoting from the next steps onwards.</p>
+      </Card>
+    </div>
   );
 }

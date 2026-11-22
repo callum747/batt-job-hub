@@ -81,15 +81,18 @@ export function Shell({ person, preview, children }: { person: Person; preview: 
           <Link href="/" className="md:hidden" aria-label="Today">
             <Logo className="h-7 w-auto" />
           </Link>
-          <label className="relative ml-auto flex h-12 w-full max-w-md items-center md:ml-0">
+          <form action="/search" role="search" className="ml-auto w-full max-w-md md:ml-0">
+          <label className="relative flex h-12 w-full items-center">
             <span className="sr-only">Search jobs, clients and sites</span>
             <Search className="pointer-events-none absolute left-4 h-5 w-5 text-muted" aria-hidden="true" />
             <input
               type="search"
+              name="q"
               placeholder="Search jobs, clients, sites"
               className="h-12 w-full rounded-xl border border-line bg-surface pl-12 pr-4 text-[16px] outline-none placeholder:text-muted focus:border-blue focus:bg-bg"
             />
           </label>
+          </form>
         </div>
         {preview && (
           <p className="bg-surface px-4 py-2 text-center text-[14px] text-muted md:px-8">
