@@ -2,7 +2,7 @@
  * Job numbers against a real database. Runs only when TEST_DATABASE_URL points at a
  * throwaway database (it creates and empties its own tables). Never point it at live data.
  */
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -19,7 +19,8 @@ d("job numbers in the database", () => {
   beforeAll(async () => {
     const admin = postgres(url!, { max: 1, onnotice: () => {} });
     await admin.unsafe("drop schema public cascade; create schema public;");
-    await admin.unsafe(readFileSync(path.join(__dirname, "../../db/migrations/0001_jobs_clients_people.sql"), "utf8"));
+    const dir = path.join(__dirname, "../../db/migrations");
+    for (const f of readdirSync(dir).sort()) await admin.unsafe(readFileSync(path.join(dir, f), "utf8"));
     await admin.end();
     process.env.DATABASE_URL = url;
     mod = await import("./mutations");

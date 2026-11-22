@@ -3,6 +3,7 @@ import type { NextAuthOptions } from "next-auth";
 import { getServerSession } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { ALLOWED_DOMAIN, isAllowedEmail, previewMode } from "./config";
+import { GOOGLE_SCOPES, saveRefreshToken } from "./google/client";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -10,7 +11,8 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.GOOGLE_CLIENT_ID ?? "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
       // Ask Google to show only Batt accounts. The sign-in callback checks again.
-      authorization: { params: { hd: ALLOWED_DOMAIN, prompt: "select_account" } },
+      // Drive and Calendar permission is asked for once; "offline" lets the app keep working between visits.
+      authorization: { params: { hd: ALLOWED_DOMAIN, prompt: "select_account", access_type: "offline", scope: GOOGLE_SCOPES.join(" ") } },
     }),
   ],
   session: { strategy: "jwt", maxAge: 60 * 60 * 24 * 30 },
@@ -21,6 +23,14 @@ export const authOptions: NextAuthOptions = {
       if (!p?.email || p.email_verified === false) return "/login?error=domain";
       if (!isAllowedEmail(p.email) || (p.hd ?? "").toLowerCase() !== ALLOWED_DOMAIN) return "/login?error=domain";
       return true;
+    },
+    async jwt({ token, account, profile }) {
+      // Google only hands over the long-lived permission the first time, or when asked to connect again.
+      const email = (profile as { email?: string } | undefined)?.email;
+      if (account?.refresh_token && email && isAllowedEmail(email)) {
+        await saveRefreshToken(email, account.refresh_token, account.scope ?? "");
+      }
+      return token;
     },
   },
 };
