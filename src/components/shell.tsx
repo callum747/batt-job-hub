@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, Menu, Search } from "lucide-react";
 import { NAV, isActive } from "./nav-items";
+import { SignOutButton } from "./sign-out";
 
 type Person = { name: string; email: string };
 
@@ -66,11 +67,9 @@ export function Shell({ person, preview, children }: { person: Person; preview: 
               <p className="truncate text-[13px] text-muted">{person.email}</p>
             </div>
             {!preview && (
-              <form action="/auth/signout" method="post">
-                <button type="submit" className="flex h-10 w-10 items-center justify-center rounded-lg text-muted hover:bg-surface hover:text-text" aria-label="Sign out" title="Sign out">
-                  <LogOut className="h-5 w-5" aria-hidden="true" />
-                </button>
-              </form>
+              <SignOutButton label="Sign out" className="flex h-10 w-10 items-center justify-center rounded-lg text-muted hover:bg-surface hover:text-text">
+                <LogOut className="h-5 w-5" aria-hidden="true" />
+              </SignOutButton>
             )}
           </div>
         </div>
@@ -94,7 +93,7 @@ export function Shell({ person, preview, children }: { person: Person; preview: 
         </div>
         {preview && (
           <p className="bg-surface px-4 py-2 text-center text-[14px] text-muted md:px-8">
-            Preview on this computer only. Sign-in switches on once Supabase and Google are set up.
+            Preview on this computer only. Sign-in switches on once Google is set up.
           </p>
         )}
       </header>

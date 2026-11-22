@@ -1,53 +1,27 @@
-import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { SUPABASE_ANON_KEY, SUPABASE_URL, authConfigured, isAllowedEmail, previewMode } from "@/lib/config";
+import { getToken } from "next-auth/jwt";
+import { authConfigured, isAllowedEmail, previewMode } from "@/lib/config";
 
-const PUBLIC_PATHS = ["/login", "/auth/callback"];
+const PUBLIC = ["/login", "/api/auth"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const isPublic = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
+  const isPublic = PUBLIC.some((p) => pathname === p || pathname.startsWith(p + "/"));
 
-  // Local preview before Supabase is set up: let everything through (development only).
+  // Local preview before Google is set up (development only).
   if (previewMode) return NextResponse.next();
 
-  // Live site without keys: nothing is reachable except the sign-in page, which explains why.
+  // Live site without keys: only the sign-in page, which explains why.
   if (!authConfigured) {
-    if (isPublic) return NextResponse.next();
-    return NextResponse.redirect(new URL("/login", request.url));
+    return isPublic ? NextResponse.next() : NextResponse.redirect(new URL("/login", request.url));
   }
 
-  let response = NextResponse.next({ request });
-  const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        response = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
-      },
-    },
-  });
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+  const allowed = token && isAllowedEmail(token.email as string | undefined);
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const allowed = user && isAllowedEmail(user.email);
-
-  if (!allowed && !isPublic) {
-    const url = new URL("/login", request.url);
-    if (user) url.searchParams.set("error", "domain");
-    return NextResponse.redirect(url);
-  }
-
-  if (allowed && pathname === "/login") {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
-
-  return response;
+  if (!allowed && !isPublic) return NextResponse.redirect(new URL("/login", request.url));
+  if (allowed && pathname === "/login") return NextResponse.redirect(new URL("/", request.url));
+  return NextResponse.next();
 }
 
 export const config = {

@@ -7,6 +7,7 @@ export const metadata = { title: "Sign in" };
 const ERRORS: Record<string, string> = {
   domain: `Only Batt Google accounts (@${ALLOWED_DOMAIN}) can sign in. Choose your Batt account and try again.`,
   failed: "Sign-in didn't finish. Please try again.",
+  AccessDenied: `Only Batt Google accounts (@${ALLOWED_DOMAIN}) can sign in.`,
 };
 
 export default async function LoginPage({
@@ -33,10 +34,10 @@ export default async function LoginPage({
 
         <div className="mt-8">
           {authConfigured ? (
-            <GoogleButton domain={ALLOWED_DOMAIN} />
+            <GoogleButton />
           ) : (
             <p className="rounded-lg bg-surface px-4 py-3 text-[15px] text-muted">
-              Sign-in isn&apos;t switched on yet. It needs the Supabase and Google settings from the handover notes.
+              Sign-in isn&apos;t switched on yet. It needs the Google settings from the handover notes.
             </p>
           )}
         </div>

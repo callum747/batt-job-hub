@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { NAV } from "@/components/nav-items";
 import { PageHeader } from "@/components/page";
+import { SignOutButton } from "@/components/sign-out";
 
 export const metadata = { title: "More" };
 
@@ -20,11 +21,9 @@ export default function MorePage() {
           </li>
         ))}
         <li>
-          <form action="/auth/signout" method="post">
-            <button type="submit" className="flex h-16 w-full items-center px-5 text-left text-[17px] font-medium text-muted hover:bg-surface">
-              Sign out
-            </button>
-          </form>
+          <SignOutButton className="flex h-16 w-full items-center px-5 text-left text-[17px] font-medium text-muted hover:bg-surface">
+            Sign out
+          </SignOutButton>
         </li>
       </ul>
     </>

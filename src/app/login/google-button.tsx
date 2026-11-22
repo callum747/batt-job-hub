@@ -1,29 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { signIn } from "next-auth/react";
 
-export function GoogleButton({ domain }: { domain: string }) {
+export function GoogleButton() {
   const [busy, setBusy] = useState(false);
-
-  async function signIn() {
-    setBusy(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-        // Tells Google to offer only Batt accounts. The server checks again after sign-in.
-        queryParams: { hd: domain, prompt: "select_account" },
-      },
-    });
-    if (error) setBusy(false);
-  }
-
   return (
     <button
       type="button"
-      onClick={signIn}
+      onClick={() => {
+        setBusy(true);
+        signIn("google", { callbackUrl: "/" });
+      }}
       disabled={busy}
       className="flex h-14 w-full items-center justify-center gap-3 rounded-xl bg-blue text-[17px] font-semibold text-blue-ink transition hover:brightness-95 disabled:opacity-60"
     >
