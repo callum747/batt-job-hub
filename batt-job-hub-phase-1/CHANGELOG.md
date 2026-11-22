@@ -1,0 +1,22 @@
+# What's changed
+
+Plain-English notes on what's new in the Batt Job Hub, newest first.
+
+## 22/11/2026: Jobs, clients and people (Phase 1)
+- All 49 jobs, 11 clients and 14 visits from the old app are brought in. Job #553 shows as part of #555, as it was merged.
+- **Jobs**: a list of every job with its number, client and site, stage, who's on it, quote, money spent so far and profit with a green, amber or red light. Filter by Open, Quotes, Work on, Waiting for payment, Finished or All. On a phone it shows as cards.
+- **A job's page** shows the number, client, site, stage and who's on it, the quote, spent so far and profit, and five tabs: Overview (with dated notes), Quote & money (the full working, and extras you can add and approve), Visits, Files (the Drive folder link) and Details (edit everything).
+- **New jobs** start as TBC. The moment a job moves past Enquiry it gets the next number (557 is next). Two people can never get the same number.
+- **Board**: every open job in a column per stage. Drag a card to move it; on a phone, use the menu on the card.
+- **Clients**: each client with their jobs, work won and profit so far. Add and edit clients.
+- **Search** at the top finds jobs by number (557, #557 or Q-557), client, site, postcode or anything in the notes.
+- **Today**: live quotes, work on, invoiced but not paid, who's on site today, the next 7 days, and quotes sent more than 7 days ago with no answer.
+- **Diary**: a list of visits from last week onwards.
+- **Settings**: each person's day cost (£286 Cam, £286 Callum, £119 Jed, full cost at 100% work rate) and the profit light levels (green at 18%, red below 5%).
+- A lost job shows no profit; its quote is shown crossed out.
+- Sign-in now goes straight through Google (no Supabase), so the app can run on Replit.
+
+## 22/11/2026: The empty app
+- The app has the Batt look: white background, Batt blue, the cube logo, Inter text. It follows your phone or laptop's light or dark setting.
+- Laptop: menu down the left. Phone: bar along the bottom.
+- Sign in with Google only lets in @battelectrical.com accounts.
