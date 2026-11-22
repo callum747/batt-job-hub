@@ -1,1 +1,2 @@
 - [App build scope](build-scope.md) — keep root build tools scoped to app source, not unrelated starter packages and linked tooling.
+- [Root server publishing](root-server-publishing.md) — keep starter manifests disabled so publishing runs the root Next.js app.
