@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import "tailwindcss" source("../");
 
 /* Batt brand tokens. Colours from the brand guide; status colours only for green/amber/red. */
 :root {

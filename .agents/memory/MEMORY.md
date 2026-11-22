@@ -1,0 +1,1 @@
+- [App build scope](build-scope.md) — keep root build tools scoped to app source, not unrelated starter packages and linked tooling.
