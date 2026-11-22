@@ -13,8 +13,8 @@
   },
   "dependencies": {
     "lucide-react": "^0.544.0",
-    "next": "15.5.4",
-    "next-auth": "^4.24.11",
+    "next": "^16.4.6",
+    "next-auth": "^4.24.15",
     "postgres": "^3.4.7",
     "react": "19.1.0",
     "react-dom": "19.1.0",
@@ -23,14 +23,14 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^24.19.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "15.5.4",
+    "eslint-config-next": "^16.4.6",
     "tailwindcss": "^4",
     "tsx": "^4.20.6",
     "typescript": "^5",
-    "vitest": "^3.2.4"
+    "vitest": "^5.1.1"
   }
 }
