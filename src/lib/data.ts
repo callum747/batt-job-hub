@@ -53,6 +53,7 @@ export type JobRow = {
   building_control: string;
   drive_folder_id: string;
   drive_folder_url: string;
+  drive_error: string;
   links: { name: string; url: string }[];
   notes: string;
   updated_at: string;
@@ -71,6 +72,7 @@ export type VisitRow = {
   site: string;
   confirmed: boolean;
   calendar_link: string;
+  calendar_error: string;
   notes: string;
   people: string[];
 };
@@ -198,7 +200,7 @@ export async function findJob(ref: string) {
 export async function jobDetail(jobId: string) {
   const [visits, variations, costs] = await Promise.all([
     sql<VisitRow[]>`
-      select v.id, v.job_id, v.date, v.start_time::text, v.end_time::text, v.work, v.site, v.confirmed, v.calendar_link, v.notes,
+      select v.id, v.job_id, v.date, v.start_time::text, v.end_time::text, v.work, v.site, v.confirmed, v.calendar_link, v.calendar_error, v.notes,
         coalesce((select array_agg(vp.person_id) from visit_people vp where vp.visit_id = v.id), '{}') as people
       from visits v where v.job_id = ${jobId} order by v.date, v.start_time nulls first`,
     sql<VariationRow[]>`select id, job_id, description, amount, approved, date from variations where job_id = ${jobId} order by created_at`,
@@ -222,13 +224,13 @@ export async function getClient(id: string) {
   return c ? { ...c } : null;
 }
 
-export type DiaryVisit = VisitRow & { job_number: number | null; job_ref: string; client_name: string | null };
+export type DiaryVisit = VisitRow & { job_number: number | null; job_ref: string; client_name: string | null; job_site: string | null };
 
 export async function listVisits(from: string, to: string): Promise<DiaryVisit[]> {
   return plain(await sql<DiaryVisit[]>`
-    select v.id, v.job_id, v.date, v.start_time::text, v.end_time::text, v.work, v.site, v.confirmed, v.calendar_link, v.notes,
+    select v.id, v.job_id, v.date, v.start_time::text, v.end_time::text, v.work, v.site, v.confirmed, v.calendar_link, v.calendar_error, v.notes,
       coalesce((select array_agg(vp.person_id) from visit_people vp where vp.visit_id = v.id), '{}') as people,
-      j.number as job_number, coalesce(j.legacy_ref, '') as job_ref, c.name as client_name
+      j.number as job_number, coalesce(j.legacy_ref, '') as job_ref, c.name as client_name, j.site as job_site
     from visits v left join jobs j on j.id = v.job_id left join clients c on c.id = j.client_id
     where v.date between ${from} and ${to}
     order by v.date, v.start_time nulls first`);

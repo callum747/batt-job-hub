@@ -6,6 +6,9 @@ import { currentPerson } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { STAGES, type Stage, ukDate, todayUK } from "@/lib/jobs-rules";
 import { audit, changeStage } from "@/lib/mutations";
+import { removeVisitEvent, syncVisit } from "@/lib/google/calendar";
+import { errorText, getFileCheck, googleConnected, googleSettings, type GoogleArea } from "@/lib/google/client";
+import { syncJobFolder } from "@/lib/google/drive";
 
 async function who() {
   const p = await currentPerson();
@@ -62,7 +65,8 @@ export async function createJob(f: FormData) {
   let href = `/jobs/${job.id}`;
   if (stage && stage !== "Enquiry" && STAGES.includes(stage)) {
     const { number } = await changeStage(job.id, stage, me.email);
-    if (number) href = `/jobs/${number}`;
+    if (number) href = `/jobs/${number}?numbered=1`;
+    await syncJobFolder(job.id, me.email);
   }
   refreshJobs();
   redirect(href);
@@ -91,10 +95,12 @@ export async function setStage(jobId: string, stage: Stage) {
   const r = await changeStage(jobId, stage, me.email);
   refreshJobs();
   const numbered = r.number !== null && r.numberBefore === null;
+  const drive = await syncJobFolder(jobId, me.email);
+  refreshJobs();
   return {
     number: r.number,
     numbered,
-    message: numbered ? `Moved to ${stage}. This job is now #${r.number}.` : `Moved to ${stage}.`,
+    message: [numbered ? `Moved to ${stage}. This job is now #${r.number}.` : `Moved to ${stage}.`, drive].filter(Boolean).join(" "),
   };
 }
 
@@ -198,4 +204,132 @@ export async function saveMargins(f: FormData) {
   await audit(sql, me.email, "edited", "settings", "margins", { green, red });
   refreshJobs();
   return { ok: true, message: "Margin colours saved." };
+}
+
+export async function retryJobFolder(jobId: string) {
+  const me = await who();
+  const message = await syncJobFolder(jobId, me.email);
+  refreshJobs();
+  return { message: message || "The Drive folder is where it should be." };
+}
+
+const timeOrNull = (f: FormData, k: string) => {
+  const v = text(f, k);
+  return /^\d{2}:\d{2}$/.test(v) ? v : null;
+};
+
+export async function saveVisit(visitId: string | null, f: FormData) {
+  const me = await who();
+  const date = dateOrNull(f, "date");
+  if (!date) return { ok: false, message: "The visit needs a date." };
+  const jobId = text(f, "job_id") || null;
+  const start = timeOrNull(f, "start");
+  const end = start ? timeOrNull(f, "end") : null;
+  if (start && end && end <= start) return { ok: false, message: "The finish time must be after the start time." };
+  const people = f.getAll("people").map(String).filter(Boolean);
+  const fields = {
+    job_id: jobId,
+    date,
+    start_time: start,
+    end_time: end,
+    work: text(f, "work"),
+    site: text(f, "site"),
+    confirmed: f.get("pencilled") !== "on",
+    notes: text(f, "notes"),
+  };
+  const id = await sql.begin(async (tx) => {
+    let vid = visitId;
+    if (vid) {
+      await tx`update visits set ${tx(fields)}, updated_at = now() where id = ${vid}`;
+    } else {
+      const [row] = await tx<{ id: string }[]>`insert into visits ${tx(fields)} returning id`;
+      vid = row.id;
+    }
+    await tx`delete from visit_people where visit_id = ${vid}`;
+    for (const p of people) await tx`insert into visit_people (visit_id, person_id) values (${vid}, ${p})`;
+    await audit(tx, me.email, visitId ? "visit changed" : "visit booked", "visit", vid!, { date, jobId });
+    return vid!;
+  });
+  const calendar = await syncVisit(id, me.email);
+  refreshJobs();
+  return { ok: true, message: `Visit ${visitId ? "saved" : "booked"}. ${calendar}` };
+}
+
+/** Planner drag: move a visit to another day and/or swap one person for another. */
+export async function moveVisit(visitId: string, date: string, fromPerson: string | null, toPerson: string | null) {
+  const me = await who();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { message: "That isn't a date." };
+  await sql.begin(async (tx) => {
+    await tx`update visits set date = ${date}, updated_at = now() where id = ${visitId}`;
+    if (fromPerson !== toPerson) {
+      if (fromPerson) await tx`delete from visit_people where visit_id = ${visitId} and person_id = ${fromPerson}`;
+      if (toPerson) await tx`insert into visit_people (visit_id, person_id) values (${visitId}, ${toPerson}) on conflict do nothing`;
+    }
+    await audit(tx, me.email, "visit moved", "visit", visitId, { date, fromPerson, toPerson });
+  });
+  const calendar = await syncVisit(visitId, me.email);
+  refreshJobs();
+  return { message: `Visit moved. ${calendar}` };
+}
+
+export async function deleteVisit(visitId: string) {
+  const me = await who();
+  const [v] = await sql<{ calendar_event_id: string; calendar_id: string; date: string; job_id: string | null }[]>`
+    select calendar_event_id, calendar_id, date, job_id from visits where id = ${visitId}`;
+  if (!v) return { ok: true, message: "Already removed." };
+  try {
+    await removeVisitEvent(v, me.email);
+  } catch (e) {
+    if (v.calendar_event_id) return { ok: false, message: `Visit not removed, because its calendar entry couldn't be removed: ${errorText(e)}` };
+  }
+  await sql`delete from visits where id = ${visitId}`;
+  await audit(sql, me.email, "visit removed", "visit", visitId, { date: v.date, jobId: v.job_id });
+  refreshJobs();
+  return { ok: true, message: v.calendar_event_id ? "Visit removed, and taken out of the calendar." : "Visit removed." };
+}
+
+export async function retryVisitCalendar(visitId: string) {
+  const me = await who();
+  const message = await syncVisit(visitId, me.email);
+  refreshJobs();
+  return { message };
+}
+
+export async function setGoogleMode(mode: "test" | "live") {
+  const me = await who();
+  if (mode !== "test" && mode !== "live") return { ok: false, message: "Unknown mode." };
+  await sql`update settings set value = jsonb_set(value, '{mode}', to_jsonb(${mode}::text)), updated_at = now() where key = 'google'`;
+  await audit(sql, me.email, "google mode", "settings", "google", { mode });
+  refreshJobs();
+  return {
+    ok: true,
+    message: mode === "live" ? "The app now works in the real job folders and the real shared calendar." : "The app is back in the test folder and test calendar.",
+  };
+}
+
+export type Check = { label: string; ok: boolean; detail: string };
+
+/** Tries each thing the app needs in Google and reports what works, in plain words. */
+export async function checkGoogle(): Promise<Check[]> {
+  const me = await who();
+  const out: Check[] = [];
+  const connected = await googleConnected(me.email);
+  out.push({ label: "Your Google permission", ok: connected, detail: connected ? `Connected as ${me.email}` : "Not connected. Press Connect Google." });
+  if (!connected) return out;
+  const s = await googleSettings();
+  for (const which of ["test", "live"] as const) {
+    for (const area of ["Live", "Lost", "Active", "Completed"] as GoogleArea[]) {
+      const r = await getFileCheck(me.email, s[which].folders[area]);
+      out.push({ label: `${which === "test" ? "Test" : "Real"} folder: ${area}`, ok: r.ok, detail: r.detail });
+    }
+  }
+  const cal = await getFileCheck(me.email, s.live.calendarId, "calendar");
+  out.push({ label: "Real shared calendar", ok: cal.ok, detail: cal.detail });
+  if (s.test.calendarId) {
+    const t = await getFileCheck(me.email, s.test.calendarId, "calendar");
+    out.push({ label: "Test calendar", ok: t.ok, detail: t.detail });
+  } else {
+    out.push({ label: "Test calendar", ok: true, detail: "Will be made the first time a visit is booked in test mode." });
+  }
+  return out;
 }

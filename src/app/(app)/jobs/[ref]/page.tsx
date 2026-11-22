@@ -1,10 +1,17 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ChevronLeft, ExternalLink, FolderOpen } from "lucide-react";
-import { Card, LightDot, PeopleChips } from "@/components/ui";
+import { ChevronLeft, FileText, FolderOpen } from "lucide-react";
+import { Card, LightDot } from "@/components/ui";
 import { findJob, getPeople, getSettings, jobDetail, listClients } from "@/lib/data";
 import { gbp } from "@/lib/money";
-import { jobLabel, ukDate } from "@/lib/jobs-rules";
+import { jobLabel, todayUK, ukDate } from "@/lib/jobs-rules";
+import { currentPerson } from "@/lib/auth";
+import { errorText, googleConnected } from "@/lib/google/client";
+import { listJobFiles, type FolderListing } from "@/lib/google/drive";
+import { ConnectGoogleButton } from "@/components/connect-google";
+import { secondaryBtn } from "@/components/ui";
+import { JobVisits } from "../job-visits";
+import { FolderButton } from "../job-files";
 import { JobForm } from "../job-form";
 import { NoteForm, NotesText, PeopleControl, StageControl, Variations } from "../job-controls";
 
@@ -177,58 +184,12 @@ export default async function JobPage({ params, searchParams }: { params: Promis
 
         {tab === "visits" && (
           <Card title="Visits">
-            {detail.visits.length === 0 ? (
-              <p className="text-muted">No visits on this job yet.</p>
-            ) : (
-              <ul className="divide-y divide-line">
-                {detail.visits.map((v) => (
-                  <li key={v.id} className="flex flex-col gap-2 py-4 sm:flex-row sm:items-start sm:gap-5">
-                    <div className="w-36 shrink-0">
-                      <p className="font-semibold">{ukDate(v.date, { weekday: true })}</p>
-                      <p className="text-[14px] text-muted">
-                        {v.start_time ? `${v.start_time.slice(0, 5)}${v.end_time ? ` to ${v.end_time.slice(0, 5)}` : ""}` : "All day"}
-                        {!v.confirmed && " · pencilled in"}
-                      </p>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p>{v.work || "Visit"}</p>
-                      {v.notes && <p className="text-[14px] text-muted">{v.notes}</p>}
-                      <div className="mt-2"><PeopleChips ids={v.people} people={people} size="sm" /></div>
-                    </div>
-                    {v.calendar_link && (
-                      <a href={v.calendar_link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[14px] font-medium text-muted hover:text-text">
-                        Calendar <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                      </a>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-            <p className="mt-4 text-[14px] text-muted">Booking visits here, with the week planner and Google Calendar invites, comes in the next step.</p>
+            <JobVisits jobId={job.id} visits={detail.visits} people={people} today={todayUK()} />
+            <p className="mt-4 text-[14px] text-muted">Booking a visit puts it in the shared calendar and invites whoever is going.</p>
           </Card>
         )}
 
-        {tab === "files" && (
-          <Card title="Files">
-            {job.drive_folder_url ? (
-              <a href={job.drive_folder_url} target="_blank" rel="noreferrer" className="inline-flex h-12 items-center gap-2 rounded-xl border border-line px-5 font-medium hover:bg-surface">
-                <FolderOpen className="h-5 w-5 text-blue" aria-hidden="true" /> Open the job&apos;s Drive folder
-              </a>
-            ) : (
-              <p className="text-muted">No Drive folder linked yet.</p>
-            )}
-            {job.links.length > 0 && (
-              <ul className="mt-4 space-y-2">
-                {job.links.map((l) => (
-                  <li key={l.url}>
-                    <a href={l.url} target="_blank" rel="noreferrer" className="font-medium underline underline-offset-4">{l.name || l.url}</a>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <p className="mt-4 text-[14px] text-muted">Creating the folder and showing its files here comes in the next step.</p>
-          </Card>
-        )}
+        {tab === "files" && <FilesTab job={job} />}
 
         {tab === "details" && (
           <Card title="Details">
@@ -255,5 +216,95 @@ function Row({ label, value, strong }: { label: string; value: React.ReactNode; 
       <dt className={strong ? "" : "text-muted"}>{label}</dt>
       <dd className="tabular-nums">{value}</dd>
     </div>
+  );
+}
+
+async function FilesTab({ job }: { job: { id: string; number: number | null; drive_folder_id: string; drive_folder_url: string; drive_error: string; links: { name: string; url: string }[] } }) {
+  const me = await currentPerson();
+  const connected = me ? await googleConnected(me.email) : false;
+  let listing: FolderListing | null = null;
+  let problem = "";
+  if (connected && job.drive_folder_id) {
+    try {
+      listing = await listJobFiles(me!.email, job.drive_folder_id);
+    } catch (e) {
+      problem = errorText(e);
+    }
+  }
+  const count = listing?.reduce((n, f) => n + f.files.length, 0) ?? 0;
+
+  return (
+    <Card title="Files">
+      <div className="space-y-5">
+        <div className="flex flex-wrap items-center gap-3">
+          {job.drive_folder_url && (
+            <a href={job.drive_folder_url} target="_blank" rel="noreferrer" className={secondaryBtn}>
+              <FolderOpen className="h-5 w-5 text-blue" aria-hidden="true" /> Open in Drive
+            </a>
+          )}
+          {connected && job.number !== null && !job.drive_folder_id && <FolderButton jobId={job.id} label="Create the Drive folder" />}
+          {connected && job.drive_error && job.drive_folder_id && <FolderButton jobId={job.id} label="Try again" />}
+        </div>
+
+        {!connected && (
+          <div className="rounded-xl bg-surface p-4">
+            <p className="mb-3">Connect Google to see this job&apos;s files here and have folders made for you.</p>
+            <ConnectGoogleButton className={secondaryBtn}>Connect Google</ConnectGoogleButton>
+          </div>
+        )}
+        {job.number === null && <p className="text-muted">The folder is made when the job gets its number.</p>}
+        {job.drive_error && <p className="rounded-xl border border-warn/30 bg-warn/10 px-4 py-3 text-[15px]">{job.drive_error}</p>}
+        {problem && <p className="rounded-xl border border-warn/30 bg-warn/10 px-4 py-3 text-[15px]">Couldn&apos;t list the files. {problem}</p>}
+
+        {listing && (
+          <>
+            <p className="text-[15px] text-muted">
+              {count} file{count === 1 ? "" : "s"} in the job folder.
+            </p>
+            <ul className="space-y-4">
+              {listing.map((folder) => (
+                <li key={folder.id}>
+                  <p className="font-semibold">
+                    {folder.url ? (
+                      <a href={folder.url} target="_blank" rel="noreferrer" className="underline-offset-4 hover:underline">
+                        {folder.name}
+                      </a>
+                    ) : (
+                      folder.name
+                    )}
+                    <span className="ml-2 text-[14px] font-normal text-muted">{folder.files.length || "empty"}</span>
+                  </p>
+                  {folder.files.length > 0 && (
+                    <ul className="mt-1 divide-y divide-line rounded-xl border border-line">
+                      {folder.files.map((f) => (
+                        <li key={f.id}>
+                          <a href={f.webViewLink} target="_blank" rel="noreferrer" className="flex items-center gap-3 px-4 py-3 hover:bg-surface">
+                            <FileText className="h-5 w-5 shrink-0 text-muted" aria-hidden="true" />
+                            <span className="min-w-0 flex-1 truncate">{f.name}</span>
+                            <span className="shrink-0 text-[14px] text-muted">{ukDate(f.modifiedTime?.slice(0, 10))}</span>
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
+        {job.links.length > 0 && (
+          <ul className="space-y-2">
+            {job.links.map((l) => (
+              <li key={l.url}>
+                <a href={l.url} target="_blank" rel="noreferrer" className="font-medium underline underline-offset-4">
+                  {l.name || l.url}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </Card>
   );
 }

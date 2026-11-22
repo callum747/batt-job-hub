@@ -3,15 +3,23 @@ import { Card } from "@/components/ui";
 import { getPeople, getSettings } from "@/lib/data";
 import { gbp } from "@/lib/money";
 import { MarginsForm, PersonForm } from "./forms";
+import { GoogleSettings } from "./google";
+import { currentPerson } from "@/lib/auth";
+import { previewMode } from "@/lib/config";
+import { googleConnected, googleSettings } from "@/lib/google/client";
 
 export const metadata = { title: "Settings" };
 
 export default async function SettingsPage() {
-  const [people, settings] = await Promise.all([getPeople(true), getSettings()]);
+  const [people, settings, me, google] = await Promise.all([getPeople(true), getSettings(), currentPerson(), googleSettings()]);
+  const connected = me ? await googleConnected(me.email) : false;
   const r = settings.rates;
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <PageHeader title="Settings" intro="People, day costs and how the profit light works." />
+      <Card title="Google Drive and Calendar">
+        <GoogleSettings connected={connected} mode={google.mode} preview={previewMode} />
+      </Card>
       <Card title="People">
         <p className="mb-4 text-[15px] text-muted">
           Day cost is what a day on site costs Batt for that person, at full cost with van, tools and overheads, worked out from the Labour Cost Rates sheet. It&apos;s used for profit, not for pricing.

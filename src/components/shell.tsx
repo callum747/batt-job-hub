@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { LogOut, Menu, Search } from "lucide-react";
 import { NAV, isActive } from "./nav-items";
 import { SignOutButton } from "./sign-out";
+import { ConnectGoogleButton } from "./connect-google";
 
 type Person = { name: string; email: string };
 
@@ -27,7 +28,7 @@ function initials(name: string) {
     .join("");
 }
 
-export function Shell({ person, preview, children }: { person: Person; preview: boolean; children: React.ReactNode }) {
+export function Shell({ person, preview, needsGoogle, children }: { person: Person; preview: boolean; needsGoogle?: boolean; children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
@@ -94,6 +95,12 @@ export function Shell({ person, preview, children }: { person: Person; preview: 
           </label>
           </form>
         </div>
+        {needsGoogle && (
+          <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-blue-soft px-4 py-2 text-center text-[14px] md:px-8">
+            One more step: let the app use your Google Drive and Calendar.
+            <ConnectGoogleButton className="font-semibold underline underline-offset-4">Connect Google</ConnectGoogleButton>
+          </p>
+        )}
         {preview && (
           <p className="bg-surface px-4 py-2 text-center text-[14px] text-muted md:px-8">
             Preview on this computer only. Sign-in switches on once Google is set up.

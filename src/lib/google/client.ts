@@ -134,3 +134,21 @@ export async function googleSettings(): Promise<GoogleSettings> {
 }
 
 export const errorText = (e: unknown) => (e instanceof GoogleError ? e.message : `Something went wrong talking to Google: ${(e as Error).message}`);
+
+/** Read-only look at a folder or calendar, for the connection check in Settings. */
+export async function getFileCheck(email: string, id: string, kind: "folder" | "calendar" = "folder") {
+  try {
+    if (kind === "calendar") {
+      const c = await google<{ summary: string }>(email, `/calendar/v3/calendars/${encodeURIComponent(id)}`);
+      return { ok: true, detail: `Found "${c.summary}"` };
+    }
+    const f = await google<{ name: string; capabilities?: { canAddChildren?: boolean } }>(email, `/drive/v3/files/${encodeURIComponent(id)}`, {
+      query: { supportsAllDrives: true, fields: "name,capabilities(canAddChildren)" },
+    });
+    return f.capabilities?.canAddChildren === false
+      ? { ok: false, detail: `Found "${f.name}", but you can't add folders to it` }
+      : { ok: true, detail: `Found "${f.name}"` };
+  } catch (e) {
+    return { ok: false, detail: errorText(e) };
+  }
+}

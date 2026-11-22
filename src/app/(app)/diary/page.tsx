@@ -1,65 +1,31 @@
-import Link from "next/link";
-import { ExternalLink } from "lucide-react";
 import { PageHeader } from "@/components/page";
-import { PeopleChips } from "@/components/ui";
-import { getPeople, listVisits } from "@/lib/data";
-import { todayUK, ukDate } from "@/lib/jobs-rules";
+import { getPeople, listJobs, listVisits } from "@/lib/data";
+import { addDay } from "@/lib/google/format";
+import { jobLabel, OPEN_STAGES, todayUK } from "@/lib/jobs-rules";
+import { Planner } from "./planner";
 
 export const metadata = { title: "Diary" };
 
-function addDays(iso: string, n: number) {
+/** The Monday of the week a date falls in. */
+function mondayOf(iso: string) {
   const d = new Date(iso + "T12:00:00Z");
-  d.setUTCDate(d.getUTCDate() + n);
-  return d.toISOString().slice(0, 10);
+  return addDay(iso, -((d.getUTCDay() + 6) % 7));
 }
 
-export default async function DiaryPage() {
+export default async function DiaryPage({ searchParams }: { searchParams: Promise<{ week?: string }> }) {
+  const { week } = await searchParams;
   const today = todayUK();
-  const [visits, people] = await Promise.all([listVisits(addDays(today, -7), addDays(today, 120)), getPeople(true)]);
-  const byDay = new Map<string, typeof visits>();
-  for (const v of visits) byDay.set(v.date, [...(byDay.get(v.date) ?? []), v]);
+  const monday = mondayOf(week && /^\d{4}-\d{2}-\d{2}$/.test(week) ? week : today);
+  const days = Array.from({ length: 7 }, (_, i) => addDay(monday, i));
+  const [visits, people, jobs] = await Promise.all([listVisits(days[0], days[6]), getPeople(true), listJobs()]);
+  const options = jobs
+    .filter((j) => OPEN_STAGES.includes(j.stage))
+    .map((j) => ({ id: j.id, label: `${jobLabel(j)} ${j.client_name ?? "No client"}${j.site ? `, ${j.site}` : ""}`.slice(0, 80) }));
 
   return (
-    <div className="mx-auto max-w-4xl">
-      <PageHeader title="Diary" intro="Visits from last week onwards. The week planner with drag to reassign comes next." />
-      {byDay.size === 0 && <p className="rounded-2xl bg-surface px-5 py-10 text-center text-muted">Nothing booked.</p>}
-      <div className="space-y-6">
-        {[...byDay.entries()].map(([day, list]) => (
-          <section key={day}>
-            <h2 className={`mb-2 text-[17px] font-semibold ${day < today ? "text-muted" : ""}`}>
-              {day === today ? "Today" : ukDate(day, { weekday: true })} <span className="font-normal text-muted">{ukDate(day)}</span>
-            </h2>
-            <ul className="divide-y divide-line rounded-2xl border border-line">
-              {list.map((v) => (
-                <li key={v.id} className="flex flex-col gap-2 px-5 py-4 sm:flex-row sm:items-center sm:gap-4">
-                  <span className="w-28 shrink-0 text-[15px] text-muted">
-                    {v.start_time ? `${v.start_time.slice(0, 5)}${v.end_time ? `–${v.end_time.slice(0, 5)}` : ""}` : "All day"}
-                    {!v.confirmed && <span className="block">Pencilled in</span>}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium">
-                      {v.job_id ? (
-                        <Link href={`/jobs/${v.job_number ?? v.job_id}`} className="underline-offset-4 hover:underline">
-                          {v.job_number ? `#${v.job_number}` : v.job_ref || "Job"} {v.client_name}
-                        </Link>
-                      ) : (
-                        "Not on a job"
-                      )}
-                    </p>
-                    <p className="truncate text-[15px] text-muted">{[v.work, v.site].filter(Boolean).join(" · ")}</p>
-                  </div>
-                  <PeopleChips ids={v.people} people={people} size="sm" />
-                  {v.calendar_link && (
-                    <a href={v.calendar_link} target="_blank" rel="noreferrer" className="text-muted hover:text-text" aria-label="Open in Google Calendar">
-                      <ExternalLink className="h-5 w-5" aria-hidden="true" />
-                    </a>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
-      </div>
-    </div>
+    <>
+      <PageHeader title="Diary" intro="Who is where. Drag a visit to another person or day to move it." />
+      <Planner days={days} today={today} visits={visits} people={people} jobs={options} prev={addDay(monday, -7)} next={addDay(monday, 7)} thisWeek={mondayOf(today)} />
+    </>
   );
 }

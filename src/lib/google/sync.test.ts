@@ -21,8 +21,8 @@ d("Drive and Calendar sync", () => {
   let drive: typeof import("./drive");
   let calendar: typeof import("./calendar");
   let calls: Call[] = [];
-  let files: F[] = [];
-  let events: Record<string, { calendar: string; body: Record<string, unknown> }> = {};
+  const files: F[] = [];
+  const events: Record<string, { calendar: string; body: Record<string, unknown> }> = {};
   let n = 0;
   const T = { Live: "1FA7pYfN2RCerMXHRQwePGS3KDfPRhUpS", Lost: "1_5yE7283nhE4IfoagBCcykYquIaQwrFh", Active: "18LaO6Ug4v2_2UD9OTTrAO9uNMH6Mpjr_", Completed: "1JX2ZsJuppISjolwCWZxhpRIBk9GDlsE5" };
   const REAL_LIVE = "1nO9zd2wLMahtVCg4WKx9wxuCN7dK5R98";

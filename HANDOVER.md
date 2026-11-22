@@ -14,6 +14,13 @@ See `.env.example` for the full list: `DATABASE_URL`, `GOOGLE_CLIENT_ID`, `GOOGL
 In Google Cloud > Google Auth Platform > Clients > Batt Job Hub, the **Authorised redirect URI** must be
 `https://<the app's address>/api/auth/callback/google`.
 
+## Google Drive and Calendar
+- Each person presses **Connect Google** once. Their permission is stored encrypted in the `google_tokens` table and the app acts in Google as them.
+- The Google Cloud project needs these APIs switched on: Google Drive API and Google Calendar API (Docs, Sheets and Gmail are used by later phases).
+- **Test mode and live** are in Settings. The folder and calendar IDs for both are in the `settings` table under the key `google`.
+- The app only ever moves a job folder that is already in one of its four folders (Live, Lost, Active, Completed) for the mode it is in. Anything elsewhere is left alone.
+- A visit's calendar entry is only changed or removed if it is on the calendar the app is currently using.
+
 ## Commands
 - `npm install`: install everything
 - `npm run migrate`: bring the database up to date (safe to run any time; the deployment does it on every start)
@@ -40,4 +47,5 @@ Replit's database has its own restore points. Before any big change, also downlo
 - `src/lib/money.ts`: profit and margin (with tests beside it)
 - `src/lib/jobs-rules.ts`: job numbers, stages, dates
 - `src/lib/mutations.ts`: stage changes and job numbering
+- `src/lib/google/`: Drive folders, calendar entries and the naming rules (with tests)
 - `src/app/(app)/`: the screens
