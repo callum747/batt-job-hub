@@ -9,6 +9,8 @@ import { audit, changeStage } from "@/lib/mutations";
 import { removeVisitEvent, syncVisit } from "@/lib/google/calendar";
 import { errorText, getFileCheck, googleConnected, googleSettings, type GoogleArea } from "@/lib/google/client";
 import { syncJobFolder } from "@/lib/google/drive";
+import { loadPriceList, priceJob } from "@/lib/google/pricing-run";
+import type { PricingInput } from "@/lib/pricing";
 
 async function who() {
   const p = await currentPerson();
@@ -332,4 +334,39 @@ export async function checkGoogle(): Promise<Check[]> {
     out.push({ label: "Test calendar", ok: true, detail: "Will be made the first time a visit is booked in test mode." });
   }
   return out;
+}
+
+export async function runPricing(jobId: string, input: PricingInput) {
+  const me = await who();
+  const clean: PricingInput = {
+    items: (input.items ?? []).map((it) => ({
+      area: String(it.area ?? ""),
+      key: it.key === null ? null : String(it.key),
+      description: String(it.description ?? ""),
+      qty: Number(it.qty),
+      ...(it.key === null ? { materialEach: Number(it.materialEach), hoursEach: Number(it.hoursEach) } : {}),
+    })),
+    miles: Number(input.miles),
+    people: Math.round(Number(input.people)),
+    vans: Math.round(Number(input.vans)),
+    parking: Number(input.parking) || 0,
+    waste: Number(input.waste) || 0,
+    access: Number(input.access) || 0,
+    other: Number(input.other) || 0,
+    oneElectrician: Boolean(input.oneElectrician),
+  };
+  const r = await priceJob(jobId, clean, me);
+  refreshJobs();
+  return r;
+}
+
+export async function refreshPriceList() {
+  const me = await who();
+  try {
+    const { products } = await loadPriceList(me.email, true);
+    refreshJobs();
+    return { ok: true, message: `Price list refreshed: ${products.length} products.` };
+  } catch (e) {
+    return { ok: false, message: errorText(e) };
+  }
 }

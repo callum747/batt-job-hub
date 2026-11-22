@@ -2,6 +2,15 @@
 
 Plain-English notes on what's new in the Batt Job Hub, newest first.
 
+## 22/11/2026: Pricing (first half of Phase 3)
+- **Price a job** on its Quote & money tab. Pick items from your price list (start typing "double socket"), give the area and quantity, and add the round-trip miles, people on site, vans and any parking, waste or hire costs.
+- **Items not on the price list** can be added with their material cost and labour hours each. The app never guesses these.
+- **The pricing spreadsheet does the sums.** Each pricing copies your pricing template into the job's 01 - Quote & Contract folder, writes the items in, and reads back the price, VAT, profit and margin. A second pricing makes a new copy ("rev 2"); nothing is overwritten.
+- **The result** shows on the job: ex VAT, inc VAT, margin against the sheet's 18% target with a green, amber or red light, each line's amount, and a link to the sheet.
+- **Pricing an enquiry gives it its job number** and makes its Drive folder.
+- If the sheet can't price a line, or the lines don't add up to the sheet's total, the app says so and saves nothing.
+- Checked against your real sheet: 8 x "Double socket | Click | White Plastic" comes to £544.29.
+
 ## 22/11/2026: Drive folders and the diary (Phase 2)
 - **Connect Google**: a bar at the top asks each of you, once, to let the app use your Google Drive and Calendar.
 - **Job folders**: when a job gets its number, the app makes its Drive folder (`557 – Client – Site`) with the eight standard subfolders. When the stage changes, the folder moves between Live, Active, Completed and Lost. If Google has a problem, the job shows what went wrong with a Try again button.

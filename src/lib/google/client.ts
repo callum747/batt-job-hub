@@ -13,6 +13,8 @@ export const GOOGLE_SCOPES = [
 const NEEDED = GOOGLE_SCOPES.slice(3);
 
 const API = process.env.GOOGLE_API_BASE || "https://www.googleapis.com";
+/** Google Sheets lives on its own address. */
+export const SHEETS = process.env.GOOGLE_SHEETS_BASE || "https://sheets.googleapis.com";
 const TOKEN_URL = process.env.GOOGLE_TOKEN_URL || "https://oauth2.googleapis.com/token";
 
 /** An error with a message written for Callum and Cam, not for a developer. */
@@ -101,7 +103,7 @@ export async function google<T>(
   opts: { method?: string; query?: Query; body?: unknown } = {},
 ): Promise<T> {
   const token = await accessToken(email);
-  const url = new URL(API + path);
+  const url = new URL(path.startsWith("http") ? path : API + path);
   for (const [k, v] of Object.entries(opts.query ?? {})) if (v !== undefined) url.searchParams.set(k, String(v));
   const res = await fetch(url, {
     method: opts.method ?? "GET",

@@ -54,6 +54,7 @@ export type JobRow = {
   drive_folder_id: string;
   drive_folder_url: string;
   drive_error: string;
+  pricing: import("./google/pricing-run").SavedPricing | null;
   links: { name: string; url: string }[];
   notes: string;
   updated_at: string;
@@ -78,6 +79,7 @@ export type VisitRow = {
 };
 
 export type VariationRow = { id: string; job_id: string; description: string; amount: number; approved: boolean; date: string | null };
+export type LineRow = { id: string; kind: string; description: string; detail: string; qty: number; rate: number; cost: number; amount: number };
 export type CostRow = { id: string; job_id: string; kind: string; description: string; amount: number; date: string | null; file_url: string };
 
 export type ClientRow = {
@@ -198,15 +200,16 @@ export async function findJob(ref: string) {
 }
 
 export async function jobDetail(jobId: string) {
-  const [visits, variations, costs] = await Promise.all([
+  const [visits, variations, costs, lines] = await Promise.all([
     sql<VisitRow[]>`
       select v.id, v.job_id, v.date, v.start_time::text, v.end_time::text, v.work, v.site, v.confirmed, v.calendar_link, v.calendar_error, v.notes,
         coalesce((select array_agg(vp.person_id) from visit_people vp where vp.visit_id = v.id), '{}') as people
       from visits v where v.job_id = ${jobId} order by v.date, v.start_time nulls first`,
     sql<VariationRow[]>`select id, job_id, description, amount, approved, date from variations where job_id = ${jobId} order by created_at`,
     sql<CostRow[]>`select id, job_id, kind::text, description, amount, date, file_url from costs where job_id = ${jobId} order by date nulls last, created_at`,
+    sql<LineRow[]>`select id, kind, description, detail, qty, rate, cost, amount from quote_lines where job_id = ${jobId} order by position`,
   ]);
-  return { visits: plain(visits), variations: plain(variations), costs: plain(costs) };
+  return { visits: plain(visits), variations: plain(variations), costs: plain(costs), lines: plain(lines) };
 }
 
 export async function listClients() {

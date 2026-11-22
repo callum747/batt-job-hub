@@ -12,6 +12,9 @@ import { ConnectGoogleButton } from "@/components/connect-google";
 import { secondaryBtn } from "@/components/ui";
 import { JobVisits } from "../job-visits";
 import { FolderButton } from "../job-files";
+import { PricingForm, SheetLink } from "../pricing-form";
+import { loadPriceList } from "@/lib/google/pricing-run";
+import { pricingLight, type Product } from "@/lib/pricing";
 import { JobForm } from "../job-form";
 import { NoteForm, NotesText, PeopleControl, StageControl, Variations } from "../job-controls";
 
@@ -178,7 +181,7 @@ export default async function JobPage({ params, searchParams }: { params: Promis
                 </ul>
               </Card>
             )}
-            <p className="text-[15px] text-muted">Pricing with the pricing spreadsheet and making the quote document come next, in the quotes step.</p>
+            <PricingCard job={job} lines={detail.lines} redBelow={settings.margins.red} />
           </>
         )}
 
@@ -306,5 +309,92 @@ async function FilesTab({ job }: { job: { id: string; number: number | null; dri
         )}
       </div>
     </Card>
+  );
+}
+
+async function PricingCard({ job, lines, redBelow }: { job: Awaited<ReturnType<typeof findJob>> & object; lines: Awaited<ReturnType<typeof jobDetail>>["lines"]; redBelow: number }) {
+  const me = await currentPerson();
+  const connected = me ? await googleConnected(me.email) : false;
+  let products: Product[] = [];
+  let listDate = "";
+  let problem = "";
+  if (connected) {
+    try {
+      const list = await loadPriceList(me!.email);
+      products = list.products;
+      listDate = ukDate(list.fetchedAt.slice(0, 10));
+    } catch (e) {
+      problem = errorText(e);
+    }
+  }
+  const p = job.pricing;
+  const light = p ? pricingLight(p.result, redBelow) : "none";
+  return (
+    <>
+      {p && (
+        <Card title="Priced quote" action={<SheetLink url={p.sheetUrl} />}>
+          <dl className="grid grid-cols-3 gap-3">
+            <div className="rounded-xl bg-surface p-3">
+              <dt className="text-[13px] text-muted">Ex VAT</dt>
+              <dd className="text-[20px] font-semibold tabular-nums">{gbp(p.result.sellExVat)}</dd>
+            </div>
+            <div className="rounded-xl bg-surface p-3">
+              <dt className="text-[13px] text-muted">Inc VAT</dt>
+              <dd className="text-[20px] font-semibold tabular-nums">{gbp(p.result.sellIncVat)}</dd>
+            </div>
+            <div className="rounded-xl bg-surface p-3">
+              <dt className="flex items-center gap-1.5 text-[13px] text-muted">
+                Margin <LightDot light={light} className="h-2.5 w-2.5" />
+              </dt>
+              <dd className="text-[20px] font-semibold tabular-nums">{p.result.netMargin}%</dd>
+              <dd className="text-[13px] text-muted">target {p.result.targetMargin}%</dd>
+            </div>
+          </dl>
+          <table className="mt-4 w-full text-left text-[15px]">
+            <thead className="text-[13px] text-muted">
+              <tr>
+                <th className="py-2 font-medium">Item</th>
+                <th className="py-2 text-right font-medium">Qty</th>
+                <th className="py-2 text-right font-medium">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lines.map((l) => (
+                <tr key={l.id} className="border-t border-line">
+                  <td className="py-2.5 pr-3">
+                    {l.description}
+                    {l.detail && <span className="block text-[14px] text-muted">{l.detail}</span>}
+                  </td>
+                  <td className="py-2.5 text-right tabular-nums">{l.kind === "item" ? l.qty : ""}</td>
+                  <td className="py-2.5 text-right tabular-nums">{gbp(l.amount)}</td>
+                </tr>
+              ))}
+              <tr className="border-t border-line font-semibold">
+                <td className="py-2.5">Total ex VAT</td>
+                <td />
+                <td className="py-2.5 text-right tabular-nums">{gbp(p.result.sellExVat)}</td>
+              </tr>
+            </tbody>
+          </table>
+          <p className="mt-3 text-[14px] text-muted">
+            Priced by {p.by} on {ukDate(p.pricedAt.slice(0, 10))}
+            {p.revision > 1 ? `, revision ${p.revision}` : ""}. The sheet expects {gbp(p.result.netProfit)} net profit from {p.result.labourHours.toFixed(1)} labour hours.
+            {light !== "green" && " The margin is below target: check the sheet before quoting."}
+          </p>
+        </Card>
+      )}
+      <Card title={p ? "Change the pricing" : "Price this job"}>
+        {!connected ? (
+          <div className="rounded-xl bg-surface p-4">
+            <p className="mb-3">Connect Google to price jobs with the pricing spreadsheet.</p>
+            <ConnectGoogleButton className={secondaryBtn}>Connect Google</ConnectGoogleButton>
+          </div>
+        ) : problem ? (
+          <p className="rounded-xl border border-warn/30 bg-warn/10 px-4 py-3 text-[15px]">Couldn&apos;t read the price list. {problem}</p>
+        ) : (
+          <PricingForm jobId={job.id} products={products} listDate={listDate} saved={p?.input ?? null} miles={job.miles_round_trip} />
+        )}
+      </Card>
+    </>
   );
 }

@@ -14,6 +14,14 @@ Things that weren't spelled out in the brief or the playbook. Say if any should 
 9. **Jobs numbered while in test mode** get their folder in the test area. After going live, those folders stay in the test area; move them by hand or ask Claude to.
 10. **Removing a visit** asks you to confirm, then removes it from the calendar too.
 
+## Phase 3: Pricing
+11. **Every pricing is a fresh copy of the pricing sheet**, named "557 – Site – Pricing", then "rev 2", "rev 3". Old copies are kept, never deleted.
+12. **Quote lines from a pricing** are one line per item (labour and materials together), plus "Travel and site costs" when there are any, plus "Minimum charge (half a day)" when a small job is lifted to the minimum. How these are worded on the quote document is decided when the quote is built.
+13. **Pennies:** each line is rounded to the penny. If the lines come out a few pence different from the sheet's total, the largest line is adjusted so they add up to the sheet's price exactly. More than 5p out and the app refuses.
+14. **The price list is read from the pricing template once a day**, with a button to refresh it straight away.
+15. **Labour difficulty** is left at the sheet's default (Easy) for every line. Say if you want to choose it per line.
+16. **In test mode the app won't save a pricing sheet into a real job folder.** Price a new test job instead, or go live.
+
 ## Still needed from Callum
 - **Jed's email address** (the one his Google Calendar uses). Without it he can't be invited to visits. Add it in Settings, under People.
 - **Round-trip miles** for each live job, on the job's Details tab, so travel is counted in profit.
