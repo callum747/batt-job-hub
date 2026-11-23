@@ -19,6 +19,7 @@ import { jobThreads, threadText } from "../google/gmail";
 import { linkEmailToJob, linkedThreads, listInbox } from "../inbox";
 import { findEmail, jobSearch, unescapeHtml } from "../email";
 import { draftQuoteEmail, quoteEmailStart } from "../quote-email";
+import { listAllJobFiles, readJobFile, type FileContents } from "../google/job-files";
 
 export type Me = { email: string; name: string };
 type Tool = {
@@ -28,6 +29,12 @@ type Tool = {
   schema: z.ZodObject;
   run: (input: never, me: Me) => Promise<unknown>;
 };
+
+/** A tool result that carries a file (text, a PDF or a photo) for the assistant to read, not just words. */
+class FileResult {
+  constructor(public file: FileContents) {}
+}
+export type ResultBlocks = FileContents["blocks"];
 
 const jobRef = z.string().min(1).describe('The job number, e.g. "559" or "#559", or an old reference like "Q-543".');
 
@@ -359,6 +366,36 @@ const tools: Tool[] = [
     },
   },
   {
+    name: "job_files",
+    label: (i) => `Looking in the Drive folder for job ${i.job ?? ""}`,
+    description:
+      "Lists every file in a job's Google Drive folder and its subfolders (Quote, Drawings & Specs, Photos, Invoices and so on): name, subfolder, kind, size, date changed, link and id. Use this whenever the user mentions a file, quote, drawing, photo or document for a job, or says something is in Drive, before asking them for anything. Then open what you need with read_file.",
+    schema: z.object({ job: jobRef }),
+    run: async (i: { job: string }, me) => {
+      const job = await mustFind(i.job);
+      if (!job.drive_folder_id) return { ok: false, message: "This job has no Drive folder yet. It gets one when the job is given a number, or press Check Drive on the job's page." };
+      const { files, more } = await listAllJobFiles(me.email, job.drive_folder_id);
+      return {
+        job: jobLabel(job), folder_link: job.drive_folder_url || null, count: files.length,
+        ...(more ? { note: "There are more files than this; only the first 400 are listed." } : {}),
+        files: files.map(({ mimeType, ...f }) => (void mimeType, f)),
+      };
+    },
+  },
+  {
+    name: "read_file",
+    label: () => "Opening a file from the job's Drive folder",
+    description:
+      "Opens one file from a job's Drive folder so you can read it: Google Docs, Sheets and Slides, PDFs (quotes, drawings, invoices, specifications), photos and text files. Takes the file id from job_files. Only files inside that job's folder can be opened. Read only: it never changes the file.",
+    schema: z.object({ job: jobRef, file_id: z.string().min(5).describe("The id of the file, from job_files.") }),
+    run: async (i: { job: string; file_id: string }, me) => {
+      const job = await mustFind(i.job);
+      if (!job.drive_folder_id) return { ok: false, message: "This job has no Drive folder yet." };
+      const r = await readJobFile(me.email, job.drive_folder_id, i.file_id);
+      return new FileResult(r);
+    },
+  },
+  {
     name: "set_stage",
     label: (i) => `Moving job ${i.job} to ${i.stage}`,
     description:
@@ -425,13 +462,17 @@ export function toolLabel(name: string, input: unknown) {
 }
 
 /** Runs one tool. Never throws: problems come back as an error result the assistant can read and explain. */
-export async function runTool(name: string, input: unknown, me: Me): Promise<{ ok: boolean; content: string }> {
+export async function runTool(name: string, input: unknown, me: Me): Promise<{ ok: boolean; content: string; blocks?: ResultBlocks }> {
   const t = byName.get(name);
   if (!t) return { ok: false, content: `No tool called ${name}.` };
   const parsed = t.schema.safeParse(input);
   if (!parsed.success) return { ok: false, content: `INVALID_INPUT: ${z.prettifyError(parsed.error)}` };
   try {
     const out = await t.run(parsed.data as never, me);
+    if (out instanceof FileResult) {
+      const content = JSON.stringify(out.file.summary);
+      return { ok: true, content, blocks: [{ type: "text", text: content }, ...out.file.blocks] };
+    }
     const failed = typeof out === "object" && out !== null && "ok" in out && (out as { ok: unknown }).ok === false;
     return { ok: !failed, content: JSON.stringify(out) };
   } catch (e) {

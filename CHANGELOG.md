@@ -161,3 +161,8 @@ Plain-English notes on what's new in the Batt Job Hub, newest first.
 - The app has the Batt look: white background, Batt blue, the cube logo, Inter text. It follows your phone or laptop's light or dark setting.
 - Laptop: menu down the left. Phone: bar along the bottom.
 - Sign in with Google only lets in @battelectrical.com accounts.
+
+## Ask can read a job's Drive files
+- Ask can now list everything in a job's Drive folder and open Google Docs, Sheets, Slides, PDFs, photos and text files to read them. Read only: it can't change, move or delete anything.
+- It only opens files inside that job's own folder. Word and Excel files can't be read yet (it gives the link instead). PDFs over 12 MB are too big.
+- It's told to look in Drive itself before asking you for a document.

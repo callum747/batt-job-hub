@@ -21,6 +21,10 @@ vi.mock("../google/pricing-run", () => ({
 }));
 vi.mock("../google/quote-run", () => ({ buildShortQuote: vi.fn(), buildLongQuote: vi.fn() }));
 vi.mock("../google/gmail", () => ({ jobThreads: vi.fn(async () => ({ threads: [], problems: [] })), createDraft: vi.fn(), driveFileBytes: vi.fn(), threadText: vi.fn(), inboxThreads: vi.fn(async () => []) }));
+vi.mock("../google/job-files", () => ({
+  listAllJobFiles: vi.fn(async () => ({ files: [{ id: "file-pdf-1", name: "Quote.pdf", folder: "01 - Quote", kind: "PDF", sizeKb: 200, modified: "2026-11-20", link: "https://drive/p", mimeType: "application/pdf" }], more: false })),
+  readJobFile: vi.fn(async () => ({ summary: { name: "Quote.pdf", kind: "PDF" }, blocks: [{ type: "document", source: { type: "base64", media_type: "application/pdf", data: "QUJD" } }] })),
+}));
 vi.mock("../google/client", () => ({
   errorText: (e: unknown) => (e instanceof Error ? e.message : String(e)),
   googleSettings: async () => ({ mode: "test" }),
@@ -128,6 +132,21 @@ d("the assistant", () => {
     expect(missing).toEqual({ ok: false, content: "There's no job 9999. Use find_jobs to look it up." });
     expect((await tools.runTool("price_job", { job: "559", items: [{ area: "Kitchen", key: "Nope", qty: 1 }], miles: 24, people: 2, vans: 1 }, me)).ok).toBe(false);
     expect((await tools.runTool("make_quote", { job: "559" }, me)).content).toMatch(/Price the job first/);
+  });
+
+  it("lists and opens a job's Drive files, and drops the file itself from later turns", async () => {
+    expect(JSON.parse((await tools.runTool("job_files", { job: "558" }, me)).content).message).toMatch(/no Drive folder yet/);
+    await sql`update jobs set drive_folder_id = 'folder559' where number = 559`;
+    const list = JSON.parse((await tools.runTool("job_files", { job: "559" }, me)).content);
+    expect(list).toMatchObject({ job: "#559", count: 1, files: [{ id: "file-pdf-1", folder: "01 - Quote", kind: "PDF" }] });
+    expect(list.files[0]).not.toHaveProperty("mimeType");
+    const opened = await tools.runTool("read_file", { job: "559", file_id: "file-pdf-1" }, me);
+    expect(opened.ok).toBe(true);
+    expect(opened.blocks!.map((b) => b.type)).toEqual(["text", "document"]);
+    const kept = run.slim([{ role: "user", content: [{ type: "tool_result", tool_use_id: "t", content: opened.blocks }] }]);
+    const result = (kept[0].content as { content: { type: string; text?: string }[] }[])[0].content;
+    expect(result.map((b) => b.type)).toEqual(["text", "text"]);
+    expect(result[1].text).toMatch(/Open it again with read_file/);
   });
 
   it("runs a turn: calls a tool, answers, and saves the conversation", async () => {
