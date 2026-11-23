@@ -103,3 +103,10 @@ describe("calendar event", () => {
     expect(eventBody(base).description).toBe("Client: Hastings Fitness\nContact: Gwen\nWork: Meter survey\nJob folder: https://drive.google.com/drive/folders/abc");
   });
 });
+
+describe("quote references", () => {
+  it("numbers each quote for a job after a slash", async () => {
+    const { quoteRef } = await import("./format");
+    expect([quoteRef(557, 1), quoteRef(557, 2), quoteRef(557, 0)]).toEqual(["#557/1", "#557/2", "#557/1"]);
+  });
+});

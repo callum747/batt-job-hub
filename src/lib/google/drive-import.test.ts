@@ -65,7 +65,7 @@ d("Drive folders made by hand", () => {
     expect(r.created.sort()).toEqual(["540 – Old Client", "560 – Smith Homes – 4 Oak Road, Aylesbury"]);
     expect(r.linked).toEqual(["558 - Test Co - Depot"]);
     expect(r.clashes).toEqual(["557 – Someone – Elsewhere (job #557 already has a different folder)"]);
-    const jobs = await sql`select j.number, j.stage, j.site, c.name as client, j.drive_folder_id from jobs j left join clients c on c.id = j.client_id order by j.number`;
+    const jobs = await sql`select j.number, j.stage, j.site, c.name as client, j.drive_folder_id from jobs j left join clients c on c.id = j.client_id where j.number not in (506, 526, 531) order by j.number`;
     expect(jobs.map((j) => ({ ...j }))).toEqual([
       { number: 540, stage: "Lost", site: "", client: "Old Client", drive_folder_id: "f540" },
       { number: 557, stage: "Quoted", site: "x", client: "Test Co", drive_folder_id: "f557" },

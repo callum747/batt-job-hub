@@ -14,6 +14,7 @@ import { loadPriceList, priceJob } from "../google/pricing-run";
 import { buildLongQuote, buildShortQuote } from "../google/quote-run";
 import { draftLongQuote, draftShortQuote, isPriced, loadClient, preparedByFor, productsFor, suggestLong } from "../quote-drafts";
 import { errorText } from "../google/client";
+import { quoteRef } from "../google/format";
 import { jobAddress, roundTripMiles } from "../google/miles";
 import { jobThreads, threadText } from "../google/gmail";
 import { linkEmailToJob, linkedThreads, listInbox } from "../inbox";
@@ -104,7 +105,7 @@ const tools: Tool[] = [
           result: job.pricing.result,
         },
         quote_lines: detail.lines.map((l) => ({ kind: l.kind, description: l.description, detail: l.detail, qty: l.qty, amount: l.amount })),
-        documents: docs.map((d) => ({ kind: d.kind, name: d.name, doc: d.url, pdf: d.pdf_url || null, pages: d.pages, made: d.created_at.slice(0, 16) })),
+        documents: docs.map((d) => ({ kind: d.kind, ...(d.kind === "quote" && job.number !== null ? { quote_ref: quoteRef(job.number, d.revision) } : {}), name: d.name, doc: d.url, pdf: d.pdf_url || null, pages: d.pages, made: d.created_at.slice(0, 16) })),
         visits: detail.visits.map((v) => ({ date: v.date, start: v.start_time?.slice(0, 5) ?? null, end: v.end_time?.slice(0, 5) ?? null, work: v.work })),
         variations: detail.variations.map((v) => ({ description: v.description, amount: v.amount, approved: v.approved })),
         app_link: `/jobs/${job.number ?? job.id}`,

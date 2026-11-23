@@ -1,4 +1,5 @@
 import "server-only";
+import { quoteRef } from "./format";
 import { sql } from "../db";
 import { audit } from "../mutations";
 import { leftoverPlaceholders, pdfPageCount, type Doc, type Request } from "../docs";
@@ -41,7 +42,7 @@ export async function exportPdf(email: string, docId: string) {
 export type QuoteOutcome = { ok: boolean; message: string; problems?: string[]; docUrl?: string; pdfUrl?: string; pages?: number };
 
 /** What every quote template needs: its checks and its three passes. */
-export type Filler<Q extends { number: number; total: number }> = {
+export type Filler<Q extends { number: number; total: number; ref?: string }> = {
   template: "quoteShort" | "quoteLong" | "surveyProposal";
   label: string; // "Quote", "Survey Proposal"
   check: (q: Q) => string[];
@@ -85,12 +86,13 @@ export const buildShortQuote = (jobId: string, q: ShortQuote, me: { email: strin
  * Makes a quote or proposal: copies the template into the job's 01 folder, fills it in three
  * passes (each on a fresh read), checks nothing in square brackets is left, then saves a PDF beside it.
  */
-export async function buildDocument<Q extends { number: number; total: number }>(
+export async function buildDocument<Q extends { number: number; total: number; ref?: string }>(
   jobId: string,
   filler: Filler<Q>,
-  q: Q,
+  asked: Q,
   me: { email: string; name: string },
 ): Promise<QuoteOutcome> {
+  let q = asked;
   const problems = filler.check(q);
   if (problems.length) return { ok: false, message: "A few things need fixing before the document can be made.", problems };
   let docUrl = "";
@@ -103,9 +105,12 @@ export async function buildDocument<Q extends { number: number; total: number }>
     const folder = await quoteFolder(me.email, job.drive_folder_id);
     if (!folder) return { ok: false, message: "This job's Drive folder is a real one and the app is in test mode, so nothing was saved to it." };
 
-    const [{ n }] = await sql<{ n: number }[]>`select count(*)::int as n from documents where job_id = ${jobId} and kind = 'quote'`;
+    // Each quote for a job gets the next number after the slash: #557/1, #557/2, #557/3.
+    const [{ n }] = await sql<{ n: number }[]>`select coalesce(max(revision), 0)::int as n from documents where job_id = ${jobId} and kind = 'quote'`;
     const revision = n + 1;
-    const name = `#${job.number} – ${(job.site || job.client || "Job").replace(/[\\/]+/g, "-")} – ${filler.label}${revision > 1 ? ` rev ${revision}` : ""}`;
+    const ref = quoteRef(job.number, revision);
+    q = { ...q, ref };
+    const name = `${ref} – ${(job.site || job.client || "Job").replace(/[\\/]+/g, "-")} – ${filler.label}`;
 
     const copy = await google<{ id: string; webViewLink?: string }>(me.email, `/drive/v3/files/${await templateId(filler.template)}/copy`, {
       method: "POST",
@@ -145,7 +150,7 @@ export async function buildDocument<Q extends { number: number; total: number }>
       docUrl,
       pdfUrl: saved.url,
       pages,
-      message: `${filler.label} saved to the job's folder: ${pages} pages, ${q.total.toLocaleString("en-GB", { style: "currency", currency: "GBP" })} inc VAT. Open the PDF and read it through before sending.`,
+      message: `${filler.label} ${ref} saved to the job's folder: ${pages} pages, ${q.total.toLocaleString("en-GB", { style: "currency", currency: "GBP" })} inc VAT. Open the PDF and read it through before sending.`,
     };
   } catch (e) {
     return { ok: false, docUrl, message: `The document wasn't finished. ${errorText(e)}${docUrl ? " What was done so far is in the job's folder." : ""}` };

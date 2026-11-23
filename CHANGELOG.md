@@ -166,3 +166,7 @@ Plain-English notes on what's new in the Batt Job Hub, newest first.
 - Ask can now list everything in a job's Drive folder and open Google Docs, Sheets, Slides, PDFs, photos and text files to read them. Read only: it can't change, move or delete anything.
 - It only opens files inside that job's own folder. Word and Excel files can't be read yet (it gives the link instead). PDFs over 12 MB are too big.
 - It's told to look in Drive itself before asking you for a document.
+
+## Quote numbers and three jobs brought back
+- Each quote made for a job now has its own reference: the job number, a slash, then which quote it is (#557/1, #557/2, #557/3). It's in the document, the file name in Drive, the email and the job page. Survey proposals work the same way. Quotes already made keep their file names.
+- #506 (55 Willis Road), #526 (19 Back Street, Caswell) and #531 (90 Wycombe Road) are added back as live jobs at Quoted. Nothing in Drive was moved.

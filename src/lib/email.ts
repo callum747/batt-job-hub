@@ -71,6 +71,8 @@ export function firstName(contact: string): string | null {
 export type QuoteEmailArgs = {
   kind: "quote" | "survey";
   number: number;
+  /** The quote's own reference, e.g. #557/2. */
+  ref?: string;
   project: string;
   site: string;
   subtotal: number;
@@ -84,11 +86,11 @@ export function quoteEmail(a: QuoteEmailArgs): { subject: string; body: string }
   const doc = a.kind === "survey" ? "survey proposal" : "quotation";
   const name = firstName(a.contact);
   const what = [a.project.trim(), a.site.trim()].filter(Boolean).join(" at ");
-  const subject = `${a.kind === "survey" ? "Survey proposal" : "Quotation"} #${a.number}${a.project.trim() ? ` – ${a.project.trim()}` : ""}`;
+  const subject = `${a.kind === "survey" ? "Survey proposal" : "Quotation"} ${a.ref ?? `#${a.number}`}${a.project.trim() ? ` – ${a.project.trim()}` : ""}`;
   const body = [
     name ? `Hi ${name},` : "Hello,",
     "",
-    `Thanks for the opportunity to quote. Please find attached our ${doc} #${a.number}${what ? ` for ${what}` : ""}.`,
+    `Thanks for the opportunity to quote. Please find attached our ${doc} ${a.ref ?? `#${a.number}`}${what ? ` for ${what}` : ""}.`,
     "",
     `The total is ${gbp(a.subtotal)} + VAT (${gbp(a.total)} including VAT).`,
     "",

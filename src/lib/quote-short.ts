@@ -17,6 +17,8 @@ export type Person = { name: string; title: string; email: string };
 
 export type ShortQuote = {
   number: number;
+  /** The quote's own reference, e.g. #557/2. Set when the document is made. */
+  ref?: string;
   client: string;
   project: string; // short name for the job, e.g. "Kitchen sockets and new radial circuit"
   site: string; // address with postcode
@@ -141,7 +143,7 @@ export function structurePass(doc: Doc, q: ShortQuote): Request[] {
 export function textPass(doc: Doc, q: ShortQuote): Request[] {
   const l = locate(doc);
   const edits: (Edit | null)[] = [];
-  for (const p of l.ref) edits.push(replaceInParagraph(p, "Q-[000]", `#${q.number}`));
+  for (const p of l.ref) edits.push(replaceInParagraph(p, "Q-[000]", (q.ref ?? `#${q.number}`)));
   edits.push(setParagraph(l.client, clean(q.client)));
   edits.push(replaceInParagraph(l.projectLine, "[Site address, postcode]", clean(q.site)));
   edits.push(replaceInParagraph(l.projectLine, "[Project name]", clean(q.project)));

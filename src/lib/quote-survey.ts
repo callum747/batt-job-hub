@@ -12,6 +12,8 @@ import type { SurveyLine, SurveySite } from "./survey";
 
 export type SurveyQuote = {
   number: number;
+  /** The quote's own reference, e.g. #557/2. Set when the document is made. */
+  ref?: string;
   client: string;
   siteName: string; // for the cover and the thank-you line
   siteAddress: string; // with postcode
@@ -107,7 +109,7 @@ export function surveyStructurePass(doc: Doc, q: SurveyQuote): Request[] {
 export function surveyTextPass(doc: Doc, q: SurveyQuote): Request[] {
   const l = locateSurvey(doc);
   const edits: (Edit | null)[] = [];
-  for (const p of l.refs) edits.push(replaceInParagraph(p, "Q-[000]", `#${q.number}`));
+  for (const p of l.refs) edits.push(replaceInParagraph(p, "Q-[000]", (q.ref ?? `#${q.number}`)));
   edits.push(setParagraph(l.client, clean(q.client)));
   edits.push(replaceInParagraph(l.siteLine, "[Site address, postcode]", clean(q.siteAddress)));
   edits.push(replaceInParagraph(l.siteLine, "[Site name]", clean(q.siteName)));

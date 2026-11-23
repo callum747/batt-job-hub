@@ -7,6 +7,7 @@ import { audit } from "./mutations";
 import { todayUK } from "./jobs-rules";
 import { createDraft, driveFileBytes } from "./google/gmail";
 import { errorText } from "./google/client";
+import { quoteRef } from "./google/format";
 import { preparedByFor } from "./quote-drafts";
 
 export type EmailStart = { documentId: string; pdfName: string; pdfUrl: string; to: string; cc: string; subject: string; body: string };
@@ -24,6 +25,7 @@ export async function quoteEmailStart(job: JobRow, email: string): Promise<Email
   const { subject, body } = quoteEmail({
     kind: survey ? "survey" : "quote",
     number: q.number,
+    ref: quoteRef(q.number, doc.revision),
     project: survey ? "" : (q.project ?? ""),
     site: survey ? (q.siteName ?? q.siteAddress ?? "") : (q.site ?? job.site),
     subtotal: q.subtotal ?? 0,
@@ -33,7 +35,7 @@ export async function quoteEmailStart(job: JobRow, email: string): Promise<Email
   });
   return {
     documentId: doc.id,
-    pdfName: `${doc.name}.pdf`,
+    pdfName: `${doc.name.replace(/\//g, "-")}.pdf`,
     pdfUrl: doc.pdf_url,
     to: client?.email || findEmail(job.contact) || "",
     cc: "",

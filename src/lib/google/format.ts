@@ -77,6 +77,9 @@ function plusHour(hhmm: string) {
   return `${String(Math.min(h + 1, 23)).padStart(2, "0")}:${String(h + 1 > 23 ? 59 : m).padStart(2, "0")}`;
 }
 
+/** A quote's own reference: the job number, then which quote it is for that job. #557/1, #557/2, #557/3. */
+export const quoteRef = (number: number, revision: number) => `#${number}/${Math.max(1, revision)}`;
+
 /**
  * Reads a job folder's name the way Batt writes them: "#560 – Client – Site" (an en dash or a hyphen), or the
  * older "560 – …" and "Q-560 – …". Null for anything that doesn't start with a job number (templates, "00 - …", notes).
