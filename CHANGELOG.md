@@ -198,3 +198,5 @@ Plain-English notes on what's new in the Batt Job Hub, newest first.
 - Ask can find any folder or file in Batt's shared Drive by name, move it (for example out of the archive into Live), and rename it. Every change is in the audit log.
 - Ask can put things in Drive's bin, but only after it has told you exactly what will go and you have replied yes in your own next message. Google keeps binned items for 30 days.
 - It can't touch the top-level folders, the four stage folders, the templates or the ledger, or the folder of a job that's in the app. In test mode it only works inside the test folders.
+
+- The handbook now includes the handovers from the Quotes and Tenders chats and the brand project: people, how Callum and Cam like to work, call-out pricing, client history (Meterz, Ace Pro, ep8), outreach, brand rules, Drive housekeeping and mistakes to avoid.

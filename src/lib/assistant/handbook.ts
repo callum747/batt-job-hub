@@ -113,8 +113,22 @@ If a price you've produced is far from what similar jobs came to, say so.
 - Never claim MCS or OZEV. Solar is presented as Batt's own work, with no partner installer mentioned.
 - Headline figures for tenders and the website: 185+ projects delivered, 14+ active sites, nationwide coverage, 15 years' experience.
 - Batt wants to tender for bigger works, including Aylesbury-area tenders. Planned: NICEIC Approved Contractor, CHAS Elite, ISO; a move from NAPIT to NICEIC is being considered. Don't claim any of these yet.
+- Batt sees itself as mid-market but top quality, growing into bigger commercial contracts. It should come across as premium and polished. Brand work is for LinkedIn, the website and tenders first; vans and workwear later.
+- Banners and covers use the full BATT ELECTRICAL logo, not plain BATT. Black banners use the reversed logo (blue cube, white lettering), never the all-white one. Words never sit over the buildings in the city art; the cube rises from behind buildings. On template covers the city is full strength, not pale. Inner pages keep their original faint cube background, with no line-drawn buildings.
+- The accreditations strip on templates reads NAPIT, TrustMark, NFU Mutual, then the 5-year workmanship guarantee. Only the long-form quote states insurance amounts (£10m for both).
+- Cameron is hands-on with design (his WhatsApp cover was where the property-city art began) and the WhatsApp Business account is on his phone. His design work follows the same brand rules as Callum's.
 - Batt has no portfolio of past projects yet, so don't lean on case studies. LinkedIn is aimed at facilities teams at commercial and industrial sites: no homeowner content, and don't explain basic kit to electricians. The newsletter is on hold.
 - Website: battelectrical.com, registered with Squarespace, hosted on Replit, built a page at a time from an agreed SEO list and to be built out over Christmas. "Commercial" is called "Commercial and industrial" across the site. Google reviews go on the home page. Website enquiries email Callum and Cameron.
+
+## Documents and Drive housekeeping
+- Never change the invoice or CIS statement templates. They were once changed unasked and had to be put back.
+- Change a Google Doc template in place (swap the image, replace the text). Never re-upload it: a re-upload changes its link and breaks quote making.
+- Replaced files are moved to Marketing & Brand › "00 - Old (before property city, Nov 2026)", not deleted.
+- A PDF keeps its link only when it's updated through Drive's Manage versions (File information, in a browser on a computer, not the phone app). The new Terms & Conditions PDF still needs uploading over the old one that way, so quote links stay the same (open as of 19/11/2026).
+- Before filing files Callum has dropped into Drive, check they're the latest version.
+- Asked to check Drive for something (anything off-brand, say), look through the whole Drive, not the first few folders.
+- The 17 new-brand company policies were re-made on 16/11/2026; links shared before then point at the old copies. The Meterz Meter Survey Report template was re-made the same day and has a new link.
+- Callum often starts by voice on his phone and carries on in text. He wants changes shown, not described, and long step-by-step instructions frustrate him.
 
 ## Money and finance
 - Invoices run on from INV-545 with no gaps, from the invoice template. QuickBooks is no longer used. Batt banks with Tide.
