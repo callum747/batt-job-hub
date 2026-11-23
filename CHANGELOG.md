@@ -193,3 +193,8 @@ Plain-English notes on what's new in the Batt Job Hub, newest first.
 - Ask has a shared memory. Tell it a lasting rule ("from now on...", a client's new terms) and it saves it for both Callum and Cam. Ask "what do you remember?" to see the list, or tell it to forget one (it is switched off, not deleted).
 
 - The handbook now also covers invoicing, VAT or CIS, chasing, CIS both ways, bank lines and VAT, surveys, booking work in, and what each screen of the app does.
+
+## Ask can move, rename and bin things in Drive
+- Ask can find any folder or file in Batt's shared Drive by name, move it (for example out of the archive into Live), and rename it. Every change is in the audit log.
+- Ask can put things in Drive's bin, but only after it has told you exactly what will go and you have replied yes in your own next message. Google keeps binned items for 30 days.
+- It can't touch the top-level folders, the four stage folders, the templates or the ledger, or the folder of a job that's in the app. In test mode it only works inside the test folders.

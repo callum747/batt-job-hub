@@ -21,6 +21,7 @@ vi.mock("../google/pricing-run", () => ({
 }));
 vi.mock("../google/quote-run", () => ({ buildShortQuote: vi.fn(), buildLongQuote: vi.fn() }));
 vi.mock("../google/gmail", () => ({ jobThreads: vi.fn(async () => ({ threads: [], problems: [] })), createDraft: vi.fn(), driveFileBytes: vi.fn(), threadText: vi.fn(), inboxThreads: vi.fn(async () => []) }));
+vi.mock("../google/drive-actions", () => ({ driveFind: vi.fn(async () => []), driveMove: vi.fn(), driveRename: vi.fn(), driveBin: vi.fn() }));
 vi.mock("../google/job-files", () => ({
   listAllJobFiles: vi.fn(async () => ({ files: [{ id: "file-pdf-1", name: "Quote.pdf", folder: "01 - Quote", kind: "PDF", sizeKb: 200, modified: "2026-11-20", link: "https://drive/p", mimeType: "application/pdf" }], more: false })),
   readJobFile: vi.fn(async () => ({ summary: { name: "Quote.pdf", kind: "PDF" }, blocks: [{ type: "document", source: { type: "base64", media_type: "application/pdf", data: "QUJD" } }] })),
