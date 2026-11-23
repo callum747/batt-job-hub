@@ -110,6 +110,11 @@ d("the assistant", () => {
 
     expect((await tools.runTool("update_job", { job: job_id, miles_round_trip: 24 }, me)).ok).toBe(true);
     expect((await tools.runTool("add_note", { job: job_id, note: "Client wants it before Christmas" }, me)).ok).toBe(true);
+    expect((await tools.runTool("update_job", { job: job_id, client: "meterz", quote_ex_vat: 6700 }, me)).ok).toBe(true);
+    expect((await tools.runTool("update_job", { job: job_id, client: "New Client Ltd" }, me)).ok).toBe(true);
+    const [set] = await sql`select c.name, j.quote_value::float as v, (select count(*)::int from clients where lower(name) = 'meterz') as n from jobs j join clients c on c.id = j.client_id where j.id = ${job_id}`;
+    expect(set).toMatchObject({ name: "New Client Ltd", v: 6700, n: 1 });
+    expect((await tools.runTool("update_job", { job: job_id, client: "Meterz" }, me)).ok).toBe(true);
 
     const moved = JSON.parse((await tools.runTool("set_stage", { job: job_id, stage: "Draft quote" }, me)).content);
     expect(moved).toMatchObject({ moved: true, from: "Enquiry", to: "Draft quote", number: 559 });

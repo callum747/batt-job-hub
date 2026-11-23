@@ -170,3 +170,6 @@ Plain-English notes on what's new in the Batt Job Hub, newest first.
 ## Quote numbers and three jobs brought back
 - Each quote made for a job now has its own reference: the job number, a slash, then which quote it is (#557/1, #557/2, #557/3). It's in the document, the file name in Drive, the email and the job page. Survey proposals work the same way. Quotes already made keep their file names.
 - #506 (55 Willis Road), #526 (19 Back Street, Caswell) and #531 (90 Wycombe Road) are added back as live jobs at Quoted. Nothing in Drive was moved.
+
+## Ask can set client and quote value
+- Ask can now set a job's client and quote value (ex VAT) when you give them, instead of only writing them in the notes.

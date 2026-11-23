@@ -159,9 +159,11 @@ const tools: Tool[] = [
   {
     name: "update_job",
     label: (i) => `Updating job ${i.job}`,
-    description: "Change a job's details. Only send the fields to change. Never set miles you were not told.",
+    description: "Change a job's details, including its client and quote value. Only send the fields to change. Never set miles you were not told. Only set quote_ex_vat to a figure the user gave you or one written on a quote already made for this job; never work one out yourself.",
     schema: z.object({
       job: jobRef,
+      client: z.string().min(1).optional().describe("Client name. Uses the existing client if the name matches, otherwise adds a new one."),
+      quote_ex_vat: z.number().nonnegative().optional().describe("The quote value in pounds, ex VAT."),
       site: z.string().optional(),
       postcode: z.string().optional(),
       description: z.string().optional(),
@@ -169,7 +171,7 @@ const tools: Tool[] = [
       miles_round_trip: z.number().positive().optional(),
       deadline: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     }),
-    run: async (i: { job: string; site?: string; postcode?: string; description?: string; contact?: string; miles_round_trip?: number; deadline?: string }, me: Me) => {
+    run: async (i: { job: string; client?: string; quote_ex_vat?: number; site?: string; postcode?: string; description?: string; contact?: string; miles_round_trip?: number; deadline?: string }, me: Me) => {
       const job = await mustFind(i.job);
       const set = {
         site: i.site ?? job.site,
@@ -181,6 +183,13 @@ const tools: Tool[] = [
       };
       await sql`update jobs set site = ${set.site}, postcode = ${set.postcode}, description = ${set.description}, contact = ${set.contact},
         miles_round_trip = ${set.miles}, deadline = ${set.deadline}, updated_at = now() where id = ${job.id}`;
+      if (i.client?.trim()) {
+        const name = i.client.trim();
+        const [c] = (await sql<{ id: string }[]>`select id from clients where lower(name) = lower(${name}) limit 1`).concat(
+          await sql<{ id: string }[]>`insert into clients (name) select ${name} where not exists (select 1 from clients where lower(name) = lower(${name})) returning id`);
+        await sql`update jobs set client_id = ${c.id} where id = ${job.id}`;
+      }
+      if (i.quote_ex_vat !== undefined) await sql`update jobs set quote_value = ${i.quote_ex_vat} where id = ${job.id}`;
       const changed = Object.keys(i).filter((k) => k !== "job");
       await audit(sql, me.email, "edited (assistant)", "job", job.id, { changed });
       return { saved: true, changed };
