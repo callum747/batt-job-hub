@@ -2,6 +2,14 @@
 
 Plain-English notes on what's new in the Batt Job Hub, newest first.
 
+## 23/11/2026: The Inbox
+- **Inbox** (in the menu) lists the last 30 days of emails in your own inbox from outside Batt that aren't on a job yet. Promotions, social and newsletters are left out, and so is anything with an existing job's number in the subject (it's on that job already). If the sender's company has an open job, it says so.
+- **Make a job:** the assistant reads the email and fills in the client, contact name, email and phone, site, postcode, job type, what they want and any deadline. It also lists what's missing (e.g. "No site address"). Check it, change anything, and press **Create the job**. The job starts as an Enquiry with the email linked, and a new client is added with the contact details. An existing client keeps its details.
+- **Add to a job:** type the job number and the email moves onto that job's Email tab.
+- **Not a job:** clears it from the list. Nothing changes in Gmail.
+- **Ask can do it too:** "what's new in my inbox?", "make a job from the Oak Road email".
+- The assistant never guesses an address, postcode, phone or date. Anything not in the email is left blank.
+
 ## 23/11/2026: Email (first part)
 - **Email the quote:** once a quote or survey proposal has its PDF, the Quote & money tab shows the covering email, already written: to the client's email, "Quotation 559 – project", the total with and without VAT, and your name. Change anything, then press **Save as a draft in Gmail**. The PDF is attached and the draft opens in Gmail for you to check and send. **The app never sends.** A line goes in the job's notes saying it was drafted.
 - **Each job has an Email tab** showing its email threads: anything with the job number in the subject, or to or from the client's email, from the last two years, in everyone's connected mailbox. Your own threads open in Gmail.

@@ -22,6 +22,7 @@ import { plusDays } from "@/lib/quote-defaults";
 import { quoteEmailStart } from "@/lib/quote-email";
 import { findEmail, jobSearch, unescapeHtml } from "@/lib/email";
 import { jobThreads } from "@/lib/google/gmail";
+import { linkedThreads } from "@/lib/inbox";
 import { EmailDraftForm } from "../email-form";
 import { draftLongQuote, draftShortQuote, isPriced, preparedByFor, productsFor, suggestLong } from "@/lib/quote-drafts";
 import { getClient, getPersonByEmail, jobDocuments } from "@/lib/data";
@@ -565,11 +566,12 @@ async function EmailTab({ job }: { job: Awaited<ReturnType<typeof findJob>> & ob
   const ok = me && me.email !== "preview@localhost" ? await gmailConnected(me.email) : false;
   const client = job.client_id ? await getClient(job.client_id) : null;
   const query = jobSearch({ number: job.number, legacy_ref: job.legacy_ref, clientEmail: client?.email || findEmail(job.contact) });
+  const linked = await linkedThreads(job.id);
   let result: Awaited<ReturnType<typeof jobThreads>> | null = null;
   let problem = "";
-  if (ok && query) {
+  if (ok && (query || linked.length)) {
     try {
-      result = await jobThreads(query, me!.email);
+      result = await jobThreads(query, me!.email, linked);
     } catch (e) {
       problem = errorText(e);
     }
@@ -583,12 +585,12 @@ async function EmailTab({ job }: { job: Awaited<ReturnType<typeof findJob>> & ob
           <p className="mb-3">Connect Google again and tick the Gmail boxes to see this job&apos;s emails here.</p>
           <ConnectGoogleButton className={secondaryBtn}>Connect Google</ConnectGoogleButton>
         </div>
-      ) : !query ? (
-        <p className="text-muted">This job has no number or client email yet, so there&apos;s nothing to search for.</p>
+      ) : !query && linked.length === 0 ? (
+        <p className="text-muted">This job has no number or client email yet, so there&apos;s nothing to search for. Emails linked from the Inbox will show here.</p>
       ) : (
         <div className="space-y-4">
           <p className="text-[14px] text-muted">
-            Emails with {job.number ? `${job.number} in the subject` : `${job.legacy_ref} in the subject`}{client?.email ? `, or to or from ${client.email}` : ""}, from the last two years, in everyone&apos;s mailbox that&apos;s connected.
+            Emails linked from the Inbox{job.number || job.legacy_ref ? `, and those with ${job.number ?? job.legacy_ref} in the subject` : ""}{client?.email ? `, or to or from ${client.email}` : ""}, from the last two years, in everyone&apos;s mailbox that&apos;s connected.
           </p>
           {problem && <p className="rounded-xl border border-warn/30 bg-warn/10 px-4 py-3 text-[15px]">{problem}</p>}
           {result?.problems.map((p) => (

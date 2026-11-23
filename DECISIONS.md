@@ -61,6 +61,10 @@ Things that weren't spelled out in the brief or the playbook. Say if any should 
 44. **The covering email is a fixed, plain wording** (thanks, what's attached, the total ex and inc VAT, how to go ahead, phone number, your name and title). It's not written by AI, so it's the same every time and you edit it before saving.
 45. **A job's emails are found by the job number in the subject, or the client's email address**, over the last two years, in every mailbox that's connected (yours and Cam's). You only get links to threads in your own mailbox.
 
+46. **The Inbox shows your own inbox only**, last 30 days, from outside battelectrical.com. Cam sees his and you see yours. If info@ is its own Google account, someone can sign in as info@ and connect it, and its inbox works the same way.
+47. **An email is "on a job" when** it's linked from the Inbox, or its subject has an existing job number in it. Those don't show in the Inbox.
+48. **Making a job from an email uses a quick, low-effort read** by the assistant (it's filling a form you check, not pricing).
+
 ## Still needed from Callum
 - **Jed's email address** (the one his Google Calendar uses). Without it he can't be invited to visits. Add it in Settings, under People.
 - **An Anthropic API key** for the Ask screen, added in Replit Secrets as `ANTHROPIC_API_KEY`.

@@ -16,6 +16,8 @@ import { makeSurveyProposal, type SurveyForm } from "@/lib/google/survey-run";
 import type { ShortQuote } from "@/lib/quote-short";
 import type { PricingInput } from "@/lib/pricing";
 import { draftQuoteEmail } from "@/lib/quote-email";
+import { createJobFromEmail, hideEmail, linkEmailToJob, proposeJob, type NewJobFromEmail } from "@/lib/inbox";
+import { assistantConfigured } from "@/lib/assistant/client";
 
 async function who() {
   const p = await currentPerson();
@@ -463,4 +465,45 @@ export async function draftEmail(jobId: string, documentId: string, e: { to: str
   const r = await draftQuoteEmail(jobId, str(documentId), { to: str(e.to), cc: str(e.cc), subject: str(e.subject), body: str(e.body) }, me);
   refreshJobs();
   return r;
+}
+
+// ---------- Inbox ----------
+
+export async function inboxPropose(threadId: string) {
+  const me = await who();
+  if (!assistantConfigured()) return { ok: false as const, message: "The assistant isn't switched on, so fill the job in by hand." };
+  return proposeJob(me.email, String(threadId));
+}
+
+export async function inboxCreateJob(threadId: string, f: NewJobFromEmail) {
+  const me = await who();
+  const str = (v: unknown) => String(v ?? "");
+  let jobId: string;
+  try {
+    jobId = await createJobFromEmail(me, str(threadId), {
+      client_name: str(f.client_name), contact_name: str(f.contact_name), contact_email: str(f.contact_email), contact_phone: str(f.contact_phone),
+      site: str(f.site), postcode: str(f.postcode), type: str(f.type), description: str(f.description), deadline: str(f.deadline), subject: str(f.subject),
+    });
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : String(e) };
+  }
+  refreshJobs();
+  redirect(`/jobs/${jobId}`);
+}
+
+export async function inboxLink(threadId: string, jobRef: string) {
+  const me = await who();
+  try {
+    const job = await linkEmailToJob(me, String(threadId), String(jobRef));
+    refreshJobs();
+    return { ok: true, message: `Added to ${job.number ? `#${job.number}` : "the job"}. It's on the job's Email tab.` };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function inboxHide(threadId: string) {
+  const me = await who();
+  await hideEmail(me, String(threadId));
+  revalidatePath("/inbox");
 }
