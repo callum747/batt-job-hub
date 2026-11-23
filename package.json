@@ -12,13 +12,17 @@
     "import": "node scripts/import-prototype.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.12.0",
     "lucide-react": "^0.544.0",
     "next": "^16.4.6",
     "next-auth": "^4.24.15",
     "postgres": "^3.4.7",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "server-only": "^0.0.1"
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "server-only": "^0.0.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

@@ -43,6 +43,7 @@ You should see a list including `package.json`, `src` and `import-data`.
 | `GOOGLE_CLIENT_SECRET` | the `client_secret` from the JSON file |
 | `NEXTAUTH_SECRET` | paste `openssl rand -base64 32` into the Shell, press Enter, and copy what it prints |
 | `ALLOWED_EMAIL_DOMAIN` | `battelectrical.com` |
+| `ANTHROPIC_API_KEY` | for the Ask screen: a key from console.anthropic.com (API Keys). Optional; Ask says how to switch it on if it's missing |
 
 `NEXTAUTH_URL` comes in step 6, once you know the web address.
 

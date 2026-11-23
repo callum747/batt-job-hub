@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { JOB_TYPES } from "@/lib/jobs-rules";
 import { useRouter } from "next/navigation";
 import type { ClientRow, JobRow, PersonRow } from "@/lib/data";
 import { Field, inputCls, primaryBtn } from "@/components/ui";
 import { createJob, updateJob } from "../actions";
 import { ClientPicker, TextArea, Toast } from "./job-controls";
 
-export const JOB_TYPES = ["Install", "Small works", "Survey", "Fault find", "EICR", "EV charger", "Solar / battery", "Tender", "Call-out", "Maintenance"];
 
 type Props = {
   clients: Pick<ClientRow, "id" | "name">[];

@@ -83,3 +83,5 @@ export function ukDate(iso: string | null | undefined, opts: { weekday?: boolean
 export function todayUK(now = new Date()) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(now);
 }
+
+export const JOB_TYPES = ["Install", "Small works", "Survey", "Fault find", "EICR", "EV charger", "Solar / battery", "Tender", "Call-out", "Maintenance"];

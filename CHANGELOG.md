@@ -2,6 +2,24 @@
 
 Plain-English notes on what's new in the Batt Job Hub, newest first.
 
+## 23/11/2026: Ask (the chat assistant)
+- **A new Ask screen** (in the menu, and on the phone's bottom bar where Clients was; Clients is now under More). Type what you need, like you would to Claude in chat: "Price job 559: 8 double sockets and 12 downlights in the kitchen, 2 people, 1 van", then "make the quote".
+- **What it can do:** find jobs and clients, open a job's details and money, look things up in the price list, create a job, change a job's details, add a note, price a job in the pricing spreadsheet, make the short or long-form quote, move a job's stage when you ask, read the diary and the rates.
+- **It uses the same machinery as the buttons,** so the same rules apply: prices only ever come from the pricing spreadsheet, Google stays in test mode until you go live, nothing is deleted and nothing is sent. Every change it makes is in the job's history as "(assistant)".
+- **It asks rather than guesses** miles, prices, quantities or addresses, and checks the item list with you if anything was unclear before pricing.
+- **You see what it's doing** as it works ("Pricing job 559 in the pricing spreadsheet" with a tick when done), and its answer appears as it's written.
+- **Chats are saved,** so you can pick one up again from the list on the right, on any device. Each person only sees their own.
+- **It needs an API key** before it works: add `ANTHROPIC_API_KEY` in Replit Secrets. Until then, Ask says how to switch it on.
+- Not yet: emailing (drafts come with the email phase), surveys, reading drawings. Use the job's screens for those for now.
+
+## 23/11/2026: Database setup repairs itself
+- Publishing failed because the live database was half set up. The app now checks and finishes its database setup every time it starts, and the log says exactly what went wrong if it can't.
+
+## 23/11/2026: The quote document (long form)
+- **Long form or short form** on each priced job's Quote & money tab. Long form is suggested for £2,000 and over, tenders and main contractors; either can be chosen.
+- **The long form is drafted from the pricing:** scope summary, the price grouped by section (power and data, lighting and so on) with travel as Preliminaries, the per-point rates for the items you priced, optional extras, a programme, and the appendix point schedule room by room with a lighting key.
+- Being checked on a real copy of your long-form template now.
+
 ## 23/11/2026: Survey proposals
 - **Survey jobs** (job type "Survey") get a survey form on the Quote & money tab instead of the pricing spreadsheet.
 - **Fill in the sites and units:** each site's name, address and postcode, then each unit with its area in sq ft (left empty it shows "tbc") and what's being surveyed.

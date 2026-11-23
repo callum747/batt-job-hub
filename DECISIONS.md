@@ -40,6 +40,23 @@ Things that weren't spelled out in the brief or the playbook. Say if any should 
 29. **No travel:** if the miles are 0, the Mileage row is taken out of the proposal.
 30. **Site rows** read "SITE NAME, ADDRESS, POSTCODE" in capitals, as the playbook asks. A unit with no area says "tbc".
 
+## Phase 3: Long form
+31. **Investment is grouped by price list section** (Power and data, Lighting, Switching and controls, Fire detection, Ventilation, Distribution and other works), with travel and site costs as Preliminaries.
+32. **Per-point rates only for items priced on the job.** A rate with nothing priced behind it (e.g. data points on a job with none) is taken out rather than guessed.
+33. **The appendix point schedule is filled from the pricing,** room by room, or taken out when nothing was priced by room. The template's floor headings are removed; rooms are listed in the order priced.
+34. **The lighting key lists the priced light fittings.**
+35. **Payment days:** the client's, otherwise 30 for main contractors and 7 for everyone else. **Payment stages stay 25 / 35 / 30 / 10** as the template has them.
+
+## Ask (the chat assistant)
+36. **It uses Claude Opus 5.5** at high effort, the strongest model that's sensible for day-to-day use. If a request is ever declined by the model's safety checks, it's automatically retried on Anthropic's default backup model rather than just failing.
+37. **It can't send anything, delete anything, or set a price.** There's no tool for those. Prices only come from the pricing spreadsheet; it can price a job and make a quote, which are drafts in the job folder.
+38. **Stage changes only when asked** ("mark 559 as quoted").
+39. **It checks the item list with you before pricing** if it assumed anything; with a clear, complete list it goes straight ahead.
+40. **Each person sees only their own chats.** Chats are kept so they can be picked up later.
+41. **Clients moved off the phone's bottom bar** to make room for Ask. It's under More.
+42. **Built on Anthropic's standard API, run by the app itself** (not Anthropic's hosted "Managed Agents"), because everything the assistant does is the app's own database and Google work, which has to run inside the app.
+
 ## Still needed from Callum
 - **Jed's email address** (the one his Google Calendar uses). Without it he can't be invited to visits. Add it in Settings, under People.
+- **An Anthropic API key** for the Ask screen, added in Replit Secrets as `ANTHROPIC_API_KEY`.
 - **Round-trip miles** for each live job, on the job's Details tab, so travel is counted in profit.
