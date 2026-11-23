@@ -6,22 +6,26 @@ import "server-only";
  */
 
 export const BASE = "18 Alwin Close, Aylesbury, HP21 8RP";
-export const mapsConfigured = () => Boolean(process.env.GOOGLE_MAPS_API_KEY);
+/** The key as pasted into Replit Secrets, without stray spaces, line breaks or quote marks around it. */
+const mapsKey = () => (process.env.GOOGLE_MAPS_API_KEY ?? "").trim().replace(/^["']+|["']+$/g, "").trim();
+export const mapsConfigured = () => Boolean(mapsKey());
 
 const ROUTES = process.env.GOOGLE_ROUTES_URL || "https://routes.googleapis.com/directions/v2:computeRoutes";
 
 async function metres(from: string, to: string): Promise<number> {
   const res = await fetch(ROUTES, {
     method: "POST",
-    headers: { "content-type": "application/json", "X-Goog-Api-Key": process.env.GOOGLE_MAPS_API_KEY ?? "", "X-Goog-FieldMask": "routes.distanceMeters" },
+    headers: { "content-type": "application/json", "X-Goog-Api-Key": mapsKey(), "X-Goog-FieldMask": "routes.distanceMeters" },
     body: JSON.stringify({ origin: { address: from }, destination: { address: to }, travelMode: "DRIVE", regionCode: "GB" }),
   });
   const data = (await res.json().catch(() => ({}))) as { routes?: { distanceMeters?: number }[]; error?: { message?: string; status?: string; details?: { reason?: string }[] } };
   if (!res.ok) {
     const why = data.error?.message ?? `error ${res.status}`;
     if (res.status === 403 || res.status === 400) {
-      const fix = keyFix(data.error?.details?.map((d) => d.reason ?? "").join(" ") + " " + why);
-      if (fix || res.status === 403) throw new Error(`Google Maps turned the key down. ${fix || `Google said: ${why} Check the Routes API is enabled, billing is on, and the key is allowed to use the Routes API.`}`);
+      const reasons = (data.error?.details ?? []).map((d) => d.reason ?? "").filter(Boolean).join(", ");
+      const fix = keyFix(`${reasons} ${why}`);
+      const said = `Google's exact words: "${why}"${reasons ? ` (${reasons})` : ""}. The app's key ends in "${mapsKey().slice(-4)}".`;
+      if (fix || res.status === 403) throw new Error(`Google Maps turned the key down. ${fix || "Check the Routes API is enabled, billing is on, and the key is allowed to use the Routes API."} ${said}`);
     }
     throw new Error(`Google Maps couldn't work that out: ${why}`);
   }
