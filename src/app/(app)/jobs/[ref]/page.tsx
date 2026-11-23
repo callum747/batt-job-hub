@@ -17,6 +17,8 @@ import { loadPriceList } from "@/lib/google/pricing-run";
 import { pricingLight, type Product } from "@/lib/pricing";
 import { QuoteForm } from "../quote-form";
 import { SurveyForm } from "../survey-form";
+import { LongForm } from "../long-form";
+import { defaultLongQuote } from "@/lib/quote-defaults";
 import { plusDays } from "@/lib/quote-defaults";
 import { defaultShortQuote } from "@/lib/quote-defaults";
 import { getClient, getPersonByEmail, jobDocuments } from "@/lib/data";
@@ -37,8 +39,8 @@ export async function generateMetadata({ params }: { params: Promise<{ ref: stri
   return { title: job ? `${jobLabel(job)} ${job.client_name ?? ""}`.trim() : "Job" };
 }
 
-export default async function JobPage({ params, searchParams }: { params: Promise<{ ref: string }>; searchParams: Promise<{ tab?: string; numbered?: string }> }) {
-  const [{ ref }, { tab = "overview", numbered }] = await Promise.all([params, searchParams]);
+export default async function JobPage({ params, searchParams }: { params: Promise<{ ref: string }>; searchParams: Promise<{ tab?: string; numbered?: string; form?: string }> }) {
+  const [{ ref }, { tab = "overview", numbered, form: formChoice }] = await Promise.all([params, searchParams]);
   const job = await findJob(decodeURIComponent(ref));
   if (!job) notFound();
   // Always show a numbered job at its number, e.g. /jobs/Q-553 or /jobs/553 (merged) go to /jobs/555
@@ -191,7 +193,7 @@ export default async function JobPage({ params, searchParams }: { params: Promis
             ) : (
               <>
                 <PricingCard job={job} lines={detail.lines} redBelow={settings.margins.red} />
-                <QuoteCard job={job} lines={detail.lines} />
+                <QuoteCard job={job} lines={detail.lines} templateChoice={formChoice} />
               </>
             )}
           </>
@@ -411,7 +413,7 @@ async function PricingCard({ job, lines, redBelow }: { job: Awaited<ReturnType<t
   );
 }
 
-async function QuoteCard({ job, lines }: { job: Awaited<ReturnType<typeof findJob>> & object; lines: Awaited<ReturnType<typeof jobDetail>>["lines"] }) {
+async function QuoteCard({ job, lines, templateChoice }: { job: Awaited<ReturnType<typeof findJob>> & object; lines: Awaited<ReturnType<typeof jobDetail>>["lines"]; templateChoice?: string }) {
   const [docs, me, client] = await Promise.all([jobDocuments(job.id), currentPerson(), job.client_id ? getClient(job.client_id) : null]);
   const quotes = docs.filter((d) => d.kind === "quote");
   const person = me ? await getPersonByEmail(me.email) : null;
@@ -441,15 +443,47 @@ async function QuoteCard({ job, lines }: { job: Awaited<ReturnType<typeof findJo
       today: todayUK(),
     });
     // Reuse the wording from the last quote, but always take the numbers and dates afresh.
-    const d = job.quote_draft;
+    const d = (job.quote_draft as unknown as { template?: string } | null)?.template === "quoteShort" ? job.quote_draft : null;
     const start = d
       ? { ...fromPricing, project: d.project, site: d.site, summary: d.summary, installation: d.installation, schedule: d.schedule, deposit: d.deposit, paymentDays: d.paymentDays, exclusions: d.exclusions, assumptions: d.assumptions }
       : fromPricing;
-    const note =
-      fromPricing.subtotal >= 2000
-        ? "This job is £2,000 or more, which normally gets the long-form quote. The long form is coming next; for now this makes a short-form quote."
-        : "";
-    body = <QuoteForm key={`${job.pricing.pricedAt}-${quotes.length}`} jobId={job.id} start={start} note={note} />;
+    // Long form for £2,000 and over, tenders and main contractors; short form otherwise. Either can be chosen.
+    const wantLong = fromPricing.subtotal >= 2000 || job.type === "Tender" || /contractor/i.test(client?.type ?? "");
+    const form = (templateChoice === "long" || (templateChoice !== "short" && wantLong)) ? "long" : "short";
+    let longStart: import("@/lib/quote-long").LongQuote | null = null;
+    if (form === "long") {
+      let products: Product[] = [];
+      try {
+        products = me && me.email !== "preview@localhost" ? (await loadPriceList(me.email)).products : [];
+      } catch {}
+      const sectionOf = (key: string) => products.find((p) => p.key === key)?.section ?? null;
+      longStart = defaultLongQuote({
+        number: job.number, client: client ? { name: client.name, notes: client.notes, payment_days: client.payment_days } : null,
+        site: job.site, postcode: job.postcode, description: job.description, pricing: job.pricing.input, lines,
+        subtotal: job.pricing.result.sellExVat, preparedBy, today: todayUK(), sectionOf, clientType: client?.type ?? "",
+      });
+      const last = job.quote_draft as unknown as (import("@/lib/quote-long").LongQuote & { template?: string }) | null;
+      if (last?.template === "quoteLong") {
+        longStart = { ...longStart, project: last.project, site: last.site, summary: last.summary, installation: last.installation, scope: last.scope,
+          paymentDays: last.paymentDays, extras: last.extras, programme: last.programme, exclusions: last.exclusions, assumptions: last.assumptions, rooms: last.rooms, fittings: last.fittings };
+      }
+    }
+    const base = `/jobs/${job.number}?tab=money`;
+    body = (
+      <>
+        <div className="mb-5 flex flex-wrap items-center gap-2 text-[15px]">
+          <span className="text-muted">Template:</span>
+          <a href={`${base}&form=short`} className={`rounded-full px-4 py-2 font-medium ${form === "short" ? "bg-blue text-blue-ink" : "bg-surface"}`}>Short form</a>
+          <a href={`${base}&form=long`} className={`rounded-full px-4 py-2 font-medium ${form === "long" ? "bg-blue text-blue-ink" : "bg-surface"}`}>Long form</a>
+          <span className="text-[14px] text-muted">{wantLong ? "Long form suggested: £2,000 or more, a tender or a main contractor." : "Short form suggested: a smaller job."}</span>
+        </div>
+        {form === "long" && longStart ? (
+          <LongForm key={`L-${job.pricing.pricedAt}-${quotes.length}`} jobId={job.id} start={longStart} />
+        ) : (
+          <QuoteForm key={`S-${job.pricing.pricedAt}-${quotes.length}`} jobId={job.id} start={start} note="" />
+        )}
+      </>
+    );
   }
   return (
     <Card title="Quote document">

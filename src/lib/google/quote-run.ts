@@ -63,6 +63,22 @@ export const SHORT_FORM: Filler<ShortQuote> = {
   minPages: 3,
 };
 
+import * as longForm from "../quote-long";
+import type { LongQuote } from "../quote-long";
+
+export const LONG_FORM: Filler<LongQuote> = {
+  template: "quoteLong",
+  label: "Quote",
+  check: longForm.checkLongQuote,
+  captureStyles: longForm.captureLongStyles,
+  structurePass: longForm.longStructurePass,
+  textPass: longForm.longTextPass,
+  stylePass: longForm.longStylePass as never,
+  minPages: 5,
+};
+
+export const buildLongQuote = (jobId: string, q: LongQuote, me: { email: string; name: string }) => buildDocument(jobId, LONG_FORM, q, me);
+
 export const buildShortQuote = (jobId: string, q: ShortQuote, me: { email: string; name: string }) => buildDocument(jobId, SHORT_FORM, q, me);
 
 /**

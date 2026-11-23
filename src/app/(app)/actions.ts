@@ -10,7 +10,8 @@ import { removeVisitEvent, syncVisit } from "@/lib/google/calendar";
 import { errorText, getFileCheck, googleConnected, googleSettings, type GoogleArea } from "@/lib/google/client";
 import { syncJobFolder } from "@/lib/google/drive";
 import { loadPriceList, priceJob } from "@/lib/google/pricing-run";
-import { buildShortQuote } from "@/lib/google/quote-run";
+import { buildLongQuote, buildShortQuote } from "@/lib/google/quote-run";
+import type { LongQuote } from "@/lib/quote-long";
 import { makeSurveyProposal, type SurveyForm } from "@/lib/google/survey-run";
 import type { ShortQuote } from "@/lib/quote-short";
 import type { PricingInput } from "@/lib/pricing";
@@ -424,6 +425,31 @@ export async function makeSurvey(jobId: string, f: SurveyForm) {
     preparedBy: { name: str(f.preparedBy?.name), title: str(f.preparedBy?.title), email: str(f.preparedBy?.email) },
   };
   const r = await makeSurveyProposal(jobId, clean, me);
+  refreshJobs();
+  return r;
+}
+
+export async function makeLongQuote(jobId: string, q: LongQuote) {
+  const me = await who();
+  const str = (v: unknown) => String(v ?? "");
+  const num = (v: unknown) => Number(v);
+  const rate = (v: unknown) => (v === null || v === undefined || v === "" ? null : Number(v));
+  const clean: LongQuote = {
+    number: num(q.number), client: str(q.client), project: str(q.project), site: str(q.site), date: str(q.date), validUntil: str(q.validUntil),
+    preparedBy: { name: str(q.preparedBy?.name), title: str(q.preparedBy?.title), email: str(q.preparedBy?.email) },
+    summary: str(q.summary), installation: str(q.installation),
+    scope: (q.scope ?? []).map((s) => ({ item: str(s.item), qty: str(s.qty) })),
+    sections: (q.sections ?? []).map((s) => ({ section: str(s.section), description: str(s.description), amount: num(s.amount) })),
+    prelims: num(q.prelims), subtotal: num(q.subtotal), vat: num(q.vat), total: num(q.total),
+    paymentDays: Math.round(num(q.paymentDays)),
+    rates: { socket: rate(q.rates?.socket), downlight: rate(q.rates?.downlight), data: rate(q.rates?.data) },
+    extras: (q.extras ?? []).map((e) => ({ item: str(e.item), description: str(e.description), price: num(e.price) })),
+    programme: (q.programme ?? []).map((p) => ({ area: str(p.area), works: str(p.works) })),
+    exclusions: (q.exclusions ?? []).map(str), assumptions: (q.assumptions ?? []).map(str),
+    rooms: (q.rooms ?? []).map((r) => ({ room: str(r.room), points: Object.fromEntries(Object.entries(r.points ?? {}).map(([k, v]) => [k, Math.max(0, Math.round(num(v)))]).filter(([, v]) => (v as number) > 0)) })),
+    fittings: (q.fittings ?? []).map((f) => ({ ref: str(f.ref), fitting: str(f.fitting), notes: str(f.notes) })),
+  };
+  const r = await buildLongQuote(jobId, clean, me);
   refreshJobs();
   return r;
 }

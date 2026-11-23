@@ -5,6 +5,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import * as docsModule from "../../src/lib/docs";
 import * as quoteModule from "../../src/lib/quote-short";
 import * as surveyModule from "../../src/lib/quote-survey";
+import * as longModule from "../../src/lib/quote-long";
 
 // tsx can hand back the module's exports under "default" when the project isn't an ES module.
 const { leftoverPlaceholders } = ((docsModule as unknown as { default?: typeof docsModule }).default ?? docsModule) as typeof docsModule;
@@ -12,7 +13,10 @@ const { captureRowStyles, checkShortQuote, structurePass, stylePass, textPass } 
 
 const [pass, docPath, quotePath, stylesPath = "styles.json", kind = "short"] = process.argv.slice(2);
 const sv = ((surveyModule as unknown as { default?: typeof surveyModule }).default ?? surveyModule) as typeof surveyModule;
-const F = kind === "survey"
+const lg = ((longModule as unknown as { default?: typeof longModule }).default ?? longModule) as typeof longModule;
+const F = kind === "long"
+  ? { check: lg.checkLongQuote, capture: lg.captureLongStyles, structure: lg.longStructurePass, text: lg.longTextPass, style: lg.longStylePass }
+  : kind === "survey"
   ? { check: sv.checkSurveyQuote, capture: sv.captureSurveyStyles, structure: sv.surveyStructurePass, text: sv.surveyTextPass, style: sv.surveyStylePass }
   : null;
 const raw = JSON.parse(readFileSync(docPath, "utf8"));
