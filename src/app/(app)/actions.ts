@@ -19,6 +19,9 @@ import { draftQuoteEmail } from "@/lib/quote-email";
 import { createJobFromEmail, hideEmail, linkEmailToJob, proposeJob, type NewJobFromEmail } from "@/lib/inbox";
 import { assistantConfigured } from "@/lib/assistant/client";
 import { fileInvoice, ignoreInvoice, scanInvoices } from "@/lib/supplier-invoices";
+import { makeInvoice, markInvoice, retryLedger, type InvoiceForm } from "@/lib/google/invoice-run";
+import { checkInvoice, INVOICE_TYPES, type InvoiceType } from "@/lib/invoicing";
+import { draftInvoiceEmail } from "@/lib/invoice-email";
 
 async function who() {
   const p = await currentPerson();
@@ -533,4 +536,66 @@ export async function invoiceIgnore(id: string) {
   const me = await who();
   await ignoreInvoice(String(id), me);
   revalidatePath("/inbox");
+}
+
+// ---------- Invoices ----------
+
+export async function invoiceMake(jobId: string, f: InvoiceForm, clientId: string | null) {
+  const me = await who();
+  const str = (v: unknown) => String(v ?? "");
+  const num = (v: unknown) => Number(v);
+  const clean: InvoiceForm = {
+    type: (INVOICE_TYPES as readonly string[]).includes(str(f.type)) ? (f.type as InvoiceType) : "Other",
+    stageLabel: str(f.stageLabel),
+    vat: f.vat === "Reverse charge" ? "Reverse charge" : "Standard 20%",
+    cis: Boolean(f.cis),
+    cisLabour: f.cis ? num(f.cisLabour) : null,
+    invoiceDate: str(f.invoiceDate),
+    supplyDate: str(f.supplyDate),
+    termsDays: Math.round(num(f.termsDays)),
+    clientName: str(f.clientName),
+    clientEmail: str(f.clientEmail).trim(),
+    billingAddress: str(f.billingAddress).trim(),
+    site: str(f.site),
+    lines: (f.lines ?? []).map((l) => ({ description: str(l.description), qty: num(l.qty), unit: num(l.unit) })),
+    notes: str(f.notes),
+  };
+  const problems = checkInvoice({ ...clean });
+  if (problems.length) return { ok: false, message: "A few things need fixing first.", problems };
+  // The billing address and email are kept on the client for next time.
+  if (clientId) await sql`update clients set billing_address = ${clean.billingAddress}, email = case when ${clean.clientEmail} <> '' then ${clean.clientEmail} else email end, updated_at = now() where id = ${clientId}`;
+  const r = await makeInvoice(jobId, clean, me);
+  refreshJobs();
+  return r;
+}
+
+export async function invoiceMark(invoiceId: string, what: "sent" | "paid", date: string) {
+  const me = await who();
+  try {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date))) throw new Error("Pick a date.");
+    const extra = await markInvoice(String(invoiceId), what === "paid" ? "paid" : "sent", String(date), me);
+    refreshJobs();
+    return { ok: true, message: `Marked ${what} on ${ukDate(String(date))}.${extra ? " " + extra : ""}` };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function invoiceRetryLedger(invoiceId: string) {
+  const me = await who();
+  try {
+    await retryLedger(String(invoiceId), me);
+    refreshJobs();
+    return { ok: true, message: "Added to the ledger." };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function invoiceDraftEmail(invoiceId: string, e: { to: string; cc: string; subject: string; body: string }) {
+  const me = await who();
+  const str = (v: unknown) => String(v ?? "");
+  const r = await draftInvoiceEmail(str(invoiceId), { to: str(e.to), cc: str(e.cc), subject: str(e.subject), body: str(e.body) }, me);
+  refreshJobs();
+  return r;
 }

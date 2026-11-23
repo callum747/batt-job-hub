@@ -77,3 +77,20 @@ describe("email", () => {
     expect(senderName("john@x.com")).toBe("john@x.com");
   });
 });
+
+import { invoiceEmail } from "./email";
+
+describe("invoice email", () => {
+  it("says what it's for, how much and when, and asks for the CIS statement on a CIS invoice", () => {
+    const v = invoiceEmail({ label: "INV-546", covers: "the 25% deposit for quotation 559", gross: 2190, payable: 2190, cis: false, dueDate: "23/12/2026", contact: "John Smith", sender: { name: "Callum Blacknell", title: "Project Manager" } });
+    expect(v.subject).toBe("Invoice INV-546");
+    expect(v.body).toContain("Please find attached invoice INV-546 for the 25% deposit for quotation 559.");
+    expect(v.body).toContain("The amount due is £2,190.00, by 23/12/2026.");
+    expect(v.body).toContain("quoting INV-546 as the reference");
+    expect(v.body).not.toContain("CIS");
+    expect(v.body).toContain("Kind Regards,\nCallum Blacknell");
+    const c = invoiceEmail({ label: "INV-547", covers: "first fix", gross: 1000, payable: 880, cis: true, dueDate: "23/12/2026", contact: "", sender: { name: "Cameron Batt", title: "Managing Director" } });
+    expect(c.body).toContain("the amount payable is £880.00");
+    expect(c.body).toContain("CIS payment and deduction statement");
+  });
+});

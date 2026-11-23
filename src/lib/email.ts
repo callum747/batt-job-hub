@@ -127,3 +127,39 @@ export function unescapeHtml(s: string) {
     return ({ amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " } as Record<string, string>)[k] ?? m;
   });
 }
+
+export type InvoiceEmailArgs = {
+  label: string;
+  covers: string; // e.g. "the 25% deposit for quotation 559" or "the survey at Hastings Fitness"
+  gross: number;
+  payable: number;
+  cis: boolean;
+  dueDate: string; // DD/MM/YYYY
+  contact: string;
+  sender: { name: string; title: string };
+};
+
+/** The email that goes with an invoice (finance--invoicing.md §6): short, friendly, what it's for, how much, when. */
+export function invoiceEmail(a: InvoiceEmailArgs): { subject: string; body: string } {
+  const name = firstName(a.contact);
+  const body = [
+    name ? `Hi ${name},` : "Hello,",
+    "",
+    `Please find attached invoice ${a.label} for ${a.covers}.`,
+    "",
+    a.cis
+      ? `The invoice total is ${gbp(a.gross)} (reverse charge, so no VAT is added). After your CIS deduction of 20% of the labour, the amount payable is ${gbp(a.payable)}, due by ${a.dueDate}.`
+      : `The amount due is ${gbp(a.payable)}, by ${a.dueDate}.`,
+    "",
+    `Payment is by bank transfer, quoting ${a.label} as the reference. Our bank details are on the invoice.`,
+    ...(a.cis ? ["", "Once it's paid, please could you send us the CIS payment and deduction statement for our records?"] : []),
+    "",
+    "Any questions, just let me know.",
+    "",
+    "Kind Regards,",
+    a.sender.name,
+    `${a.sender.title}, Batt Electrical`,
+    "01296 321321 | battelectrical.com",
+  ].join("\n");
+  return { subject: `Invoice ${a.label}`, body };
+}

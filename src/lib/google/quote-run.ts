@@ -7,13 +7,13 @@ import type { ShortQuote } from "../quote-short";
 import { DOCS, errorText, google, googleFetch, GoogleError } from "./client";
 import { quoteFolder, templateId } from "./pricing-run";
 
-const getDoc = (email: string, id: string) => google<Doc>(email, `${DOCS}/v1/documents/${id}`);
-const batch = async (email: string, id: string, requests: Request[]) => {
+export const getDoc = (email: string, id: string) => google<Doc>(email, `${DOCS}/v1/documents/${id}`);
+export const batch = async (email: string, id: string, requests: Request[]) => {
   if (requests.length) await google(email, `${DOCS}/v1/documents/${id}:batchUpdate`, { method: "POST", body: { requests } });
 };
 
 /** Saves bytes as a new file in a Drive folder. */
-async function uploadPdf(email: string, name: string, folderId: string, bytes: Uint8Array) {
+export async function uploadPdf(email: string, name: string, folderId: string, bytes: Uint8Array) {
   const boundary = `batt${Date.now()}`;
   const meta = JSON.stringify({ name, parents: [folderId], mimeType: "application/pdf" });
   const body = Buffer.concat([
@@ -32,7 +32,7 @@ async function uploadPdf(email: string, name: string, folderId: string, bytes: U
   return { id: data.id, url: data.webViewLink ?? `https://drive.google.com/file/d/${data.id}/view` };
 }
 
-async function exportPdf(email: string, docId: string) {
+export async function exportPdf(email: string, docId: string) {
   const res = await googleFetch(email, `/drive/v3/files/${docId}/export`, { query: { mimeType: "application/pdf" } });
   if (!res.ok) throw new GoogleError(`Google couldn't make the PDF (error ${res.status}).`, res.status);
   return new Uint8Array(await res.arrayBuffer());

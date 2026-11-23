@@ -2,6 +2,14 @@
 
 Plain-English notes on what's new in the Batt Job Hub, newest first.
 
+## 23/11/2026: Invoices (first part)
+- **Invoices card on each job's Quote & money tab.** Pick what it's for: the next stage from the job's quote (e.g. "Deposit, on acceptance (25%): £1,825.00"), the final (what's left, with any approved extras listed), day rate, variation or other. The lines fill in; change anything that was agreed differently.
+- **VAT or CIS:** a standard 20% VAT invoice, or a CIS invoice (reverse charge, no VAT, 20% of the labour deducted). For main contractors you must choose, so it's never guessed. The labour is suggested from the pricing sheet for you to check.
+- **Make the invoice:** it gets the next number (INV-546 onwards, following the ledger), is made from your invoice template into the right VAT quarter folder (01 - VAT Invoices or 02 - CIS Invoices, made if the quarter is new), checked for leftover placeholders and that it fits on one page, saved as a PDF there and in the job's 01 folder, and added to the 00 - Batt Job Hub ledger.
+- **Email it:** the covering email is drafted in your Gmail with the PDF attached. **Mark sent** and **Mark paid** fill the ledger's Sent Date and Paid Date. Paying the final invoice moves the job to Paid.
+- **No gaps:** if an invoice fails part way, its number is used by the next one.
+- **Test mode** makes TEST-INV numbers in the test folder and a test copy of the ledger. The real ledger and numbering aren't touched until you go live.
+
 ## 23/11/2026: Supplier invoices land on jobs by themselves
 - **While anyone has the app open, every 30 minutes** it looks in info@ for new emails with a PDF that mention an invoice or credit note, and the assistant reads each PDF: supplier, invoice number, date, net, VAT, total and your order reference.
 - **It goes straight on the job as a cost (before VAT) only when it's clear-cut:** it's an invoice or credit note (not a quote, statement or order confirmation), made out to Batt, net + VAT adds up to the total, and exactly one real job number is in the order reference (e.g. "#552 CBRE CROYDEN"). A credit note goes on as a minus. The cost shows on the job's Quote & money tab and comes off its profit.

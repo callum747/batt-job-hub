@@ -1,11 +1,12 @@
 // Dev tool: works out one pass of edits for the short-form quote from a real document's JSON.
-// Usage: npx tsx scripts/dev/quote-pass.ts <structure|text|style|check> <doc.json> <quote.json> [styles.json] [short|survey]
+// Usage: npx tsx scripts/dev/quote-pass.ts <structure|text|style|check> <doc.json> <quote.json> [styles.json] [short|survey|long|invoice]
 // "structure" also writes the template's row styles to styles.json (needed by "style").
 import { readFileSync, writeFileSync } from "node:fs";
 import * as docsModule from "../../src/lib/docs";
 import * as quoteModule from "../../src/lib/quote-short";
 import * as surveyModule from "../../src/lib/quote-survey";
 import * as longModule from "../../src/lib/quote-long";
+import * as invoiceModule from "../../src/lib/invoice-doc";
 
 // tsx can hand back the module's exports under "default" when the project isn't an ES module.
 const { leftoverPlaceholders } = ((docsModule as unknown as { default?: typeof docsModule }).default ?? docsModule) as typeof docsModule;
@@ -14,7 +15,10 @@ const { captureRowStyles, checkShortQuote, structurePass, stylePass, textPass } 
 const [pass, docPath, quotePath, stylesPath = "styles.json", kind = "short"] = process.argv.slice(2);
 const sv = ((surveyModule as unknown as { default?: typeof surveyModule }).default ?? surveyModule) as typeof surveyModule;
 const lg = ((longModule as unknown as { default?: typeof longModule }).default ?? longModule) as typeof longModule;
-const F = kind === "long"
+const iv = ((invoiceModule as unknown as { default?: typeof invoiceModule }).default ?? invoiceModule) as typeof invoiceModule;
+const F = kind === "invoice"
+  ? { check: iv.checkInvoiceDoc, capture: () => ({}), structure: iv.invoiceStructurePass, text: iv.invoiceTextPass, style: () => [] }
+  : kind === "long"
   ? { check: lg.checkLongQuote, capture: lg.captureLongStyles, structure: lg.longStructurePass, text: lg.longTextPass, style: lg.longStylePass }
   : kind === "survey"
   ? { check: sv.checkSurveyQuote, capture: sv.captureSurveyStyles, structure: sv.surveyStructurePass, text: sv.surveyTextPass, style: sv.surveyStylePass }

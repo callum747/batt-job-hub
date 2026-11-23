@@ -125,11 +125,23 @@ async function loadJobs(where: ReturnType<typeof sql> | null) {
   return plain(rows);
 }
 
+/**
+ * What's been invoiced counts as the income once the job is fully invoiced (Invoiced, Paid or Closed), or once the
+ * invoices reach the quote plus approved extras. Before that a deposit alone would make the job look like a loss,
+ * so the quote is used instead.
+ */
+function invoicedIncome(j: JobRow, variations: { amount: number }[], invoices: { net: number }[], earns: boolean): number | null {
+  if (!earns || invoices.length === 0) return null;
+  const invoiced = invoices.reduce((s, i) => s + Number(i.net), 0);
+  const expected = Number(j.quote_value) + variations.reduce((s, v) => s + Number(v.amount), 0);
+  return ["Invoiced", "Paid", "Closed"].includes(j.stage) || invoiced >= expected - 0.005 ? invoiced : null;
+}
+
 /** Works out money for a set of jobs in a handful of queries. */
 async function withMoney(jobs: JobRow[]): Promise<JobWithMoney[]> {
   if (jobs.length === 0) return [];
   const ids = jobs.map((j) => j.id);
-  const [settings, people, visits, costs, variations] = await Promise.all([
+  const [settings, people, visits, costs, variations, invoiced] = await Promise.all([
     getSettings(),
     getPeople(true),
     sql<{ job_id: string; date: string; start_time: string | null; end_time: string | null; people: string[] }[]>`
@@ -138,6 +150,8 @@ async function withMoney(jobs: JobRow[]): Promise<JobWithMoney[]> {
       from visits v where v.job_id = any(${ids})`,
     sql<{ job_id: string; amount: number }[]>`select job_id, amount from costs where job_id = any(${ids})`,
     sql<{ job_id: string; amount: number }[]>`select job_id, amount from variations where approved and job_id = any(${ids})`,
+    // Real invoices only: test-mode invoices never change a job's figures.
+    sql<{ job_id: string; net: number }[]>`select job_id, net from invoices where not test and status in ('made', 'sent', 'paid') and job_id = any(${ids})`,
   ]);
   const dayCost = new Map(people.map((p) => [p.id, Number(p.day_cost)]));
   const today = todayUK();
@@ -149,6 +163,7 @@ async function withMoney(jobs: JobRow[]): Promise<JobWithMoney[]> {
   const vByJob = group(visits);
   const cByJob = group(costs);
   const varByJob = group(variations);
+  const invByJob = group(invoiced);
 
   return jobs.map((j) => {
     // A lost job earns nothing, so it shows no income or profit (its quote stays on the job).
@@ -156,7 +171,7 @@ async function withMoney(jobs: JobRow[]): Promise<JobWithMoney[]> {
     const money = jobMoney({
       quoteValue: earns ? j.quote_value : 0,
       approvedVariations: earns ? (varByJob.get(j.id) ?? []).map((v) => v.amount) : [],
-      invoicedNet: null, // from Phase 6
+      invoicedNet: invoicedIncome(j, varByJob.get(j.id) ?? [], invByJob.get(j.id) ?? [], earns),
       visits: (vByJob.get(j.id) ?? []).map((v) => ({
         date: v.date,
         start: hhmm(v.start_time),

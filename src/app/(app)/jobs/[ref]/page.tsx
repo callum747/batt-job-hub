@@ -24,6 +24,11 @@ import { findEmail, jobSearch, unescapeHtml } from "@/lib/email";
 import { jobThreads } from "@/lib/google/gmail";
 import { linkedThreads } from "@/lib/inbox";
 import { EmailDraftForm } from "../email-form";
+import { InvoiceList, NewInvoice, type InvoiceListRow } from "../invoice-form";
+import { invoiceStart } from "@/lib/invoice-start";
+import { invoiceEmailStart } from "@/lib/invoice-email";
+import { jobInvoices } from "@/lib/google/invoice-run";
+import { invoiceLabel } from "@/lib/invoicing";
 import { draftLongQuote, draftShortQuote, isPriced, preparedByFor, productsFor, suggestLong } from "@/lib/quote-drafts";
 import { getClient, getPersonByEmail, jobDocuments } from "@/lib/data";
 import { JobForm } from "../job-form";
@@ -202,6 +207,7 @@ export default async function JobPage({ params, searchParams }: { params: Promis
               </>
             )}
             <EmailQuoteCard job={job} />
+            <InvoicesCard job={job} />
           </>
         )}
 
@@ -620,6 +626,42 @@ async function EmailTab({ job }: { job: Awaited<ReturnType<typeof findJob>> & ob
           )}
         </div>
       )}
+    </Card>
+  );
+}
+
+async function InvoicesCard({ job }: { job: Awaited<ReturnType<typeof findJob>> & object }) {
+  const me = await currentPerson();
+  if (!me || me.email === "preview@localhost") return null;
+  const connected = await googleConnected(me.email);
+  const [start, list] = await Promise.all([invoiceStart(job), jobInvoices(job.id)]);
+  const rows: InvoiceListRow[] = await Promise.all(
+    list.filter((i) => i.test === start.test).map(async (i) => ({
+      ...i,
+      label: invoiceLabel(i.number, i.test),
+      email: ["made", "sent"].includes(i.status) ? await invoiceEmailStart(i.id, me.email) : null,
+    })),
+  );
+  return (
+    <Card title="Invoices">
+      <div className="space-y-6">
+        {rows.length > 0 && <InvoiceList items={rows} today={start.today} />}
+        {!connected ? (
+          <div className="rounded-xl bg-surface p-4">
+            <p className="mb-3">Connect Google to make invoices.</p>
+            <ConnectGoogleButton className={secondaryBtn}>Connect Google</ConnectGoogleButton>
+          </div>
+        ) : !job.client_id ? (
+          <p className="text-muted">Add the client on the Details tab before invoicing.</p>
+        ) : (
+          <details className="group rounded-xl border border-line" open={rows.length === 0}>
+            <summary className="cursor-pointer list-none px-4 py-3 font-semibold">Raise an invoice</summary>
+            <div className="border-t border-line p-4">
+              <NewInvoice jobId={job.id} start={start} />
+            </div>
+          </details>
+        )}
+      </div>
     </Card>
   );
 }

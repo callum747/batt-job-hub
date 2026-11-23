@@ -71,6 +71,20 @@ Things that weren't spelled out in the brief or the playbook. Say if any should 
 52. **The check runs while someone has the app open**, at most every 30 minutes (Replit's always-on hosting doesn't run timers on its own). Up to 15 new emails per check; the last 45 days are looked at.
 53. **The PDF isn't copied into the job's Drive folder yet.** The cost links back to the email. Say if you'd like the PDF filed in the job's 04 - Procurement folder too.
 
+## Invoices
+54. **Stage invoices follow the payment table on the job's own quote** (your answer, 23/11/2026): short form 20% deposit then 80% on completion (100% on completion for no-deposit clients); long form 25 / 35 / 30 / 10; survey 100% on completion. The last stage is "whatever's left": the quote plus approved extras, less everything already invoiced.
+55. **Meterz is on 30 days** (your answer). Terms default to the client's payment days, then the quote's, then 7.
+56. **The ledger spreadsheet stays the record** (your answer). The app writes only its input columns (A–J, M for CIS, P, AA, AB) in the first empty row, and fills Sent Date (R) and Paid Date (S) when you mark an invoice sent or paid.
+57. **Numbers never clash or skip:** the next number is one more than the highest in the ledger's column A, its "next number" cell, or the app. If an invoice fails part way, its number is kept and used by the next one.
+58. **Quote reference on the invoice and in the ledger is the plain job number** (559), as everywhere else in the app. Older jobs keep their old reference (Q-549).
+59. **VAT or CIS is never guessed.** For a main contractor the form won't make the invoice until you choose. CIS invoices are reverse charge (no VAT added), with 20% of the labour deducted.
+60. **CIS labour is suggested, not decided:** the pricing sheet's labour, in proportion to how much of the quote this invoice is. You check it against the sheet and change it if needed.
+61. **Test mode is kept completely apart:** TEST-INV-1, TEST-INV-2… in "ZZ – Job Hub TEST › Invoices (TEST)", rows in a copy of the ledger there, and test invoices never change a job's money.
+62. **A job's profit uses invoiced income only once it's fully invoiced** (stage Invoiced, Paid or Closed, or invoices reaching the quote plus extras). Before that the quote is used, so a deposit doesn't make a job look like a loss.
+63. **The invoice email is a new email, not a reply in the quote thread,** and ends "Kind Regards," with your name and title written in (the app can't add your Gmail signature). Say if you'd like it threaded.
+64. **Final, survey and day-rate invoices move the job to Invoiced;** when the last of them is paid the job moves to Paid and its folder to Completed.
+65. **Not built yet:** credit notes, chasing overdue invoices, CIS statements, bank statements and the quarter-end pack. Those come next.
+
 ## Still needed from Callum
 - **Jed's email address** (the one his Google Calendar uses). Without it he can't be invited to visits. Add it in Settings, under People.
 - **An Anthropic API key** for the Ask screen, added in Replit Secrets as `ANTHROPIC_API_KEY`.
