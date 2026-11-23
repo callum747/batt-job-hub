@@ -85,6 +85,8 @@ Things that weren't spelled out in the brief or the playbook. Say if any should 
 64. **Final, survey and day-rate invoices move the job to Invoiced;** when the last of them is paid the job moves to Paid and its folder to Completed.
 65. **Not built yet:** credit notes, chasing overdue invoices, CIS statements, bank statements and the quarter-end pack. Those come next.
 
+66. **Fuel and travel in a job's profit is worked out as the quote did** (your request, 23/11/2026): the quote's round-trip miles × the quote's vans × 45p gives the cost per day, times the number of days someone has actually been on site. A job that hasn't been priced uses its own miles box and one van.
+
 ## Still needed from Callum
 - **Jed's email address** (the one his Google Calendar uses). Without it he can't be invited to visits. Add it in Settings, under People.
 - **An Anthropic API key** for the Ask screen, added in Replit Secrets as `ANTHROPIC_API_KEY`.

@@ -2,6 +2,9 @@
 
 Plain-English notes on what's new in the Batt Job Hub, newest first.
 
+## 23/11/2026: Fuel in job profit
+- **Fuel and travel now follows the quote:** the cost per day is the quote's miles × vans × 45p (as the pricing sheet works it out), times the days someone's been on site. Before, it ignored the vans and showed nothing if the job's miles box was empty even when the quote had the miles. The Quote & money tab shows the per-day figure and the days.
+
 ## 23/11/2026: Invoices (first part)
 - **Invoices card on each job's Quote & money tab.** Pick what it's for: the next stage from the job's quote (e.g. "Deposit, on acceptance (25%): £1,825.00"), the final (what's left, with any approved extras listed), day rate, variation or other. The lines fill in; change anything that was agreed differently.
 - **VAT or CIS:** a standard 20% VAT invoice, or a CIS invoice (reverse charge, no VAT, 20% of the labour deducted). For main contractors you must choose, so it's never guessed. The labour is suggested from the pricing sheet for you to check.

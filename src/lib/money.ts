@@ -6,7 +6,7 @@
  *  - income: net invoiced once invoiced, otherwise quote + approved extras
  *  - labour: every visit up to and including today × each person on it × their day cost;
  *            a timed visit counts as hours ÷ 8 of a day (never more than a full day)
- *  - travel: round-trip miles × per-mile rate × number of separate visit days
+ *  - fuel and travel: as the quote worked it out per day (round-trip miles × vans × per-mile rate), × separate visit days
  */
 
 export const HOURS_PER_DAY = 8;
@@ -24,6 +24,8 @@ export type MoneyInput = {
   invoicedNet: number | null; // null until anything is invoiced
   visits: MoneyVisit[];
   milesRoundTrip: number | null;
+  /** Vans travelling each day, from the quote. Defaults to 1. */
+  vans?: number;
   perMile: number;
   costs: number[];
   today: string; // YYYY-MM-DD
@@ -72,7 +74,7 @@ export function jobMoney(input: MoneyInput): MoneyResult {
   }, 0);
 
   const visitDays = new Set(pastVisits.map((v) => v.date)).size;
-  const travelP = input.milesRoundTrip ? Math.round(input.milesRoundTrip * toPence(input.perMile) * visitDays) : 0;
+  const travelP = input.milesRoundTrip ? Math.round(input.milesRoundTrip * (input.vans ?? 1) * toPence(input.perMile) * visitDays) : 0;
 
   const otherP = input.costs.reduce((s, c) => s + toPence(c), 0);
   const spentP = labourP + travelP + otherP;

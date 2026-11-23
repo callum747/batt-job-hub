@@ -162,7 +162,13 @@ export default async function JobPage({ params, searchParams }: { params: Promis
                 <Row label="Income" value={gbp(m.income)} strong />
                 <Row label={`Labour (${m.visitDays} day${m.visitDays === 1 ? "" : "s"} on site so far)`} value={gbp(m.labour)} />
                 <Row
-                  label={job.miles_round_trip ? `Travel (${job.miles_round_trip} miles × ${gbp(settings.rates.perMile)} × ${m.visitDays} days)` : "Travel (miles not set yet)"}
+                  label={(() => {
+                    const miles = job.pricing?.input.miles || job.miles_round_trip;
+                    const vans = job.pricing ? Math.max(1, Number(job.pricing.input.vans) || 1) : 1;
+                    if (!miles) return "Fuel and travel (miles not set yet)";
+                    const perDay = Math.round(miles * vans * settings.rates.perMile * 100) / 100;
+                    return `Fuel and travel (${gbp(perDay)} a day: ${miles} miles${vans > 1 ? ` × ${vans} vans` : ""} × ${gbp(settings.rates.perMile)}, as quoted; × ${m.visitDays} day${m.visitDays === 1 ? "" : "s"} on site)`;
+                  })()}
                   value={gbp(m.travel)}
                 />
                 <Row label="Materials, wholesaler invoices and other costs" value={gbp(m.otherCosts)} />

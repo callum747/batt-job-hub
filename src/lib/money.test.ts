@@ -58,6 +58,21 @@ describe("jobMoney", () => {
     expect(r.travel).toBe(36); // 40 × £0.45 × 2
   });
 
+  it("works fuel out per day as the quote did, with every van that travels", () => {
+    const r = jobMoney({
+      ...base,
+      quoteValue: 1000,
+      milesRoundTrip: 40,
+      vans: 2,
+      visits: [
+        { date: "2026-11-18", start: null, end: null, dayCosts: [286, 119] },
+        { date: "2026-11-19", start: null, end: null, dayCosts: [286, 119] },
+        { date: "2026-11-20", start: null, end: null, dayCosts: [286, 119] },
+      ],
+    });
+    expect(r.travel).toBe(108); // 40 miles × 2 vans × £0.45 = £36 a day, × 3 days on site
+  });
+
   it("has no travel cost when the miles aren't known", () => {
     const r = jobMoney({ ...base, visits: [{ date: "2026-11-18", start: null, end: null, dayCosts: [286] }] });
     expect(r.travel).toBe(0);
