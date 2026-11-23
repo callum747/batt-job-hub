@@ -87,6 +87,11 @@ Things that weren't spelled out in the brief or the playbook. Say if any should 
 
 66. **Fuel and travel in a job's profit is worked out as the quote did** (your request, 23/11/2026): the quote's round-trip miles × the quote's vans × 45p gives the cost per day, times the number of days someone has actually been on site. A job that hasn't been priced uses its own miles box and one van.
 
+67. **The Invoices page reads the ledger, not just the app,** so hand-raised invoices are included. In test mode it reads the test copy.
+68. **Chasers are new emails, not replies in the invoice thread,** with the invoice attached when the ledger links its PDF. Reminder 1 until a week overdue, reminder 2 for the second week, reminder 3 from then on (finance rules).
+69. **A payment is only marked paid when the amount received equals the amount payable** (to the penny). Anything else is left for a person.
+70. **CIS Received rows aren't filled yet** when a CIS invoice is paid. That's part of the CIS work coming next.
+
 ## Still needed from Callum
 - **Jed's email address** (the one his Google Calendar uses). Without it he can't be invited to visits. Add it in Settings, under People.
 - **An Anthropic API key** for the Ask screen, added in Replit Secrets as `ANTHROPIC_API_KEY`.

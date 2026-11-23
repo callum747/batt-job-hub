@@ -2,6 +2,12 @@
 
 Plain-English notes on what's new in the Batt Job Hub, newest first.
 
+## 23/11/2026: The Invoices page and chasing
+- **Invoices** (in the menu) now reads the 00 - Batt Job Hub ledger directly, so it includes invoices raised by hand (like INV-545). At the top: what Batt is owed, what's overdue, and how many need chasing today.
+- **Not paid yet:** each invoice with its amount, due date or days overdue, late fee so far (worked out by the ledger), when it was last chased and when the next chase is due.
+- **Chase:** drafts the right reminder in your Gmail. On the due date: a friendly reminder with the invoice attached again. A week overdue: polite but clear, mentioning the 5% a week late fee in the T&Cs. After that, every week, firmer: the late fee so far, certificates held until paid, and an offer to talk. The ledger's Last Chased is filled in, so the next chase date moves on by itself. Late fees are only ever mentioned, never added.
+- **Mark sent / Mark paid:** fill the ledger's Sent Date and Paid Date. For a payment, type the amount received: if it doesn't match what's due, it isn't marked paid, so a part payment or CIS difference gets looked at.
+
 ## 23/11/2026: Fuel in job profit
 - **Fuel and travel now follows the quote:** the cost per day is the quote's miles × vans × 45p (as the pricing sheet works it out), times the days someone's been on site. Before, it ignored the vans and showed nothing if the job's miles box was empty even when the quote had the miles. The Quote & money tab shows the per-day figure and the days.
 

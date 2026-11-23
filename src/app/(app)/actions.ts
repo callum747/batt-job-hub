@@ -22,6 +22,7 @@ import { fileInvoice, ignoreInvoice, scanInvoices } from "@/lib/supplier-invoice
 import { makeInvoice, markInvoice, retryLedger, type InvoiceForm } from "@/lib/google/invoice-run";
 import { checkInvoice, INVOICE_TYPES, type InvoiceType } from "@/lib/invoicing";
 import { draftInvoiceEmail } from "@/lib/invoice-email";
+import { chaserStart, draftChaser, recordPayment, recordSent } from "@/lib/google/ledger-run";
 
 async function who() {
   const p = await currentPerson();
@@ -598,4 +599,39 @@ export async function invoiceDraftEmail(invoiceId: string, e: { to: string; cc: 
   const r = await draftInvoiceEmail(str(invoiceId), { to: str(e.to), cc: str(e.cc), subject: str(e.subject), body: str(e.body) }, me);
   refreshJobs();
   return r;
+}
+
+// ---------- The Invoices page (the ledger) ----------
+
+export async function ledgerChaserStart(number: string) {
+  const me = await who();
+  try {
+    return { ok: true as const, email: await chaserStart(me.email, String(number)) };
+  } catch (e) {
+    return { ok: false as const, message: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function ledgerDraftChaser(number: string, e: { to: string; cc: string; subject: string; body: string }) {
+  const me = await who();
+  try {
+    const r = await draftChaser(me, String(number), { to: String(e.to ?? ""), cc: String(e.cc ?? ""), subject: String(e.subject ?? ""), body: String(e.body ?? "") });
+    revalidatePath("/invoices");
+    return { ok: true, url: r.url, message: `Saved in your Gmail drafts${r.attached ? " with the invoice attached" : ""}, and Last Chased is filled in. Check it and press Send in Gmail.` };
+  } catch (err) {
+    return { ok: false, message: errorText(err) };
+  }
+}
+
+export async function ledgerMark(number: string, what: "sent" | "paid", date: string, received: number) {
+  const me = await who();
+  try {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date))) throw new Error("Pick a date.");
+    const extra = what === "paid" ? await recordPayment(me, String(number), String(date), Number(received)) : await recordSent(me, String(number), String(date));
+    refreshJobs();
+    revalidatePath("/invoices");
+    return { ok: true, message: `${number} marked ${what} on ${ukDate(String(date))}.${extra ? " " + extra : ""}` };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : String(e) };
+  }
 }
