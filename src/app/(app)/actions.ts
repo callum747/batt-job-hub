@@ -24,6 +24,7 @@ import { checkInvoice, INVOICE_TYPES, type InvoiceType } from "@/lib/invoicing";
 import { draftInvoiceEmail } from "@/lib/invoice-email";
 import { importDriveFolders } from "@/lib/google/drive-import";
 import { renameToHash } from "@/lib/google/drive-rename";
+import { jobAddress, roundTripMiles } from "@/lib/google/miles";
 import { fileStatement, recordSubcontractorPayment, requestStatement } from "@/lib/google/cis-run";
 import { chaserStart, draftChaser, recordPayment, recordSent } from "@/lib/google/ledger-run";
 
@@ -705,5 +706,24 @@ export async function driveRenameToHash() {
     };
   } catch (e) {
     return { ok: false, message: errorText(e) };
+  }
+}
+
+// ---------- Miles ----------
+
+/** Works out a job's round-trip road miles with Google Maps and saves them on the job. */
+export async function workOutMiles(jobId: string) {
+  const me = await who();
+  try {
+    const [job] = await sql<{ site: string; postcode: string; miles_round_trip: number | null }[]>`select site, postcode, miles_round_trip from jobs where id = ${jobId}`;
+    if (!job) throw new Error("That job doesn't exist.");
+    if (!job.postcode.trim()) throw new Error("Add the site's postcode on the Details tab first, so the miles are for the right place.");
+    const m = await roundTripMiles(jobAddress(job));
+    await sql`update jobs set miles_round_trip = ${m.roundTrip}, updated_at = now() where id = ${jobId}`;
+    await audit(sql, me.email, "miles worked out", "job", jobId, { ...m, before: job.miles_round_trip });
+    refreshJobs();
+    return { ok: true, miles: m.roundTrip, message: `${m.roundTrip} miles round trip by road (${m.out} there, ${m.back} back) from 18 Alwin Close to ${m.to}. Saved on the job.` };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : String(e) };
   }
 }

@@ -29,6 +29,10 @@ import { invoiceStart } from "@/lib/invoice-start";
 import { invoiceEmailStart } from "@/lib/invoice-email";
 import { jobInvoices } from "@/lib/google/invoice-run";
 import { invoiceLabel } from "@/lib/invoicing";
+import { readLedger } from "@/lib/google/ledger-run";
+import { mapsConfigured } from "@/lib/google/miles";
+import { MilesButton } from "../miles-button";
+import type { LedgerInvoice } from "@/lib/ledger";
 import { draftLongQuote, draftShortQuote, isPriced, preparedByFor, productsFor, suggestLong } from "@/lib/quote-drafts";
 import { getClient, getPersonByEmail, jobDocuments } from "@/lib/data";
 import { JobForm } from "../job-form";
@@ -220,6 +224,12 @@ export default async function JobPage({ params, searchParams }: { params: Promis
 
         {tab === "email" && <EmailTab job={job} />}
 
+        {tab === "details" && (
+          <Card title="Miles">
+            <MilesButton jobId={job.id} miles={job.miles_round_trip} ready={mapsConfigured()} />
+            <p className="mt-3 text-[14px] text-muted">By road from 18 Alwin Close, Aylesbury, to the site&apos;s postcode and back, from Google Maps. Used for travel in pricing and for fuel in the job&apos;s profit. You can still type a figure in below.</p>
+          </Card>
+        )}
         {tab === "details" && (
           <Card title="Details">
             <JobForm clients={clients} job={job} />
@@ -632,7 +642,20 @@ async function InvoicesCard({ job }: { job: Awaited<ReturnType<typeof findJob>> 
   const me = await currentPerson();
   if (!me || me.email === "preview@localhost") return null;
   const connected = await googleConnected(me.email);
-  const [start, list] = await Promise.all([invoiceStart(job), jobInvoices(job.id)]);
+  const list = await jobInvoices(job.id);
+  // Invoices raised by hand are in the ledger but not in the app: show them, and count them as invoiced.
+  let byHand: LedgerInvoice[] = [];
+  let ledgerProblem = "";
+  if (connected && job.number) {
+    try {
+      const ledger = await readLedger(me.email);
+      const mine = new Set(list.map((i) => invoiceLabel(i.number, i.test)));
+      byHand = ledger.invoices.filter((i) => i.jobNumber === job.number && !mine.has(i.number));
+    } catch (e) {
+      ledgerProblem = errorText(e);
+    }
+  }
+  const start = await invoiceStart(job, byHand.filter((h) => h.net !== null).map((h) => ({ number: h.number, type: h.type, net: h.net! })));
   const rows: InvoiceListRow[] = await Promise.all(
     list.filter((i) => i.test === start.test).map(async (i) => ({
       ...i,
@@ -644,6 +667,26 @@ async function InvoicesCard({ job }: { job: Awaited<ReturnType<typeof findJob>> 
     <Card title="Invoices">
       <div className="space-y-6">
         {rows.length > 0 && <InvoiceList items={rows} today={start.today} />}
+        {byHand.length > 0 && (
+          <div>
+            <p className="label mb-2">Raised by hand (from the ledger)</p>
+            <ul className="divide-y divide-line rounded-xl border border-line bg-bg">
+              {byHand.map((h) => (
+                <li key={h.number} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 text-[15px]">
+                  <span className="font-semibold">{h.number}</span>
+                  <span>{h.type}</span>
+                  <span className="tabular-nums">{h.gross === null ? "" : gbp(h.gross)}</span>
+                  <span className="rounded-full bg-surface px-3 py-1 text-[13px] font-medium">{h.status === "Draft" ? "Not marked sent" : h.status}</span>
+                  <span className="ml-auto flex gap-3">
+                    {h.pdfUrl && <a href={h.pdfUrl} target="_blank" rel="noreferrer" className="font-semibold underline underline-offset-4">PDF</a>}
+                    <Link href="/invoices" className="underline underline-offset-4">Mark sent or paid</Link>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {ledgerProblem && <p className="text-[14px] text-muted">Couldn&apos;t check the ledger for invoices raised by hand: {ledgerProblem}</p>}
         {!connected ? (
           <div className="rounded-xl bg-surface p-4">
             <p className="mb-3">Connect Google to make invoices.</p>
@@ -652,7 +695,7 @@ async function InvoicesCard({ job }: { job: Awaited<ReturnType<typeof findJob>> 
         ) : !job.client_id ? (
           <p className="text-muted">Add the client on the Details tab before invoicing.</p>
         ) : (
-          <details className="group rounded-xl border border-line bg-bg" open={rows.length === 0}>
+          <details className="group rounded-xl border border-line bg-bg" open={rows.length === 0 && byHand.length === 0}>
             <summary className="cursor-pointer list-none px-4 py-3 font-semibold">Raise an invoice</summary>
             <div className="border-t border-line p-4">
               <NewInvoice jobId={job.id} start={start} />

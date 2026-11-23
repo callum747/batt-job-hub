@@ -114,6 +114,11 @@ Things that weren't spelled out in the brief or the playbook. Say if any should 
 85. **People's default colours moved to brand colours** (Cam black, Callum Batt Blue, Jed steel). A colour picked by hand in Settings is kept.
 86. **Phone tiles use shorter labels:** "Spent", "Profit", "Unpaid invoices".
 
+87. **Miles come from Google Maps' driving route** (Routes API), there and back asked for separately and added, rounded to the nearest whole mile as your quotes state them. Pressing the button is your say-so to save the figure.
+88. **Hand-raised invoices were added to the ledger with the figures on the invoices** and Sent Date left blank (not known). INV-548 has no job, so its Quote Ref is blank.
+89. **A hand-raised invoice counts on its job** when the ledger's Quote Ref is the job's number: a Deposit ticks off the deposit stage, a Final ticks off the last stage, and its net comes off what's left to invoice.
+90. **Deleting a job** was done once, by request, for the un-numbered Ace Pro survey enquiry. There's still no delete button in the app.
+
 ## Still needed from Callum
 - **Jed's email address** (the one his Google Calendar uses). Without it he can't be invited to visits. Add it in Settings, under People.
 - **For Jed's monthly CIS statement:** his full legal name, email and address (on the ledger's Subcontractors tab), and Batt's CIS employer's reference (GPG have it).

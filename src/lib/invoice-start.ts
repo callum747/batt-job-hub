@@ -26,7 +26,10 @@ export type InvoiceStart = {
   template: string;
 };
 
-export async function invoiceStart(job: JobRow): Promise<InvoiceStart> {
+/** An invoice raised by hand: in the ledger, but not made by the app. It still counts as invoiced. */
+export type HandInvoice = { number: string; type: string; net: number };
+
+export async function invoiceStart(job: JobRow, byHand: HandInvoice[] = []): Promise<InvoiceStart> {
   const [client, settings, g, invoices, variations] = await Promise.all([
     job.client_id ? getClient(job.client_id) : null,
     getSettings(),
@@ -38,15 +41,22 @@ export async function invoiceStart(job: JobRow): Promise<InvoiceStart> {
   const quoteNet = q?.subtotal ?? job.quote_value;
   const test = g.mode === "test";
   const counted = invoices.filter((i) => ["made", "sent", "paid"].includes(i.status) && i.test === test);
-  const stages = (paymentStages(q) ?? []).map((s) => ({ ...s, amount: stageAmount(quoteNet, s.pct), done: counted.some((i) => i.stage_label === s.label) }));
+  const handDeposit = byHand.some((h) => h.type === "Deposit");
+  const handFinal = byHand.some((h) => ["Final", "Survey", "Day rate"].includes(h.type));
+  const stages = (paymentStages(q) ?? []).map((s, i, all) => ({
+    ...s,
+    amount: stageAmount(quoteNet, s.pct),
+    done: counted.some((c) => c.stage_label === s.label) || (handDeposit && /^deposit/i.test(s.label)) || (handFinal && i === all.length - 1),
+  }));
+  const already = [...counted.map((i) => Number(i.net)), ...byHand.map((h) => h.net)];
   const vars = variations.map((v) => ({ ...v }));
   return {
     test,
     quoteRef: job.number ? `#${job.number}` : job.legacy_ref,
     quoteNet,
     stages,
-    finalAmount: finalAmount(quoteNet, vars.map((v) => v.amount), counted.map((i) => i.net)),
-    invoicedNet: counted.reduce((s, i) => s + Number(i.net), 0),
+    finalAmount: finalAmount(quoteNet, vars.map((v) => v.amount), already),
+    invoicedNet: already.reduce((s, n) => s + n, 0),
     variations: vars,
     labourSell: job.pricing?.result.labourSell ?? null,
     client: {

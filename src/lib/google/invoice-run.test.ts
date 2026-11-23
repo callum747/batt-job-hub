@@ -182,6 +182,15 @@ d("invoices", () => {
     expect(i).toMatchObject({ gross: 2190, payable: 1890, cis_deduction: 300 });
   });
 
+  it("counts an invoice raised by hand as already invoiced, so the final isn't over-billed", async () => {
+    const { invoiceStart } = await import("../invoice-start");
+    const job = (await (await import("../data")).findJob("559"))!;
+    const before = await invoiceStart(job);
+    const after = await invoiceStart(job, [{ number: "INV-900", type: "Deposit", net: 302.54 }]);
+    expect(Math.round((before.finalAmount - after.finalAmount) * 100) / 100).toBe(302.54);
+    expect(Math.round((after.invoicedNet - before.invoicedNet) * 100) / 100).toBe(302.54);
+  });
+
   it("an invoice that isn't one page isn't saved", async () => {
     pages = 2;
     const r = await run.makeInvoice(jobId, form(), ME);

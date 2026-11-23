@@ -2,6 +2,13 @@
 
 Plain-English notes on what's new in the Batt Job Hub, newest first.
 
+## 23/11/2026: Miles from Google Maps, and Cam's invoices recorded
+- **Work out miles:** each job's Details tab has a Miles card. Press **Work out miles** and Google Maps gives the round-trip road miles from 18 Alwin Close to the site's postcode and back (out and back worked out separately), saved on the job to the nearest mile. Ask can do it too, so it no longer needs to ask you for miles when a job has a postcode.
+- **Three invoices Cameron raised by hand are now in the ledger,** copied from the invoices themselves: INV-546 (31B Church Lane deposit, £363.05), INV-547 (Ace Pro, 31C Buckingham Street final, £2,808.14) and INV-548 (2 Stratford Drive call-out, £78.00). The next number is INV-549. Sent dates are blank until you mark them sent.
+- **Job #555 (Ace Pro) is now Invoiced,** and #539 has a note about its deposit.
+- **Invoices raised by hand show on the job** (Quote & money › Invoices, "Raised by hand") and count as already invoiced, so a final invoice never bills a deposit twice.
+- **The Ace Pro water-heater survey enquiry is removed,** as asked. Job #555 is untouched.
+
 ## 23/11/2026: New design, always in white
 - **Always the white theme,** even on a phone or computer set to dark mode.
 - **Built on the brand guide:** a light grey page with white cards, Batt Black text, steel for supporting text, and Batt Blue as the one accent. Headlines and big figures are in Saira Expanded capitals, everything else in Inter, and section headings carry the blue bar from your documents.

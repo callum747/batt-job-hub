@@ -15,6 +15,7 @@ export type LedgerInvoice = {
   site: string;
   type: string;
   vat: string;
+  net: number | null;
   gross: number | null;
   payable: number | null;
   terms: number | null;
@@ -62,6 +63,7 @@ export function parseLedger(values: string[][]): LedgerInvoice[] {
       site: r[6] ?? "",
       type: r[7] ?? "",
       vat: r[8] ?? "",
+      net: money(r[9]),
       gross: money(r[11]),
       payable: money(r[14]) ?? money(r[11]),
       terms: int(r[15]),

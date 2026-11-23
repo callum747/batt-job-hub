@@ -14,6 +14,7 @@ import { loadPriceList, priceJob } from "../google/pricing-run";
 import { buildLongQuote, buildShortQuote } from "../google/quote-run";
 import { draftLongQuote, draftShortQuote, isPriced, loadClient, preparedByFor, productsFor, suggestLong } from "../quote-drafts";
 import { errorText } from "../google/client";
+import { jobAddress, roundTripMiles } from "../google/miles";
 import { jobThreads, threadText } from "../google/gmail";
 import { linkEmailToJob, linkedThreads, listInbox } from "../inbox";
 import { findEmail, jobSearch, unescapeHtml } from "../email";
@@ -188,6 +189,21 @@ const tools: Tool[] = [
       await sql`update jobs set notes = case when notes = '' then ${line} else notes || E'\n' || ${line} end, updated_at = now() where id = ${job.id}`;
       await audit(sql, me.email, "note (assistant)", "job", job.id);
       return { saved: true };
+    },
+  },
+  {
+    name: "work_out_miles",
+    label: (i) => `Working out the miles for job ${i.job}`,
+    description:
+      "Works out a job's round-trip road miles from 18 Alwin Close, Aylesbury to the site and back with Google Maps, and saves them on the job. Needs the job's postcode. Use this instead of asking the user for miles when the job has a postcode and no miles yet. Not for surveys covering several sites in one trip: ask for those.",
+    schema: z.object({ job: jobRef }),
+    run: async (i: { job: string }, me: Me) => {
+      const job = await mustFind(i.job);
+      if (!job.postcode.trim()) return { ok: false, message: "The job has no postcode. Ask the user for it, save it with update_job, then try again." };
+      const m = await roundTripMiles(jobAddress(job));
+      await sql`update jobs set miles_round_trip = ${m.roundTrip}, updated_at = now() where id = ${job.id}`;
+      await audit(sql, me.email, "miles worked out (assistant)", "job", job.id, { ...m });
+      return { ok: true, miles_round_trip: m.roundTrip, miles_there: m.out, miles_back: m.back, to: m.to };
     },
   },
   {
