@@ -106,6 +106,9 @@ export function NewInvoice({ jobId, start }: { jobId: string; start: InvoiceStar
           <Plus className="h-4 w-4" aria-hidden="true" /> Add a line
         </button>
         <p className="mt-1 text-[14px] text-muted">Prices are before VAT. Amounts come from the quote; change them only if what was agreed is different.</p>
+        {lines.length > (vat === "cis" ? 2 : 7) && (
+          <p className="mt-2 rounded-xl bg-warn/10 px-4 py-2 text-[14px]">The invoice must fit on one page{vat === "cis" ? ", and a CIS invoice has room for about 2 lines" : ""}. Combine lines (e.g. one line for all the variations) if it won&apos;t fit.</p>
+        )}
       </div>
 
       <fieldset>
