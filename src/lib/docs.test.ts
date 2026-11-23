@@ -87,6 +87,13 @@ describe("reading a document", () => {
 });
 
 describe("writing text", () => {
+  it("allows for an image at the start of a paragraph (a heading's blue bar takes up one position)", () => {
+    // "￼  Invoice INV-[000]" from the invoice template: the image is at 1, the text starts at 2.
+    const p = { start: 1, end: 22, text: "  Invoice INV-[000]\n", paragraph: { elements: [{ startIndex: 1, endIndex: 2, inlineObjectElement: {} }, { startIndex: 2, endIndex: 22, textRun: { content: "  Invoice INV-[000]\n" } }] } };
+    const e = replaceInParagraph(p, "INV-[000]", "INV-546")!;
+    expect(e.at).toBe(12);
+    expect(e.requests).toEqual(replaceRange(12, 21, "INV-546"));
+  });
   it("replaces a whole paragraph", () => {
     const p = paragraphs(doc.body!.content).find((x) => x.text.startsWith("Between"))!;
     expect(apply(doc, toBatch([setParagraph(p, "New words")]))).toContain("\nNew words\n");

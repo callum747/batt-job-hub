@@ -122,13 +122,22 @@ export function replaceInParagraph(p: Para, find: string, text: string, nth = 0)
     from = p.text.indexOf(find, from + 1);
     if (from === -1) return null;
   }
-  const start = p.start + utf16Offset(p, from);
+  const start = docIndex(p, from);
   return { at: start, requests: replaceRange(start, start + find.length, text) };
 }
 
-// Paragraph elements are contiguous, so an offset into the joined text is an offset from the paragraph start.
-function utf16Offset(_p: Para, offset: number) {
-  return offset;
+/**
+ * Where a character of the paragraph's text sits in the document. The text only holds text runs, but an image
+ * in the paragraph (like the blue bar before a heading) also takes up a position, so count from each run's own start.
+ */
+function docIndex(p: Para, offset: number) {
+  let seen = 0;
+  for (const e of p.paragraph.elements ?? []) {
+    const len = e.textRun?.content?.length ?? 0;
+    if (len && offset < seen + len) return (e.startIndex ?? p.start + seen) + (offset - seen);
+    seen += len;
+  }
+  return p.start + offset;
 }
 
 /** Sets a cell's text: the first paragraph gets the text and any further paragraphs in the cell are emptied. */
