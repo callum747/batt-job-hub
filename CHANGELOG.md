@@ -2,6 +2,13 @@
 
 Plain-English notes on what's new in the Batt Job Hub, newest first.
 
+## 23/11/2026: Jobs and Drive folders, both ways
+- **Made in the app → Drive:** as before, a job gets its Drive folder (with the eight subfolders) as soon as it has a number, and the folder moves when the stage changes.
+- **Made in Drive → the app (new):** a folder you make by hand in Live, Active, Completed or Lost, named like "560 – Client – Site", becomes a job in the app with that number, client and site. Its stage comes from where it is: Live = Draft quote, Active = Booked, Completed = Paid, Lost = Lost. A new client is added if the name isn't known. If a job with that number already exists without a folder, the folder is linked to it instead.
+- **When:** every 10 minutes while anyone has the app open, or straight away with **Check Drive** on the Jobs page.
+- **No clashing numbers:** before the app gives a job a new number, it checks Drive first, so it never takes a number you've used for a folder. If a folder's number belongs to a different job that already has a folder, it's reported and nothing is changed.
+- The app never renames, moves or changes a folder you made; it only reads it. Test mode looks only in the test folders.
+
 ## 23/11/2026: The Invoices page and chasing
 - **Invoices** (in the menu) now reads the 00 - Batt Job Hub ledger directly, so it includes invoices raised by hand (like INV-545). At the top: what Batt is owed, what's overdue, and how many need chasing today.
 - **Not paid yet:** each invoice with its amount, due date or days overdue, late fee so far (worked out by the ledger), when it was last chased and when the next chase is due.

@@ -37,6 +37,12 @@ export async function audit(tx: AnySql, actor: string, action: string, entity: s
 /** Moves a job to a new stage, numbering it if it's being quoted for the first time. */
 export async function changeStage(jobId: string, stage: Stage, actor: string) {
   if (!STAGES.includes(stage)) throw new Error("Unknown stage.");
+  // About to give out a number: first pick up any job folder made by hand in Drive, so its number isn't reused.
+  const [before] = await sql<{ number: number | null }[]>`select number from jobs where id = ${jobId}`;
+  if (before && needsNumber(stage, before.number) && actor.includes("@")) {
+    const { checkDriveBeforeNumbering } = await import("./google/drive-import");
+    await checkDriveBeforeNumbering(actor);
+  }
   return sql.begin(async (tx) => {
     const [job] = await tx<{ number: number | null; stage: Stage; merged_into: string | null }[]>`
       select number, stage, merged_into from jobs where id = ${jobId} for update`;

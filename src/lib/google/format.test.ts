@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { eventBody, eventTitle, jobFolderName, JOB_SUBFOLDERS, type EventInput } from "./format";
+import { eventBody, eventTitle, jobFolderName, JOB_SUBFOLDERS, parseJobFolderName, type EventInput } from "./format";
 
 const base: EventInput = {
   jobNumber: 549,
@@ -27,6 +27,21 @@ describe("job folder", () => {
     expect(JOB_SUBFOLDERS).toHaveLength(8);
     expect(JOB_SUBFOLDERS[0]).toBe("01 - Quote & Contract");
     expect(JOB_SUBFOLDERS[7]).toBe("08 - Handover & O&M");
+  });
+});
+
+describe("reading a folder made by hand", () => {
+  it("reads number, client and site, with an en dash or a hyphen", () => {
+    expect(parseJobFolderName("560 – Smith Homes – 4 Oak Road, Aylesbury")).toEqual({ number: 560, client: "Smith Homes", site: "4 Oak Road, Aylesbury" });
+    expect(parseJobFolderName("561 - Meterz - Unit 2 - Bodmin")).toEqual({ number: 561, client: "Meterz", site: "Unit 2 – Bodmin" });
+    expect(parseJobFolderName("Q-549 – Meterz")).toEqual({ number: 549, client: "Meterz", site: "" });
+    expect(parseJobFolderName("562")).toEqual({ number: 562, client: "", site: "" });
+  });
+  it("ignores folders that aren't jobs", () => {
+    expect(parseJobFolderName("00 - Templates")).toBeNull();
+    expect(parseJobFolderName("Old quotes")).toBeNull();
+    expect(parseJobFolderName("2026 Archive")).toBeNull();
+    expect(parseJobFolderName("23-001 Kitchen")).toBeNull();
   });
 });
 

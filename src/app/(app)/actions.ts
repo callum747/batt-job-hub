@@ -22,6 +22,7 @@ import { fileInvoice, ignoreInvoice, scanInvoices } from "@/lib/supplier-invoice
 import { makeInvoice, markInvoice, retryLedger, type InvoiceForm } from "@/lib/google/invoice-run";
 import { checkInvoice, INVOICE_TYPES, type InvoiceType } from "@/lib/invoicing";
 import { draftInvoiceEmail } from "@/lib/invoice-email";
+import { importDriveFolders } from "@/lib/google/drive-import";
 import { chaserStart, draftChaser, recordPayment, recordSent } from "@/lib/google/ledger-run";
 
 async function who() {
@@ -633,5 +634,16 @@ export async function ledgerMark(number: string, what: "sent" | "paid", date: st
     return { ok: true, message: `${number} marked ${what} on ${ukDate(String(date))}.${extra ? " " + extra : ""}` };
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function driveCheckNow() {
+  const me = await who();
+  try {
+    const r = await importDriveFolders(me.email, { force: true });
+    refreshJobs();
+    return { ok: true, message: r.message };
+  } catch (e) {
+    return { ok: false, message: errorText(e) };
   }
 }

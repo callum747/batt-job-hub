@@ -92,6 +92,11 @@ Things that weren't spelled out in the brief or the playbook. Say if any should 
 69. **A payment is only marked paid when the amount received equals the amount payable** (to the penny). Anything else is left for a person.
 70. **CIS Received rows aren't filled yet** when a CIS invoice is paid. That's part of the CIS work coming next.
 
+71. **A Drive folder becomes a job only if its name starts with a job number** (3 or 4 digits, optionally "Q-"), e.g. "560 – Client – Site". Anything else (templates, archives) is ignored.
+72. **The stage for a folder found in Drive comes from where it sits:** Live = Draft quote, Active = Booked, Completed = Paid, Lost = Lost. Change it on the job if it's wrong.
+73. **The app doesn't add the eight subfolders to a folder you made by hand** (it might already have its own). Quotes and invoices go in its "01…" subfolder if there is one, otherwise in the folder itself.
+74. **An enquiry made in the app still gets its folder when it's numbered** (priced, or moved past Enquiry), because the folder name needs the number. Say if you'd like every new job numbered and given a folder straight away.
+
 ## Still needed from Callum
 - **Jed's email address** (the one his Google Calendar uses). Without it he can't be invited to visits. Add it in Settings, under People.
 - **An Anthropic API key** for the Ask screen, added in Replit Secrets as `ANTHROPIC_API_KEY`.

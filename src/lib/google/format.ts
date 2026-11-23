@@ -76,3 +76,19 @@ function plusHour(hhmm: string) {
   const [h, m] = hhmm.split(":").map(Number);
   return `${String(Math.min(h + 1, 23)).padStart(2, "0")}:${String(h + 1 > 23 ? 59 : m).padStart(2, "0")}`;
 }
+
+/**
+ * Reads a job folder's name the way Batt writes them: "560 – Client – Site" (an en dash or a hyphen), or an
+ * older "Q-560 – …". Null for anything that doesn't start with a job number (templates, "00 - …", notes).
+ */
+export function parseJobFolderName(name: string): { number: number; client: string; site: string } | null {
+  const m = name.trim().match(/^(?:Q-?)?(\d{3,4})(?:\s*[–—-]\s*(.*))?$/i);
+  if (!m) return null;
+  const number = Number(m[1]);
+  if (number < 100) return null;
+  const parts = (m[2] ?? "").split(/\s+[–—-]\s+/).map((s) => s.trim()).filter(Boolean);
+  return { number, client: parts[0] ?? "", site: parts.slice(1).join(" – ") };
+}
+
+/** The stage a job folder found in Drive is given, from the folder it's in. */
+export const STAGE_FOR_AREA = { Live: "Draft quote", Active: "Booked", Completed: "Paid", Lost: "Lost" } as const;
