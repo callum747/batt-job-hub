@@ -94,3 +94,19 @@ export function parseJobFolderName(name: string): { number: number; client: stri
 
 /** The stage a job folder found in Drive is given, from the folder it's in. */
 export const STAGE_FOR_AREA = { Live: "Draft quote", Active: "Booked", Completed: "Paid", Lost: "Lost" } as const;
+
+/**
+ * A file or folder name with old job references turned into the # form: "Q-552 – Meterz" → "#552 – Meterz",
+ * "3 Grove Court, Q-518.pdf" → "3 Grove Court, #518.pdf". Null when nothing should change (templates with
+ * [placeholders], test items, names with no Q- reference).
+ */
+export function hashedName(name: string): string | null {
+  if (/[[\]]/.test(name) || /^TEST\b/i.test(name.trim())) return null;
+  const next = name.replace(/(?<![A-Za-z])Q-?(\d{3,4})(?!\d)/g, "#$1");
+  return next === name ? null : next;
+}
+
+/** A name that starts with a plain job number ("558 – David Marshall") gets its #. Null if it doesn't. */
+export function hashedPlainNumber(name: string, number: number): string | null {
+  return new RegExp(`^${number}(\\s*[–—-]\\s|$)`).test(name.trim()) ? `#${name.trim()}` : null;
+}

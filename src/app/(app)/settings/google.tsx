@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { ConnectGoogleButton } from "@/components/connect-google";
 import { primaryBtn, secondaryBtn } from "@/components/ui";
-import { checkGoogle, setGoogleMode, type Check } from "../actions";
+import { checkGoogle, driveRenameToHash, setGoogleMode, type Check } from "../actions";
 import { Toast } from "../jobs/job-controls";
 
 export function GoogleSettings({ connected, mode, preview }: { connected: boolean; mode: "test" | "live"; preview: boolean }) {
@@ -13,6 +13,7 @@ export function GoogleSettings({ connected, mode, preview }: { connected: boolea
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
   const [checks, setChecks] = useState<Check[] | null>(null);
+  const [renamed, setRenamed] = useState<string | null>(null);
 
   return (
     <div className="space-y-5">
@@ -67,6 +68,24 @@ export function GoogleSettings({ connected, mode, preview }: { connected: boolea
             ))}
           </ul>
         )}
+      </div>
+      <div className="rounded-xl border border-line bg-surface/60 p-4">
+        <p className="font-semibold">Use # for job numbers in Drive</p>
+        <p className="mt-1 text-[15px] text-muted">
+          Renames every &quot;Q-552&quot; in a file or folder name to &quot;#552&quot;, and gives plain-numbered job folders their #. Only names change: nothing inside a file is touched and nothing is moved. This works on the real Drive, whatever mode the app is in.
+        </p>
+        <button
+          type="button"
+          disabled={pending}
+          className={`${secondaryBtn} mt-3`}
+          onClick={() => {
+            if (!confirm("Rename Q- job references to # across the real Google Drive now?")) return;
+            start(async () => setRenamed((await driveRenameToHash()).message));
+          }}
+        >
+          {pending ? "Working… this can take a few minutes" : "Rename Q- to # in Drive"}
+        </button>
+        {renamed && <p role="status" className="mt-3 rounded-[10px] border border-line bg-bg px-4 py-3 text-[15px]">{renamed}</p>}
       </div>
       <Toast message={msg} />
     </div>

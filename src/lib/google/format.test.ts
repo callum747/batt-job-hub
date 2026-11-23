@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { eventBody, eventTitle, jobFolderName, JOB_SUBFOLDERS, parseJobFolderName, type EventInput } from "./format";
+import { eventBody, eventTitle, hashedName, hashedPlainNumber, jobFolderName, JOB_SUBFOLDERS, parseJobFolderName, type EventInput } from "./format";
 
 const base: EventInput = {
   jobNumber: 549,
@@ -45,6 +45,32 @@ describe("reading a folder made by hand", () => {
     expect(parseJobFolderName("2025")).toBeNull();
     expect(parseJobFolderName("#560")).toEqual({ number: 560, client: "", site: "" });
     expect(parseJobFolderName("23-001 Kitchen")).toBeNull();
+  });
+});
+
+describe("renaming Q- to #", () => {
+  it("changes every Q- job reference in a name, wherever it sits", () => {
+    expect(hashedName("Q-552 – Meterz – CBRE The Works, Croydon")).toBe("#552 – Meterz – CBRE The Works, Croydon");
+    expect(hashedName("3 Grove Court, Q-518.pdf")).toBe("3 Grove Court, #518.pdf");
+    expect(hashedName("Rob's EV Charger (Q-502).pdf")).toBe("Rob's EV Charger (#502).pdf");
+    expect(hashedName("Q-555 – Ace Pro Services – Call-out 16 Nov (sent as Q-553) – Quote")).toBe("#555 – Ace Pro Services – Call-out 16 Nov (sent as #553) – Quote");
+    expect(hashedName("Invoice Q-519-2 - 4 Dalesford (Final) .pdf")).toBe("Invoice #519-2 - 4 Dalesford (Final) .pdf");
+    expect(hashedName("Beaumont Vets - Caswells - Q-525.V2.pdf")).toBe("Beaumont Vets - Caswells - #525.V2.pdf");
+  });
+  it("leaves alone what isn't a job reference, templates and test items", () => {
+    expect(hashedName("#552 – Meterz")).toBeNull();
+    expect(hashedName("26-003 – Prism – 5 Vicarage Road")).toBeNull();
+    expect(hashedName("H-001 – 2 Chenille Drive")).toBeNull();
+    expect(hashedName("FAQ-123 notes")).toBeNull();
+    expect(hashedName("Quote Template Q-[000]")).toBeNull();
+    expect(hashedName("TEST – Q-559 check")).toBeNull();
+    expect(hashedName("Q-12345 long number")).toBeNull();
+  });
+  it("gives a plain-numbered job folder and its files their #", () => {
+    expect(hashedPlainNumber("558 – David Marshall – Consumer Unit & EV Charger", 558)).toBe("#558 – David Marshall – Consumer Unit & EV Charger");
+    expect(hashedPlainNumber("558 - Pricing", 558)).toBe("#558 - Pricing");
+    expect(hashedPlainNumber("5580 – other", 558)).toBeNull();
+    expect(hashedPlainNumber("01 - Quote & Contract", 558)).toBeNull();
   });
 });
 

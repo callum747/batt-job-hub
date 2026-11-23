@@ -23,6 +23,7 @@ import { makeInvoice, markInvoice, retryLedger, type InvoiceForm } from "@/lib/g
 import { checkInvoice, INVOICE_TYPES, type InvoiceType } from "@/lib/invoicing";
 import { draftInvoiceEmail } from "@/lib/invoice-email";
 import { importDriveFolders } from "@/lib/google/drive-import";
+import { renameToHash } from "@/lib/google/drive-rename";
 import { fileStatement, recordSubcontractorPayment, requestStatement } from "@/lib/google/cis-run";
 import { chaserStart, draftChaser, recordPayment, recordSent } from "@/lib/google/ledger-run";
 
@@ -690,5 +691,19 @@ export async function cisPaySubcontractor(p: { date: string; name: string; gross
     return { ok: true, message: `Recorded. Labour ${f(r.labour)}, CIS deducted ${f(r.deducted)} (${Math.round(r.rate * 100)}%). Pay ${p.name} ${f(r.net)}. It falls in the tax month ending ${ukDate(r.taxMonthEnding)}.` };
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function driveRenameToHash() {
+  const me = await who();
+  try {
+    const r = await renameToHash(me.email);
+    refreshJobs();
+    return {
+      ok: r.failed.length === 0,
+      message: `${r.renamed} renamed.${r.left ? ` ${r.left} still to do: press the button again.` : ""}${r.failed.length ? ` ${r.failed.length} couldn't be renamed (usually no permission): ${r.failed.slice(0, 5).join("; ")}` : ""}${r.renamed === 0 && !r.left && !r.failed.length ? " Nothing left to rename: everything already uses #." : ""}`,
+    };
+  } catch (e) {
+    return { ok: false, message: errorText(e) };
   }
 }
