@@ -106,6 +106,8 @@ Things that weren't spelled out in the brief or the playbook. Say if any should 
 80. **A folder named only "2000"–"2099" is a year folder,** not a job.
 81. **Existing Drive names were changed from "Q-552" to "#552"** (folders and file names only, never what's inside a file), and the ledger's Quote Ref from Q-549 to #549 (your answer, 23/11/2026).
 
+82. **A survey's quoted miles cover the whole trip,** so they're counted once (as soon as a survey day has been done), not once per day: #548's 623 miles across four days is 623 miles, as the proposal charged.
+
 ## Still needed from Callum
 - **Jed's email address** (the one his Google Calendar uses). Without it he can't be invited to visits. Add it in Settings, under People.
 - **For Jed's monthly CIS statement:** his full legal name, email and address (on the ledger's Subcontractors tab), and Batt's CIS employer's reference (GPG have it).

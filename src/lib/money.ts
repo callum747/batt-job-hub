@@ -26,6 +26,8 @@ export type MoneyInput = {
   milesRoundTrip: number | null;
   /** Vans travelling each day, from the quote. Defaults to 1. */
   vans?: number;
+  /** A survey's quoted miles cover the whole trip: counted once (as soon as a day's been done), not per day. */
+  milesForWholeTrip?: boolean;
   perMile: number;
   costs: number[];
   today: string; // YYYY-MM-DD
@@ -74,7 +76,7 @@ export function jobMoney(input: MoneyInput): MoneyResult {
   }, 0);
 
   const visitDays = new Set(pastVisits.map((v) => v.date)).size;
-  const travelP = input.milesRoundTrip ? Math.round(input.milesRoundTrip * (input.vans ?? 1) * toPence(input.perMile) * visitDays) : 0;
+  const travelP = input.milesRoundTrip ? Math.round(input.milesRoundTrip * (input.vans ?? 1) * toPence(input.perMile) * (input.milesForWholeTrip ? Math.min(1, visitDays) : visitDays)) : 0;
 
   const otherP = input.costs.reduce((s, c) => s + toPence(c), 0);
   const spentP = labourP + travelP + otherP;

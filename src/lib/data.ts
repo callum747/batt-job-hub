@@ -181,6 +181,7 @@ async function withMoney(jobs: JobRow[]): Promise<JobWithMoney[]> {
       // Fuel per day as the quote worked it out: its miles and vans. The job's own miles are used if it hasn't been priced.
       milesRoundTrip: j.pricing?.input.miles || j.miles_round_trip,
       vans: j.pricing ? Math.max(1, Number(j.pricing.input.vans) || 1) : 1,
+      milesForWholeTrip: j.type === "Survey",
       perMile: settings.rates?.perMile ?? 0.45,
       costs: (cByJob.get(j.id) ?? []).map((c) => c.amount),
       today,

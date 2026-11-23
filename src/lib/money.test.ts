@@ -73,6 +73,12 @@ describe("jobMoney", () => {
     expect(r.travel).toBe(108); // 40 miles × 2 vans × £0.45 = £36 a day, × 3 days on site
   });
 
+  it("counts a survey's quoted miles once for the whole trip", () => {
+    const days = ["2026-11-18", "2026-11-19", "2026-11-20", "2026-11-21"].map((date) => ({ date, start: null, end: null, dayCosts: [286] }));
+    expect(jobMoney({ ...base, quoteValue: 1400.35, milesRoundTrip: 623, milesForWholeTrip: true, visits: days }).travel).toBe(280.35); // 623 × £0.45, once
+    expect(jobMoney({ ...base, quoteValue: 1400.35, milesRoundTrip: 623, milesForWholeTrip: true, visits: [] }).travel).toBe(0); // not been yet
+  });
+
   it("has no travel cost when the miles aren't known", () => {
     const r = jobMoney({ ...base, visits: [{ date: "2026-11-18", start: null, end: null, dayCosts: [286] }] });
     expect(r.travel).toBe(0);
