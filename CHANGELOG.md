@@ -191,3 +191,5 @@ Plain-English notes on what's new in the Batt Job Hub, newest first.
 ## Ask knows how Batt works
 - Ask now starts every chat with Batt's handbook: the company, people, rates, pricing and quote rules, clients (Meterz, Ace Pro, ep8), past jobs as a sense check, and how Batt writes. It comes from Batt's own playbook built up in the Claude chats.
 - Ask has a shared memory. Tell it a lasting rule ("from now on...", a client's new terms) and it saves it for both Callum and Cam. Ask "what do you remember?" to see the list, or tell it to forget one (it is switched off, not deleted).
+
+- The handbook now also covers invoicing, VAT or CIS, chasing, CIS both ways, bank lines and VAT, surveys, booking work in, and what each screen of the app does.
