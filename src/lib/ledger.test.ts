@@ -40,3 +40,36 @@ describe("the ledger", () => {
     expect(driveId("")).toBeNull();
   });
 });
+
+import { cisPayment, parseCisReceived, parseSubcontractors, statementMissing, statementRequest, taxMonthEnding, taxMonthLabel } from "./ledger";
+
+describe("CIS", () => {
+  it("works out the tax month: the 6th to the 5th", () => {
+    expect(taxMonthEnding("2026-11-05")).toBe("2026-11-05");
+    expect(taxMonthEnding("2026-11-06")).toBe("2026-12-05");
+    expect(taxMonthEnding("2026-12-20")).toBe("2027-01-05");
+    expect(taxMonthLabel("2027-01-05")).toBe("5 Jan 2027");
+  });
+
+  it("deducts 20% of the labour only, never the materials", () => {
+    expect(cisPayment(1000, 200, 0.2)).toEqual({ labour: 800, deducted: 160, net: 840 });
+    expect(cisPayment(637.5, 0, 0.2)).toEqual({ labour: 637.5, deducted: 127.5, net: 510 });
+    expect(cisPayment(500, 0, 0)).toEqual({ labour: 500, deducted: 0, net: 500 });
+  });
+
+  it("reads CIS Received rows and spots a missing statement after the 19th", () => {
+    const [r] = parseCisReceived([["INV-547", "Test Contractor Ltd", "acc@example.com", "20/11/2026", "05/12/2026", "£1,500.00", "£300.00", "19/12/2026", "", "", "31/12/2026", ""]]);
+    expect(r).toMatchObject({ invoice: "INV-547", paidDate: "2026-11-20", taxMonthEnding: "2026-12-05", labour: 1500, deducted: 300, statementDue: "2026-12-19", statementReceived: null });
+    expect(statementMissing(r, "2026-12-19")).toBe(false);
+    expect(statementMissing(r, "2026-12-20")).toBe(true);
+    expect(statementMissing({ ...r, statementReceived: "2026-12-10" }, "2026-12-30")).toBe(false);
+    const e = statementRequest([r], "Hello,", { name: "Callum Blacknell", title: "Project Manager" });
+    expect(e.subject).toBe("CIS payment and deduction statement: tax month ending 5 Dec 2026");
+    expect(e.body).toContain("- INV-547, paid 20/11/2026, CIS deducted £300.00");
+  });
+
+  it("reads Jed's row, treating [TBC] as not known yet", () => {
+    const [jed] = parseSubcontractors([["Jed", "", "94633 65223", "", "20%", "[TBC]", "[TBC]", "Full legal name needed"]]);
+    expect(jed).toMatchObject({ name: "Jed", utr: "94633 65223", rate: 0.2, email: "", address: "" });
+  });
+});

@@ -23,6 +23,7 @@ import { makeInvoice, markInvoice, retryLedger, type InvoiceForm } from "@/lib/g
 import { checkInvoice, INVOICE_TYPES, type InvoiceType } from "@/lib/invoicing";
 import { draftInvoiceEmail } from "@/lib/invoice-email";
 import { importDriveFolders } from "@/lib/google/drive-import";
+import { fileStatement, recordSubcontractorPayment, requestStatement } from "@/lib/google/cis-run";
 import { chaserStart, draftChaser, recordPayment, recordSent } from "@/lib/google/ledger-run";
 
 async function who() {
@@ -645,5 +646,49 @@ export async function driveCheckNow() {
     return { ok: true, message: r.message };
   } catch (e) {
     return { ok: false, message: errorText(e) };
+  }
+}
+
+// ---------- CIS ----------
+
+export async function cisRequest(contractor: string) {
+  const me = await who();
+  try {
+    const url = await requestStatement(me, String(contractor));
+    return { ok: true, message: "Request saved in your Gmail drafts. Check it and press Send.", url };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function cisFileStatement(f: FormData) {
+  const me = await who();
+  try {
+    const file = f.get("file");
+    if (!(file instanceof File) || file.size === 0) throw new Error("Choose the statement PDF.");
+    if (file.size > 15 * 1024 * 1024) throw new Error("That file is over 15 MB.");
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    if (Buffer.from(bytes.slice(0, 5)).toString("latin1") !== "%PDF-") throw new Error("That file isn't a PDF.");
+    const date = String(f.get("date") ?? "");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("Pick the date it arrived.");
+    const invoices = f.getAll("invoice").map(String).filter(Boolean);
+    const url = await fileStatement(me, invoices, date, { name: file.name, data: bytes });
+    revalidatePath("/invoices");
+    return { ok: true, message: "Filed in the quarter's 03 folder and recorded on the CIS Received tab. Check its gross, materials and deduction against our invoice.", url };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function cisPaySubcontractor(p: { date: string; name: string; gross: number; materials: number; notes: string }) {
+  const me = await who();
+  try {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(p.date))) throw new Error("Pick the payment date.");
+    const r = await recordSubcontractorPayment(me, { date: String(p.date), name: String(p.name), gross: Number(p.gross), materials: Number(p.materials) || 0, notes: String(p.notes ?? "") });
+    revalidatePath("/invoices");
+    const f = (n: number) => n.toLocaleString("en-GB", { style: "currency", currency: "GBP" });
+    return { ok: true, message: `Recorded. Labour ${f(r.labour)}, CIS deducted ${f(r.deducted)} (${Math.round(r.rate * 100)}%). Pay ${p.name} ${f(r.net)}. It falls in the tax month ending ${ukDate(r.taxMonthEnding)}.` };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : String(e) };
   }
 }

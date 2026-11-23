@@ -97,7 +97,12 @@ Things that weren't spelled out in the brief or the playbook. Say if any should 
 73. **The app doesn't add the eight subfolders to a folder you made by hand** (it might already have its own). Quotes and invoices go in its "01…" subfolder if there is one, otherwise in the folder itself.
 74. **An enquiry made in the app still gets its folder when it's numbered** (priced, or moved past Enquiry), because the folder name needs the number. Say if you'd like every new job numbered and given a folder straight away.
 
+75. **A contractor's statement is "missing" once its Statement Due date has passed** (the ledger works that out: the 19th after the tax month). The request is a new email to the address on the CIS Received row.
+76. **A statement is filed in the VAT quarter of its tax month,** in 03 - CIS Statements Received, named "CIS Statement – Contractor – Tax month ending 5 Mon YYYY".
+77. **Subcontractor payments use the name, UTR, verification number and rate on the ledger's Subcontractors tab.** "[TBC]" counts as not known.
+
 ## Still needed from Callum
 - **Jed's email address** (the one his Google Calendar uses). Without it he can't be invited to visits. Add it in Settings, under People.
+- **For Jed's monthly CIS statement:** his full legal name, email and address (on the ledger's Subcontractors tab), and Batt's CIS employer's reference (GPG have it).
 - **An Anthropic API key** for the Ask screen, added in Replit Secrets as `ANTHROPIC_API_KEY`.
 - **Round-trip miles** for each live job, on the job's Details tab, so travel is counted in profit.

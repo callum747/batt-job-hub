@@ -2,6 +2,12 @@
 
 Plain-English notes on what's new in the Batt Job Hub, newest first.
 
+## 23/11/2026: CIS
+- **CIS invoices now also go on the ledger's CIS Received tab** (invoice, contractor, their email, the labour) when they're made, and its Paid Date is filled when they're paid. That starts the clock for the contractor's statement. (Before, only the Invoices tab was filled.)
+- **The Invoices page has a CIS section.** From contractors: each CIS invoice with its labour and deduction, when it was paid and whether their statement has arrived. Once a statement is overdue (after the 19th), **Ask for the statement** drafts a polite request in your Gmail listing the invoices. When it arrives, **Statement arrived** files the PDF in the quarter's 03 - CIS Statements Received folder, named the standard way, and fills Statement Received and Statement File.
+- **Paying Jed:** type the date, the gross before VAT and any materials he supplied. The app adds the CIS Paid row with his UTR and rate from the Subcontractors tab and tells you the net to pay him (20% off the labour only).
+- **Not yet:** Jed's monthly CIS statement and the email to GPG. They need his full legal name, email and address on the Subcontractors tab, and Batt's employer's reference.
+
 ## 23/11/2026: Jobs and Drive folders, both ways
 - **Made in the app → Drive:** as before, a job gets its Drive folder (with the eight subfolders) as soon as it has a number, and the folder moves when the stage changes.
 - **Made in Drive → the app (new):** a folder you make by hand in Live, Active, Completed or Lost, named like "560 – Client – Site", becomes a job in the app with that number, client and site. Its stage comes from where it is: Live = Draft quote, Active = Booked, Completed = Paid, Lost = Lost. A new client is added if the name isn't known. If a job with that number already exists without a folder, the folder is linked to it instead.

@@ -17,6 +17,7 @@ import { createFolder, getFile, listChildren, syncJobFolder } from "./drive";
 import { errorText, google, googleSettings, SHEETS } from "./client";
 import { quoteFolder, templateId } from "./pricing-run";
 import { batch, exportPdf, getDoc, uploadPdf } from "./quote-run";
+import { addCisReceivedRow, markCisReceivedPaid } from "./cis-run";
 
 type Finance = { ledgerId: string; invoicingFolder: string; test: { folder: string | null; ledgerId: string | null } };
 
@@ -199,7 +200,10 @@ export async function makeInvoice(jobId: string, f: InvoiceForm, me: { email: st
 export async function writeLedgerRow(email: string, ledgerId: string, invoiceId: string): Promise<string> {
   const [i] = await sql<{ number: number; test: boolean; invoice_date: string; supply_date: string; client_name: string; client_email: string; site: string; type: InvoiceType; vat_treatment: VatTreatment; net: number; cis: boolean; cis_labour: number | null; terms_days: number; pdf_url: string; stage_label: string; ledger_row: number | null; job_id: string | null }[]>`
     select number, test, invoice_date, supply_date, client_name, client_email, site, type, vat_treatment, net, cis, cis_labour, terms_days, pdf_url, stage_label, ledger_row, job_id from invoices where id = ${invoiceId}`;
-  if (i.ledger_row) return "";
+  if (i.ledger_row) {
+    if (i.cis && i.cis_labour !== null) await addCisReceivedRow(email, ledgerId, { invoice: invoiceLabel(i.number, i.test), contractor: i.client_name, contractorEmail: i.client_email, labour: i.cis_labour });
+    return "";
+  }
   const [job] = i.job_id ? await sql<{ number: number | null; legacy_ref: string }[]>`select number, legacy_ref from jobs where id = ${i.job_id}` : [];
   const label = invoiceLabel(i.number, i.test);
   const colA = await readColumn(email, ledgerId, "Invoices!A2:A501");
@@ -217,13 +221,15 @@ export async function writeLedgerRow(email: string, ledgerId: string, invoiceId:
     body: { valueInputOption: "USER_ENTERED", data: writes.map((w) => ({ range: w.range(row), values: [w.values] })) },
   });
   await sql`update invoices set ledger_row = ${row}, ledger_error = '' where id = ${invoiceId}`;
+  // A CIS invoice also goes on the CIS Received tab, so the contractor's statement can be followed up.
+  if (i.cis && i.cis_labour !== null) await addCisReceivedRow(email, ledgerId, { invoice: label, contractor: i.client_name, contractorEmail: i.client_email, labour: i.cis_labour });
   return "";
 }
 
 /** Fills the ledger's Sent Date or Paid Date for an invoice, and the app's own record. */
 export async function markInvoice(invoiceId: string, what: "sent" | "paid", date: string, me: { email: string }) {
-  const [i] = await sql<{ number: number; test: boolean; ledger_row: number | null; status: string; job_id: string | null; type: string }[]>`
-    select number, test, ledger_row, status, job_id, type from invoices where id = ${invoiceId}`;
+  const [i] = await sql<{ number: number; test: boolean; ledger_row: number | null; status: string; job_id: string | null; type: string; cis: boolean }[]>`
+    select number, test, ledger_row, status, job_id, type, cis from invoices where id = ${invoiceId}`;
   if (!i || !["made", "sent", "paid"].includes(i.status)) throw new Error("That invoice isn't made yet.");
   const places = await invoicePlaces(me.email);
   if (places.test !== i.test) throw new Error(`That's a ${i.test ? "test" : "real"} invoice; switch Google to ${i.test ? "test" : "live"} mode in Settings to change it.`);
@@ -234,6 +240,7 @@ export async function markInvoice(invoiceId: string, what: "sent" | "paid", date
       method: "PUT", query: { valueInputOption: "USER_ENTERED" }, body: { values: [[ukDate(date)]] },
     });
   }
+  if (what === "paid" && i.cis) await markCisReceivedPaid(me.email, places.ledgerId, invoiceLabel(i.number, i.test), date);
   if (what === "sent") await sql`update invoices set sent_date = ${date}, status = case when status = 'made' then 'sent' else status end where id = ${invoiceId}`;
   else await sql`update invoices set paid_date = ${date}, status = 'paid' where id = ${invoiceId}`;
   await audit(sql, me.email, `invoice ${what}`, "job", i.job_id ?? "", { invoice: invoiceLabel(i.number, i.test), date });

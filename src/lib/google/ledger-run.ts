@@ -10,6 +10,7 @@ import { preparedByFor } from "../quote-drafts";
 import { google, SHEETS } from "./client";
 import { createDraft, driveFileBytes } from "./gmail";
 import { invoicePlaces, markInvoice } from "./invoice-run";
+import { markCisReceivedPaid } from "./cis-run";
 
 export async function readLedger(email: string): Promise<{ test: boolean; invoices: LedgerInvoice[] }> {
   const places = await invoicePlaces(email);
@@ -73,6 +74,7 @@ export async function recordPayment(me: { email: string; name: string }, number:
   const [mine] = await sql<{ id: string }[]>`select id from invoices where number = ${n} and test = ${test} and status in ('made', 'sent')`;
   if (mine) return markInvoice(mine.id, "paid", date, me);
   await writeCell(me.email, ledgerId, `S${i.row}`, ukDate(date));
+  if (i.filedAs.trim() === "CIS") await markCisReceivedPaid(me.email, ledgerId, number, date);
   await audit(sql, me.email, "invoice paid", "invoice", number, { date, received });
   return "";
 }

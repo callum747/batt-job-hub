@@ -28,6 +28,7 @@ d("invoices", () => {
   const files: F[] = [{ id: "testLive", name: "TEST 01 - Live", parents: ["zz"], folder: true }, { id: "jobfolder", name: "559 – A – B", parents: ["1nO9zd2wLMahtVCg4WKx9wxuCN7dK5R98"], folder: true }, { id: "q01", name: "01 - Quote & Contract", parents: ["jobfolder"], folder: true }];
   const sheets: Record<string, Record<string, string>> = { [LEDGER]: { A2: "INV-545", B2_howto: "INV-546" } };
   const writes: { sheet: string; range: string; values: unknown[] }[] = [];
+  const cisRows: Record<string, string[][]> = {};
   const uploads: { name: string; parent: string }[] = [];
   let n = 0;
   let failCopy = false;
@@ -71,6 +72,8 @@ d("invoices", () => {
       if (range === "'How to use'!B2") return json({ values: s.B2_howto ? [[s.B2_howto]] : [] });
       const col = Object.keys(s).filter((k) => /^A\d+$/.test(k)).sort((a, b) => Number(a.slice(1)) - Number(b.slice(1)));
       if (range === "Invoices!A2:A501") return json({ values: col.map((k) => [s[k]]) });
+      // The CIS Received tab: rows kept as written.
+      if (range.startsWith("'CIS Received'!")) return json({ values: cisRows[vals[1]] ?? [] });
       const one = range.match(/^Invoices!A(\d+)$/);
       if (one) return json({ values: [[s[`A${one[1]}`] ?? ""]] });
     }
@@ -84,6 +87,8 @@ d("invoices", () => {
         writes.push({ sheet: bu[1], range: dta.range, values: dta.values[0] });
         const a = String(dta.range).match(/^Invoices!A(\d+):J/);
         if (a) sheets[bu[1]][`A${a[1]}`] = dta.values[0][0];
+        const c = String(dta.range).match(/^'CIS Received'!A(\d+):C/);
+        if (c) (cisRows[bu[1]] ??= [])[Number(c[1]) - 2] = [...dta.values[0], "", "", "", "", "", "", "", "", ""];
       }
       return json({});
     }
@@ -170,6 +175,9 @@ d("invoices", () => {
     expect(r).toMatchObject({ ok: true, label: "INV-548" });
     expect(r.message).toContain("£1,890.00 payable after CIS");
     expect(writes.find((w) => w.range === "Invoices!M5")!.values).toEqual([1500]);
+    // And its CIS Received row: invoice, contractor, email, labour.
+    expect(writes.find((w) => w.range === "'CIS Received'!A2:C2")!.values).toEqual(["INV-548", "Test Client", "a@example.com"]);
+    expect(writes.find((w) => w.range === "'CIS Received'!F2")!.values).toEqual([1500]);
     const [i] = await sql`select gross, payable, cis_deduction from invoices where number = 548`;
     expect(i).toMatchObject({ gross: 2190, payable: 1890, cis_deduction: 300 });
   });
@@ -192,6 +200,8 @@ d("invoices", () => {
     writes.length = 0;
     for (const x of ids.slice(0, -1)) await run.markInvoice(x.id, "paid", "2026-12-10", ME);
     expect(writes[0]).toMatchObject({ range: "Invoices!S3", values: ["10/12/2026"] });
+    // Paying the CIS invoice (INV-548) fills its Paid Date on CIS Received too.
+    expect(writes.find((w) => w.range === "'CIS Received'!D2")!.values).toEqual(["10/12/2026"]);
     const last = await run.markInvoice(ids.at(-1)!.id, "paid", "2026-12-12", ME);
     expect(last).toContain("The job is now Paid");
     [j] = await sql`select stage from jobs where id = ${jobId}`;
