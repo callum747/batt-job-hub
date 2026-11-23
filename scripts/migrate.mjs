@@ -13,21 +13,33 @@ if (!url) {
 const sql = postgres(url, { max: 1, onnotice: () => {} });
 const dir = path.join(process.cwd(), "db", "migrations");
 
+// Every migration is written so it is safe to run again, and they all run on every start.
+// So whatever state the database is in (new, half set up, or reset by the host), it ends up complete.
+let failed = false;
 try {
   await sql`create table if not exists schema_migrations (name text primary key, applied_at timestamptz not null default now())`;
   await sql`alter table schema_migrations enable row level security`;
-  const done = new Set((await sql`select name from schema_migrations`).map((r) => r.name));
   const files = (await readdir(dir)).filter((f) => f.endsWith(".sql")).sort();
   for (const f of files) {
-    if (done.has(f)) continue;
     const text = await readFile(path.join(dir, f), "utf8");
-    await sql.begin(async (tx) => {
-      await tx.unsafe(text);
-      await tx`insert into schema_migrations (name) values (${f})`;
-    });
-    console.log(`Applied ${f}`);
+    try {
+      await sql.begin(async (tx) => {
+        await tx.unsafe(text);
+        await tx`insert into schema_migrations (name) values (${f}) on conflict (name) do nothing`;
+      });
+      console.log(`Checked ${f}`);
+    } catch (e) {
+      failed = true;
+      console.error(`DATABASE SETUP FAILED in ${f}: ${e.message}${e.detail ? ` (${e.detail})` : ""}`);
+      break;
+    }
   }
-  console.log("Database is up to date.");
+  if (!failed) {
+    const tables = await sql`select table_name from information_schema.tables where table_schema = current_schema() order by 1`;
+    const [{ jobs }] = await sql`select count(*)::int as jobs from jobs`;
+    console.log(`Database is up to date: ${tables.length} tables, ${jobs} jobs.`);
+  }
 } finally {
   await sql.end();
 }
+if (failed) process.exit(1);

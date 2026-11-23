@@ -4,7 +4,7 @@
 
 create extension if not exists pgcrypto;
 
-create table people (
+create table if not exists people (
   id uuid primary key default gen_random_uuid(),
   short_name text not null unique,          -- how jobs refer to them: Cam, Callum, Jed
   full_name text not null,
@@ -16,7 +16,7 @@ create table people (
   position int not null default 0
 );
 
-create table clients (
+create table if not exists clients (
   id uuid primary key default gen_random_uuid(),
   legacy_id text unique,
   name text not null unique,
@@ -31,12 +31,15 @@ create table clients (
   updated_at timestamptz not null default now()
 );
 
-create type job_stage as enum (
+do $$ begin
+  create type job_stage as enum (
   'Enquiry', 'Draft quote', 'Quoted', 'Booked', 'In progress', 'Complete',
   'Invoiced', 'Paid', 'On hold', 'Lost', 'Closed'
 );
+exception when duplicate_object then null;
+end $$;
 
-create table jobs (
+create table if not exists jobs (
   id uuid primary key default gen_random_uuid(),
   legacy_id text unique,                     -- the prototype's id, e.g. Q-556
   number int unique,                         -- 557; null until quoted
@@ -68,16 +71,16 @@ create table jobs (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-create index jobs_stage_idx on jobs(stage);
-create index jobs_client_idx on jobs(client_id);
+create index if not exists jobs_stage_idx on jobs(stage);
+create index if not exists jobs_client_idx on jobs(client_id);
 
-create table job_people (
+create table if not exists job_people (
   job_id uuid not null references jobs(id) on delete cascade,
   person_id uuid not null references people(id),
   primary key (job_id, person_id)
 );
 
-create table quote_lines (
+create table if not exists quote_lines (
   id uuid primary key default gen_random_uuid(),
   job_id uuid not null references jobs(id) on delete cascade,
   kind text not null default 'other',
@@ -90,7 +93,7 @@ create table quote_lines (
   position int not null default 0
 );
 
-create table variations (
+create table if not exists variations (
   id uuid primary key default gen_random_uuid(),
   job_id uuid not null references jobs(id) on delete cascade,
   description text not null default '',
@@ -100,7 +103,7 @@ create table variations (
   created_at timestamptz not null default now()
 );
 
-create table visits (
+create table if not exists visits (
   id uuid primary key default gen_random_uuid(),
   legacy_id text unique,
   job_id uuid references jobs(id) on delete set null,
@@ -116,18 +119,21 @@ create table visits (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-create index visits_job_idx on visits(job_id);
-create index visits_date_idx on visits(date);
+create index if not exists visits_job_idx on visits(job_id);
+create index if not exists visits_date_idx on visits(date);
 
-create table visit_people (
+create table if not exists visit_people (
   visit_id uuid not null references visits(id) on delete cascade,
   person_id uuid not null references people(id),
   primary key (visit_id, person_id)
 );
 
-create type cost_kind as enum ('Materials', 'Supplier invoice', 'Hire', 'Mileage', 'Subcontractor', 'Other');
+do $$ begin
+  create type cost_kind as enum ('Materials', 'Supplier invoice', 'Hire', 'Mileage', 'Subcontractor', 'Other');
+exception when duplicate_object then null;
+end $$;
 
-create table costs (
+create table if not exists costs (
   id uuid primary key default gen_random_uuid(),
   job_id uuid not null references jobs(id) on delete cascade,
   kind cost_kind not null default 'Other',
@@ -138,9 +144,9 @@ create table costs (
   file_url text not null default '',
   created_at timestamptz not null default now()
 );
-create index costs_job_idx on costs(job_id);
+create index if not exists costs_job_idx on costs(job_id);
 
-create table reminders (
+create table if not exists reminders (
   id uuid primary key default gen_random_uuid(),
   job_id uuid references jobs(id) on delete cascade,
   title text not null,
@@ -150,13 +156,13 @@ create table reminders (
   created_at timestamptz not null default now()
 );
 
-create table settings (
+create table if not exists settings (
   key text primary key,
   value jsonb not null,
   updated_at timestamptz not null default now()
 );
 
-create table audit_log (
+create table if not exists audit_log (
   id bigserial primary key,
   at timestamptz not null default now(),
   actor text not null default '',
@@ -183,9 +189,11 @@ alter table audit_log enable row level security;
 insert into people (short_name, full_name, email, role, day_cost, colour, position) values
   ('Cam', 'Cameron Batt', 'cameron@battelectrical.com', 'Managing Director', 286, '#7C3AED', 1),
   ('Callum', 'Callum Blacknell', 'callum@battelectrical.com', 'Project Manager', 286, '#0F766E', 2),
-  ('Jed', 'Jed Stansfield', '', 'Apprentice', 119, '#C2410C', 3);
+  ('Jed', 'Jed Stansfield', '', 'Apprentice', 119, '#C2410C', 3)
+on conflict (short_name) do nothing;
 
 insert into settings (key, value) values
   ('margins', '{"green": 18, "red": 5}'),
   ('rates', '{"electricianDay": 441, "apprenticeDay": 184, "dayRate": 380, "apprenticeDayRate": 160, "surveyDay": 280, "perMile": 0.45, "markupPct": 15, "vatPct": 20}'),
-  ('chase', '{"quoteDays": 7}');
+  ('chase', '{"quoteDays": 7}')
+on conflict (key) do nothing;

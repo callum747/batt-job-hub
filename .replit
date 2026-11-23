@@ -1,4 +1,4 @@
-run = "npm run dev -- -H 0.0.0.0 -p 3000"
+run = "npm run migrate && npm run dev -- -H 0.0.0.0 -p 3000"
 modules = ["nodejs-22", "postgresql-16"]
 
 [deployment]
@@ -29,7 +29,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev -- -H 0.0.0.0 -p 3000"
+args = "npm run migrate && npm run dev -- -H 0.0.0.0 -p 3000"
 waitForPort = 3000
 
 [workflows.workflow.metadata]

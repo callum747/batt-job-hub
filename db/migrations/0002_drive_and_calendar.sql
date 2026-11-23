@@ -2,7 +2,7 @@
 
 -- Each person's Google permission, so the app can act in Drive and Calendar as them.
 -- The token is encrypted before it is stored.
-create table google_tokens (
+create table if not exists google_tokens (
   email text primary key,
   refresh_token_enc text not null,
   scopes text not null default '',
@@ -10,15 +10,15 @@ create table google_tokens (
 );
 alter table google_tokens enable row level security;
 
-alter table jobs add column drive_error text not null default '';
+alter table jobs add column if not exists drive_error text not null default '';
 
-alter table visits add column calendar_id text not null default '';
-alter table visits add column calendar_error text not null default '';
+alter table visits add column if not exists calendar_id text not null default '';
+alter table visits add column if not exists calendar_error text not null default '';
 
 -- Visits brought in from the old app are on the real shared calendar.
 update visits
   set calendar_id = 'c_96bc4e2b7105b335bc9067b414e021bc010c2527d5940f5a3b69d49671e669e5@group.calendar.google.com'
-  where calendar_event_id <> '';
+  where calendar_event_id <> '' and calendar_id = '';
 
 -- Where the app works in Google. It starts in test mode: a clearly named test folder and
 -- test calendar. Nothing in the real folders or the real calendar is touched until
@@ -43,4 +43,5 @@ insert into settings (key, value) values ('google', '{
     },
     "calendarId": ""
   }
-}');
+}')
+on conflict (key) do nothing;
