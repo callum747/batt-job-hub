@@ -18,6 +18,7 @@ import type { PricingInput } from "@/lib/pricing";
 import { draftQuoteEmail } from "@/lib/quote-email";
 import { createJobFromEmail, hideEmail, linkEmailToJob, proposeJob, type NewJobFromEmail } from "@/lib/inbox";
 import { assistantConfigured } from "@/lib/assistant/client";
+import { fileInvoice, ignoreInvoice, scanInvoices } from "@/lib/supplier-invoices";
 
 async function who() {
   const p = await currentPerson();
@@ -505,5 +506,31 @@ export async function inboxLink(threadId: string, jobRef: string) {
 export async function inboxHide(threadId: string) {
   const me = await who();
   await hideEmail(me, String(threadId));
+  revalidatePath("/inbox");
+}
+
+// ---------- Supplier invoices ----------
+
+export async function invoicesCheckNow() {
+  const me = await who();
+  const r = await scanInvoices({ force: true, actor: me.email });
+  refreshJobs();
+  return r;
+}
+
+export async function invoiceFile(id: string, jobRef: string, net: number) {
+  const me = await who();
+  try {
+    const job = await fileInvoice(String(id), String(jobRef), Number(net), me);
+    refreshJobs();
+    return { ok: true, message: `Put on ${job.number ? `#${job.number}` : "the job"} as a cost.` };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function invoiceIgnore(id: string) {
+  const me = await who();
+  await ignoreInvoice(String(id), me);
   revalidatePath("/inbox");
 }

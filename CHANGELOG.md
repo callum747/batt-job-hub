@@ -2,6 +2,13 @@
 
 Plain-English notes on what's new in the Batt Job Hub, newest first.
 
+## 23/11/2026: Supplier invoices land on jobs by themselves
+- **While anyone has the app open, every 30 minutes** it looks in info@ for new emails with a PDF that mention an invoice or credit note, and the assistant reads each PDF: supplier, invoice number, date, net, VAT, total and your order reference.
+- **It goes straight on the job as a cost (before VAT) only when it's clear-cut:** it's an invoice or credit note (not a quote, statement or order confirmation), made out to Batt, net + VAT adds up to the total, and exactly one real job number is in the order reference (e.g. "#552 CBRE CROYDEN"). A credit note goes on as a minus. The cost shows on the job's Quote & money tab and comes off its profit.
+- **Anything else waits in the Inbox under "Supplier invoices"** with the reason (no job number, two job numbers, amounts don't add up…). Type the job number, check the amount, and press **Put on job**, or **Not a job cost** for stock and tools.
+- **The same invoice is never put on twice,** even if it's emailed again, and each email is only read once.
+- **To switch it on:** sign in to the app once as info@battelectrical.com and press Connect Google, ticking the Gmail boxes. There's also a **Check now** button.
+
 ## 23/11/2026: The Inbox
 - **Inbox** (in the menu) lists the last 30 days of emails in your own inbox from outside Batt that aren't on a job yet. Promotions, social and newsletters are left out, and so is anything with an existing job's number in the subject (it's on that job already). If the sender's company has an open job, it says so.
 - **Make a job:** the assistant reads the email and fills in the client, contact name, email and phone, site, postcode, job type, what they want and any deadline. It also lists what's missing (e.g. "No site address"). Check it, change anything, and press **Create the job**. The job starts as an Enquiry with the email linked, and a new client is added with the contact details. An existing client keeps its details.

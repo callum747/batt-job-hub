@@ -65,6 +65,12 @@ Things that weren't spelled out in the brief or the playbook. Say if any should 
 47. **An email is "on a job" when** it's linked from the Inbox, or its subject has an existing job number in it. Those don't show in the Inbox.
 48. **Making a job from an email uses a quick, low-effort read** by the assistant (it's filling a form you check, not pricing).
 
+49. **Supplier invoices are read from info@** (where CEF sends them). Its permission is given by signing in to the app as info@ once.
+50. **Automatic filing needs all of:** an invoice or credit note, made out to Batt, net + VAT = total (to 2p), exactly one existing job number. Otherwise a person decides. A quote is never treated as an invoice.
+51. **The cost is the net amount (before VAT)**, as costs are everywhere else in the app. Credit notes are minus amounts.
+52. **The check runs while someone has the app open**, at most every 30 minutes (Replit's always-on hosting doesn't run timers on its own). Up to 15 new emails per check; the last 45 days are looked at.
+53. **The PDF isn't copied into the job's Drive folder yet.** The cost links back to the email. Say if you'd like the PDF filed in the job's 04 - Procurement folder too.
+
 ## Still needed from Callum
 - **Jed's email address** (the one his Google Calendar uses). Without it he can't be invited to visits. Add it in Settings, under People.
 - **An Anthropic API key** for the Ask screen, added in Replit Secrets as `ANTHROPIC_API_KEY`.

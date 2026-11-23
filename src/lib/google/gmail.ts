@@ -150,3 +150,32 @@ export async function threadText(email: string, threadId: string): Promise<Threa
     }),
   };
 }
+
+export type MailPdf = { name: string; data: Buffer };
+export type InvoiceMail = { messageId: string; subject: string; from: string; date: string; pdfs: MailPdf[] };
+
+/** Ids of recent emails in a mailbox that have a PDF and mention an invoice or credit note. */
+export async function invoiceMessageIds(mailbox: string, days = 45): Promise<string[]> {
+  const q = `has:attachment filename:pdf newer_than:${days}d -in:sent {invoice "credit note" "tax invoice"}`;
+  const r = await google<{ messages?: { id: string }[] }>(mailbox, `${GMAIL}/messages`, { query: { q, maxResults: 50 } });
+  return (r.messages ?? []).map((m) => m.id);
+}
+
+/** One email with its PDF attachments downloaded. */
+export async function invoiceMail(mailbox: string, messageId: string): Promise<InvoiceMail> {
+  const m = await google<{ internalDate: string; payload?: Part & { headers?: Header[] } }>(mailbox, `${GMAIL}/messages/${encodeURIComponent(messageId)}`, { query: { format: "full" } });
+  const head = (n: string) => m.payload?.headers?.find((h) => h.name.toLowerCase() === n)?.value ?? "";
+  const found: { name: string; attachmentId?: string; data?: string }[] = [];
+  const walk = (p: Part & { body?: { attachmentId?: string; data?: string } }) => {
+    if (p.filename && /\.pdf$/i.test(p.filename)) found.push({ name: p.filename, attachmentId: p.body?.attachmentId, data: p.body?.data });
+    p.parts?.forEach(walk);
+  };
+  walk(m.payload ?? {});
+  const pdfs = await Promise.all(
+    found.map(async (f) => {
+      const data = f.data ?? (await google<{ data: string }>(mailbox, `${GMAIL}/messages/${encodeURIComponent(messageId)}/attachments/${encodeURIComponent(f.attachmentId ?? "")}`)).data;
+      return { name: f.name, data: Buffer.from(data, "base64url") };
+    }),
+  );
+  return { messageId, subject: head("subject"), from: senderName(head("from")), date: new Date(Number(m.internalDate)).toISOString(), pdfs };
+}

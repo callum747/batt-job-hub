@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { Shell } from "@/components/shell";
+import { InvoiceWatch } from "@/components/invoice-watch";
 import { currentPerson } from "@/lib/auth";
 import { previewMode } from "@/lib/config";
 import { gmailConnected, googleConnected } from "@/lib/google/client";
@@ -16,6 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         : null;
   return (
     <Shell person={previewMode ? { name: "Preview", email: "Not signed in" } : person} preview={previewMode} googleNote={googleNote}>
+      {!previewMode && <InvoiceWatch />}
       {children}
     </Shell>
   );
