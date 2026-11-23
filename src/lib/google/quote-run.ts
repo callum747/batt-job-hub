@@ -2,7 +2,8 @@ import "server-only";
 import { sql } from "../db";
 import { audit } from "../mutations";
 import { leftoverPlaceholders, pdfPageCount, type Doc, type Request } from "../docs";
-import { captureRowStyles, checkShortQuote, structurePass, stylePass, textPass, type ShortQuote } from "../quote-short";
+import * as shortForm from "../quote-short";
+import type { ShortQuote } from "../quote-short";
 import { DOCS, errorText, google, googleFetch, GoogleError } from "./client";
 import { quoteFolder, templateId } from "./pricing-run";
 
@@ -39,13 +40,43 @@ async function exportPdf(email: string, docId: string) {
 
 export type QuoteOutcome = { ok: boolean; message: string; problems?: string[]; docUrl?: string; pdfUrl?: string; pages?: number };
 
+/** What every quote template needs: its checks and its three passes. */
+export type Filler<Q extends { number: number; total: number }> = {
+  template: "quoteShort" | "quoteLong" | "surveyProposal";
+  label: string; // "Quote", "Survey Proposal"
+  check: (q: Q) => string[];
+  captureStyles: (doc: Doc) => unknown;
+  structurePass: (doc: Doc, q: Q) => Request[];
+  textPass: (doc: Doc, q: Q) => Request[];
+  stylePass: (doc: Doc, q: Q, styles: never) => Request[];
+  minPages: number;
+};
+
+export const SHORT_FORM: Filler<ShortQuote> = {
+  template: "quoteShort",
+  label: "Quote",
+  check: shortForm.checkShortQuote,
+  captureStyles: shortForm.captureRowStyles,
+  structurePass: shortForm.structurePass,
+  textPass: shortForm.textPass,
+  stylePass: shortForm.stylePass as never,
+  minPages: 3,
+};
+
+export const buildShortQuote = (jobId: string, q: ShortQuote, me: { email: string; name: string }) => buildDocument(jobId, SHORT_FORM, q, me);
+
 /**
- * Makes the quote: copies the short-form template into the job's 01 folder, fills it in three
- * passes, checks nothing in square brackets is left, then saves a PDF beside it.
+ * Makes a quote or proposal: copies the template into the job's 01 folder, fills it in three
+ * passes (each on a fresh read), checks nothing in square brackets is left, then saves a PDF beside it.
  */
-export async function buildShortQuote(jobId: string, q: ShortQuote, me: { email: string; name: string }): Promise<QuoteOutcome> {
-  const problems = checkShortQuote(q);
-  if (problems.length) return { ok: false, message: "A few things need fixing before the quote can be made.", problems };
+export async function buildDocument<Q extends { number: number; total: number }>(
+  jobId: string,
+  filler: Filler<Q>,
+  q: Q,
+  me: { email: string; name: string },
+): Promise<QuoteOutcome> {
+  const problems = filler.check(q);
+  if (problems.length) return { ok: false, message: "A few things need fixing before the document can be made.", problems };
   let docUrl = "";
   try {
     const [job] = await sql<{ number: number | null; site: string; client: string | null; drive_folder_id: string }[]>`
@@ -58,9 +89,9 @@ export async function buildShortQuote(jobId: string, q: ShortQuote, me: { email:
 
     const [{ n }] = await sql<{ n: number }[]>`select count(*)::int as n from documents where job_id = ${jobId} and kind = 'quote'`;
     const revision = n + 1;
-    const name = `${job.number} – ${(job.site || job.client || "Job").replace(/[\\/]+/g, "-")} – Quote${revision > 1 ? ` rev ${revision}` : ""}`;
+    const name = `${job.number} – ${(job.site || job.client || "Job").replace(/[\\/]+/g, "-")} – ${filler.label}${revision > 1 ? ` rev ${revision}` : ""}`;
 
-    const copy = await google<{ id: string; webViewLink?: string }>(me.email, `/drive/v3/files/${await templateId("quoteShort")}/copy`, {
+    const copy = await google<{ id: string; webViewLink?: string }>(me.email, `/drive/v3/files/${await templateId(filler.template)}/copy`, {
       method: "POST",
       query: { supportsAllDrives: true, fields: "id,webViewLink" },
       body: { name, parents: [folder] },
@@ -70,38 +101,37 @@ export async function buildShortQuote(jobId: string, q: ShortQuote, me: { email:
       insert into documents (job_id, kind, revision, name, doc_id, url, created_by, note)
       values (${jobId}, 'quote', ${revision}, ${name}, ${copy.id}, ${docUrl}, ${me.email}, 'Started, not finished') returning id`;
 
-    // 1. Structure, 2. words, 3. styling, each on a fresh read of the document.
     const fresh = await getDoc(me.email, copy.id);
-    const styles = captureRowStyles(fresh);
-    await batch(me.email, copy.id, structurePass(fresh, q));
-    await batch(me.email, copy.id, textPass(await getDoc(me.email, copy.id), q));
-    await batch(me.email, copy.id, stylePass(await getDoc(me.email, copy.id), q, styles));
+    const styles = filler.captureStyles(fresh);
+    await batch(me.email, copy.id, filler.structurePass(fresh, q));
+    await batch(me.email, copy.id, filler.textPass(await getDoc(me.email, copy.id), q));
+    await batch(me.email, copy.id, filler.stylePass(await getDoc(me.email, copy.id), q, styles as never));
 
     const finished = await getDoc(me.email, copy.id);
     const leftovers = leftoverPlaceholders(finished);
     if (leftovers.length) {
       await sql`update documents set note = ${`Placeholders left: ${leftovers.join(", ")}`} where id = ${docRow.id}`;
-      return { ok: false, docUrl, message: `The quote still has unfilled placeholders: ${leftovers.join(", ")}. No PDF was made. Open the document to see.` };
+      return { ok: false, docUrl, message: `The document still has unfilled placeholders: ${leftovers.join(", ")}. No PDF was made. Open the document to see.` };
     }
 
     const pdf = await exportPdf(me.email, copy.id);
     const pages = pdfPageCount(pdf);
-    if (pages < 3) {
+    if (pages < filler.minPages) {
       await sql`update documents set note = ${`PDF has ${pages} pages`} where id = ${docRow.id}`;
-      return { ok: false, docUrl, message: `The PDF came out at ${pages} page${pages === 1 ? "" : "s"}, which is too short for a quote. No PDF was saved. Open the document to check it.` };
+      return { ok: false, docUrl, message: `The PDF came out at ${pages} page${pages === 1 ? "" : "s"}, which is too short. No PDF was saved. Open the document to check it.` };
     }
     const saved = await uploadPdf(me.email, `${name}.pdf`, folder, pdf);
     await sql`update documents set pdf_file_id = ${saved.id}, pdf_url = ${saved.url}, pages = ${pages}, note = '' where id = ${docRow.id}`;
-    await sql`update jobs set quote_draft = ${sql.json(q as never)}, updated_at = now() where id = ${jobId}`;
-    await audit(sql, me.email, "quote made", "job", jobId, { revision, docId: copy.id, pdfId: saved.id, total: q.total, pages });
+    await sql`update jobs set quote_draft = ${sql.json({ template: filler.template, ...q } as never)}, updated_at = now() where id = ${jobId}`;
+    await audit(sql, me.email, "quote made", "job", jobId, { template: filler.template, revision, docId: copy.id, pdfId: saved.id, total: q.total, pages });
     return {
       ok: true,
       docUrl,
       pdfUrl: saved.url,
       pages,
-      message: `Quote saved to the job's folder: ${pages} pages, ${q.total.toLocaleString("en-GB", { style: "currency", currency: "GBP" })} inc VAT. Open the PDF and read it through before sending.`,
+      message: `${filler.label} saved to the job's folder: ${pages} pages, ${q.total.toLocaleString("en-GB", { style: "currency", currency: "GBP" })} inc VAT. Open the PDF and read it through before sending.`,
     };
   } catch (e) {
-    return { ok: false, docUrl, message: `The quote wasn't finished. ${errorText(e)}${docUrl ? " What was done so far is in the job's folder." : ""}` };
+    return { ok: false, docUrl, message: `The document wasn't finished. ${errorText(e)}${docUrl ? " What was done so far is in the job's folder." : ""}` };
   }
 }

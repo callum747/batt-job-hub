@@ -16,6 +16,8 @@ import { PricingForm, SheetLink } from "../pricing-form";
 import { loadPriceList } from "@/lib/google/pricing-run";
 import { pricingLight, type Product } from "@/lib/pricing";
 import { QuoteForm } from "../quote-form";
+import { SurveyForm } from "../survey-form";
+import { plusDays } from "@/lib/quote-defaults";
 import { defaultShortQuote } from "@/lib/quote-defaults";
 import { getClient, getPersonByEmail, jobDocuments } from "@/lib/data";
 import { JobForm } from "../job-form";
@@ -184,8 +186,14 @@ export default async function JobPage({ params, searchParams }: { params: Promis
                 </ul>
               </Card>
             )}
-            <PricingCard job={job} lines={detail.lines} redBelow={settings.margins.red} />
-            <QuoteCard job={job} lines={detail.lines} />
+            {job.type === "Survey" ? (
+              <SurveyCard job={job} rates={settings.rates} />
+            ) : (
+              <>
+                <PricingCard job={job} lines={detail.lines} redBelow={settings.margins.red} />
+                <QuoteCard job={job} lines={detail.lines} />
+              </>
+            )}
           </>
         )}
 
@@ -464,6 +472,69 @@ async function QuoteCard({ job, lines }: { job: Awaited<ReturnType<typeof findJo
         </ul>
       )}
       {body}
+    </Card>
+  );
+}
+
+async function SurveyCard({ job, rates }: { job: Awaited<ReturnType<typeof findJob>> & object; rates: { surveyDay: number; perMile: number } }) {
+  const [docs, me, client] = await Promise.all([jobDocuments(job.id), currentPerson(), job.client_id ? getClient(job.client_id) : null]);
+  const person = me ? await getPersonByEmail(me.email) : null;
+  const connected = me ? me.email === "preview@localhost" || (await googleConnected(me.email)) : false;
+  const preparedBy = person
+    ? { name: person.full_name, title: person.role, email: person.email }
+    : me?.email === "preview@localhost"
+      ? { name: "Callum Blacknell", title: "Project Manager", email: "callum@battelectrical.com" }
+      : null;
+  const today = todayUK();
+  const uk = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
+  const d = job.quote_draft as unknown as (Record<string, unknown> & { template?: string }) | null;
+  const last = d?.template === "surveyProposal" ? (d as unknown as import("@/lib/quote-survey").SurveyQuote) : null;
+  const proposals = docs.filter((x) => x.kind === "quote");
+  return (
+    <Card title="Survey proposal">
+      {proposals.length > 0 && (
+        <ul className="mb-5 divide-y divide-line rounded-xl border border-line">
+          {proposals.map((x) => (
+            <li key={x.id} className="flex flex-wrap items-center gap-3 px-4 py-3 text-[15px]">
+              <span className="min-w-0 flex-1">
+                <span className="font-medium">{x.name}</span>
+                <span className="block text-[14px] text-muted">{ukDate(x.created_at.slice(0, 10))}{x.pages ? ` · ${x.pages} pages` : ""}{x.note ? ` · ${x.note}` : ""}</span>
+              </span>
+              {x.pdf_url && <a href={x.pdf_url} target="_blank" rel="noreferrer" className="font-semibold underline underline-offset-4">PDF</a>}
+              <a href={x.url} target="_blank" rel="noreferrer" className="underline underline-offset-4">Doc</a>
+            </li>
+          ))}
+        </ul>
+      )}
+      {!connected ? (
+        <div className="rounded-xl bg-surface p-4">
+          <p className="mb-3">Connect Google to make survey proposals.</p>
+          <ConnectGoogleButton className={secondaryBtn}>Connect Google</ConnectGoogleButton>
+        </div>
+      ) : !preparedBy ? (
+        <p className="text-muted">Your email ({me?.email}) isn&apos;t on the People list in Settings, so the proposal can&apos;t say who prepared it. Add it there first.</p>
+      ) : (
+        <SurveyForm
+          key={proposals.length}
+          jobId={job.id}
+          dayRate={rates.surveyDay}
+          perMile={rates.perMile}
+          start={{
+            siteName: last?.siteName ?? job.site,
+            siteAddress: last?.siteAddress ?? [job.site, job.postcode].filter(Boolean).join(", "),
+            summary: last?.summary ?? job.description,
+            sites: last?.sites ?? [{ name: job.site, address: "", postcode: job.postcode, units: [{ name: "", area: "", scope: "Electric, gas and water" }] }],
+            days: last?.days ?? 1,
+            miles: job.miles_round_trip ?? NaN,
+            route: "",
+            weekend: false,
+            paymentDays: last?.paymentDays ?? client?.payment_days ?? 7,
+            date: uk(today),
+            validUntil: uk(plusDays(today, 30)),
+            preparedBy,
+          }}
+        />
+      )}
     </Card>
   );
 }

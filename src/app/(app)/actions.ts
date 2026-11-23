@@ -11,6 +11,7 @@ import { errorText, getFileCheck, googleConnected, googleSettings, type GoogleAr
 import { syncJobFolder } from "@/lib/google/drive";
 import { loadPriceList, priceJob } from "@/lib/google/pricing-run";
 import { buildShortQuote } from "@/lib/google/quote-run";
+import { makeSurveyProposal, type SurveyForm } from "@/lib/google/survey-run";
 import type { ShortQuote } from "@/lib/quote-short";
 import type { PricingInput } from "@/lib/pricing";
 
@@ -398,6 +399,31 @@ export async function makeQuote(jobId: string, q: ShortQuote) {
     assumptions: (q.assumptions ?? []).map(str),
   };
   const r = await buildShortQuote(jobId, clean, me);
+  refreshJobs();
+  return r;
+}
+
+export async function makeSurvey(jobId: string, f: SurveyForm) {
+  const me = await who();
+  const str = (v: unknown) => String(v ?? "");
+  const clean: SurveyForm = {
+    siteName: str(f.siteName),
+    siteAddress: str(f.siteAddress),
+    summary: str(f.summary),
+    sites: (f.sites ?? []).map((s) => ({
+      name: str(s.name), address: str(s.address), postcode: str(s.postcode).toUpperCase(),
+      units: (s.units ?? []).map((u) => ({ name: str(u.name), area: str(u.area), scope: str(u.scope) })),
+    })),
+    days: Number(f.days),
+    miles: Number(f.miles),
+    route: str(f.route),
+    weekend: Boolean(f.weekend),
+    paymentDays: Math.round(Number(f.paymentDays)),
+    date: str(f.date),
+    validUntil: str(f.validUntil),
+    preparedBy: { name: str(f.preparedBy?.name), title: str(f.preparedBy?.title), email: str(f.preparedBy?.email) },
+  };
+  const r = await makeSurveyProposal(jobId, clean, me);
   refreshJobs();
   return r;
 }

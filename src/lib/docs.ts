@@ -179,3 +179,27 @@ export function pdfPageCount(bytes: Uint8Array): number {
 
 /** £1,234.50 */
 export const money = (n: number) => `£${n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+export type GroupStyles = { group: Record<string, unknown>[]; item: Record<string, unknown>[] };
+
+/** How a group header row (e.g. a room or site) and an item row look, read from an untouched template. */
+export function captureGroupStyles(table: FoundTable, groupRow: number, itemRow: number): GroupStyles {
+  const styleOf = (cell: Para[]) => cell[0]?.paragraph.elements?.[0]?.textRun?.textStyle ?? {};
+  return { group: table.rows[groupRow].map(styleOf), item: table.rows[itemRow].map(styleOf) };
+}
+
+/** Gives each body row (from row 1) the group or item look, whatever row it was copied from. */
+export function groupStylePass(table: FoundTable, kinds: ("group" | "item")[], styles: GroupStyles): Request[] {
+  if (table.rows.length - 1 !== kinds.length) throw new Error("The table doesn't have the right number of rows.");
+  const out: Request[] = [];
+  kinds.forEach((kind, i) => {
+    table.rows[i + 1].forEach((cell, c) => {
+      const p = cell[0];
+      if (!p || p.end - 1 <= p.start) return;
+      const fields = [...new Set([...Object.keys(styles.group[c] ?? {}), ...Object.keys(styles.item[c] ?? {})])];
+      if (fields.length === 0) return;
+      out.push({ updateTextStyle: { range: { startIndex: p.start, endIndex: p.end - 1 }, textStyle: styles[kind][c] ?? {}, fields: fields.join(",") } });
+    });
+  });
+  return out;
+}
