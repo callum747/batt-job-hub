@@ -168,8 +168,8 @@ export function longTextPass(doc: Doc, q: LongQuote): Request[] {
   const first = (t: (p: Para) => boolean, what: string) => need(ps.find(t), what);
   const edits: (Edit | null)[] = [];
 
-  edits.push(replaceInParagraph(first((p) => p.text.includes("Q-[000]"), "Q-[000] on the cover"), "Q-[000]", String(q.number)));
-  edits.push(replaceInParagraph(first((p) => p.text.includes("[Q-000]"), "[Q-000] in the acceptance"), "[Q-000]", String(q.number)));
+  edits.push(replaceInParagraph(first((p) => p.text.includes("Q-[000]"), "Q-[000] on the cover"), "Q-[000]", `#${q.number}`));
+  edits.push(replaceInParagraph(first((p) => p.text.includes("[Q-000]"), "[Q-000] in the acceptance"), "[Q-000]", `#${q.number}`));
   edits.push(setParagraph(first((p) => p.text.trim() === "[Client name]", "[Client name]"), clean(q.client)));
   const projectLine = first((p) => p.text.includes("[Project name]") && p.text.includes("[Site address, postcode]"), "the project and site line");
   edits.push(replaceInParagraph(projectLine, "[Site address, postcode]", clean(q.site)));

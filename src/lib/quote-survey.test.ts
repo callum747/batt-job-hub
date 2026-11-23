@@ -91,7 +91,7 @@ describe("survey proposal", () => {
     expect(out).toContain("quote for the survey at High Wycombe, Stanmore and Stevenage.");
     expect(out).toContain("Callum Blacknell   Project Manager, Batt Electrical  |  01296 321321  |  callum@battelectrical.com");
     expect(out).toContain("PREPARED BY\nCallum Blacknell\n");
-    expect(out).toContain("PROPOSAL REF\n547\n");
+    expect(out).toContain("PROPOSAL REF\n#547\n");
   });
   it("pass 3: site rows get the site look and unit rows the unit look", () => {
     const raw = buildDoc(template());

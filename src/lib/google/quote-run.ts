@@ -105,7 +105,7 @@ export async function buildDocument<Q extends { number: number; total: number }>
 
     const [{ n }] = await sql<{ n: number }[]>`select count(*)::int as n from documents where job_id = ${jobId} and kind = 'quote'`;
     const revision = n + 1;
-    const name = `${job.number} – ${(job.site || job.client || "Job").replace(/[\\/]+/g, "-")} – ${filler.label}${revision > 1 ? ` rev ${revision}` : ""}`;
+    const name = `#${job.number} – ${(job.site || job.client || "Job").replace(/[\\/]+/g, "-")} – ${filler.label}${revision > 1 ? ` rev ${revision}` : ""}`;
 
     const copy = await google<{ id: string; webViewLink?: string }>(me.email, `/drive/v3/files/${await templateId(filler.template)}/copy`, {
       method: "POST",

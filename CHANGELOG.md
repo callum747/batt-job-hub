@@ -2,6 +2,13 @@
 
 Plain-English notes on what's new in the Batt Job Hub, newest first.
 
+## 23/11/2026: # for job numbers, and Drive changes flow into the app
+- **Every job number is written with a #** from now on: Drive folders ("#560 – Client – Site"), quote and pricing file names, the quote cover and acceptance ("#560"), the invoice's quote reference and the ledger's Quote Ref, and email subjects ("Quotation #560 – …"). Older "Q-560" and plain "560" folder names are still understood.
+- **Change it in Drive, and the app follows** (every 10 minutes while the app is open, or with Check Drive): a new job folder becomes a job; a job folder moved between Live, Active, Completed and Lost changes the job's stage; a job folder renamed with a different client or site updates the job. Just adding the # (Q-552 → #552) changes nothing in the app.
+- **Folders inside year folders count too** (Completed › 2026 › …). A folder called just "2026" is a year, never a job.
+- **The first look never changes a job:** where a folder already sits somewhere different from the app's stage, the app only notes it; only moves made after that change the stage.
+- **Updating Replit is now one short command:** `npm run update` in the Shell, then Republish.
+
 ## 23/11/2026: CIS
 - **CIS invoices now also go on the ledger's CIS Received tab** (invoice, contractor, their email, the labour) when they're made, and its Paid Date is filled when they're paid. That starts the clock for the contractor's statement. (Before, only the Invoices tab was filled.)
 - **The Invoices page has a CIS section.** From contractors: each CIS invoice with its labour and deduction, when it was paid and whether their statement has arrived. Once a statement is overdue (after the 19th), **Ask for the statement** drafts a polite request in your Gmail listing the invoices. When it arrives, **Statement arrived** files the PDF in the quarter's 03 - CIS Statements Received folder, named the standard way, and fills Statement Received and Statement File.

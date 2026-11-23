@@ -107,7 +107,7 @@ export function surveyStructurePass(doc: Doc, q: SurveyQuote): Request[] {
 export function surveyTextPass(doc: Doc, q: SurveyQuote): Request[] {
   const l = locateSurvey(doc);
   const edits: (Edit | null)[] = [];
-  for (const p of l.refs) edits.push(replaceInParagraph(p, "Q-[000]", String(q.number)));
+  for (const p of l.refs) edits.push(replaceInParagraph(p, "Q-[000]", `#${q.number}`));
   edits.push(setParagraph(l.client, clean(q.client)));
   edits.push(replaceInParagraph(l.siteLine, "[Site address, postcode]", clean(q.siteAddress)));
   edits.push(replaceInParagraph(l.siteLine, "[Site name]", clean(q.siteName)));

@@ -84,11 +84,11 @@ export function quoteEmail(a: QuoteEmailArgs): { subject: string; body: string }
   const doc = a.kind === "survey" ? "survey proposal" : "quotation";
   const name = firstName(a.contact);
   const what = [a.project.trim(), a.site.trim()].filter(Boolean).join(" at ");
-  const subject = `${a.kind === "survey" ? "Survey proposal" : "Quotation"} ${a.number}${a.project.trim() ? ` – ${a.project.trim()}` : ""}`;
+  const subject = `${a.kind === "survey" ? "Survey proposal" : "Quotation"} #${a.number}${a.project.trim() ? ` – ${a.project.trim()}` : ""}`;
   const body = [
     name ? `Hi ${name},` : "Hello,",
     "",
-    `Thanks for the opportunity to quote. Please find attached our ${doc} ${a.number}${what ? ` for ${what}` : ""}.`,
+    `Thanks for the opportunity to quote. Please find attached our ${doc} #${a.number}${what ? ` for ${what}` : ""}.`,
     "",
     `The total is ${gbp(a.subtotal)} + VAT (${gbp(a.total)} including VAT).`,
     "",
@@ -107,7 +107,7 @@ export function quoteEmail(a: QuoteEmailArgs): { subject: string; body: string }
 /** Gmail search for a job's emails: the job number in the subject (as every Batt quote email has), or the client's address. */
 export function jobSearch(j: { number: number | null; legacy_ref: string; clientEmail: string | null }): string | null {
   const terms: string[] = [];
-  if (j.number !== null) terms.push(`subject:(${j.number})`, `"Q-${j.number}"`);
+  if (j.number !== null) terms.push(`subject:(${j.number})`, `"#${j.number}"`, `"Q-${j.number}"`);
   if (j.legacy_ref) terms.push(`subject:("${j.legacy_ref.replace(/"/g, "")}")`);
   if (j.clientEmail) terms.push(`from:${j.clientEmail}`, `to:${j.clientEmail}`);
   return terms.length ? `{${terms.join(" ")}} newer_than:2y` : null;

@@ -50,20 +50,20 @@ describe("email", () => {
 
   it("writes the covering email", () => {
     const e = quoteEmail({ kind: "quote", number: 559, project: "Ground floor rewire", site: "12 Test Lane, Aylesbury", subtotal: 7300, total: 8760, contact: "John Smith", sender: { name: "Callum Blacknell", title: "Project Manager" } });
-    expect(e.subject).toBe("Quotation 559 – Ground floor rewire");
+    expect(e.subject).toBe("Quotation #559 – Ground floor rewire");
     expect(e.body).toContain("Hi John,");
-    expect(e.body).toContain("our quotation 559 for Ground floor rewire at 12 Test Lane, Aylesbury.");
+    expect(e.body).toContain("our quotation #559 for Ground floor rewire at 12 Test Lane, Aylesbury.");
     expect(e.body).toContain("£7,300.00 + VAT (£8,760.00 including VAT)");
     expect(e.body).toContain("Callum Blacknell\nProject Manager, Batt Electrical");
     expect(e.body).not.toMatch(/—/);
     const s = quoteEmail({ kind: "survey", number: 560, project: "", site: "", subtotal: 416.8, total: 500.16, contact: "", sender: { name: "Cameron Batt", title: "Managing Director" } });
-    expect(s.subject).toBe("Survey proposal 560");
+    expect(s.subject).toBe("Survey proposal #560");
     expect(s.body).toMatch(/^Hello,\n/);
-    expect(s.body).toContain("our survey proposal 560.");
+    expect(s.body).toContain("our survey proposal #560.");
   });
 
   it("searches Gmail for a job", () => {
-    expect(jobSearch({ number: 559, legacy_ref: "", clientEmail: "john@x.com" })).toBe('{subject:(559) "Q-559" from:john@x.com to:john@x.com} newer_than:2y');
+    expect(jobSearch({ number: 559, legacy_ref: "", clientEmail: "john@x.com" })).toBe('{subject:(559) "#559" "Q-559" from:john@x.com to:john@x.com} newer_than:2y');
     expect(jobSearch({ number: null, legacy_ref: "23-001", clientEmail: null })).toBe('{subject:("23-001")} newer_than:2y');
     expect(jobSearch({ number: null, legacy_ref: "", clientEmail: null })).toBeNull();
   });

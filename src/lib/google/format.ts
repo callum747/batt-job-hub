@@ -15,7 +15,7 @@ const clean = (s: string) => s.replace(/[\\/]+/g, "-").replace(/\s+/g, " ").trim
 
 /** `557 – Client – Site` */
 export function jobFolderName(j: { number: number; client: string | null; site: string }) {
-  return [String(j.number), clean(j.client ?? ""), clean(j.site)].filter(Boolean).join(" – ");
+  return [`#${j.number}`, clean(j.client ?? ""), clean(j.site)].filter(Boolean).join(" – ");
 }
 
 export type EventInput = {
@@ -78,14 +78,16 @@ function plusHour(hhmm: string) {
 }
 
 /**
- * Reads a job folder's name the way Batt writes them: "560 – Client – Site" (an en dash or a hyphen), or an
- * older "Q-560 – …". Null for anything that doesn't start with a job number (templates, "00 - …", notes).
+ * Reads a job folder's name the way Batt writes them: "#560 – Client – Site" (an en dash or a hyphen), or the
+ * older "560 – …" and "Q-560 – …". Null for anything that doesn't start with a job number (templates, "00 - …", notes).
  */
 export function parseJobFolderName(name: string): { number: number; client: string; site: string } | null {
-  const m = name.trim().match(/^(?:Q-?)?(\d{3,4})(?:\s*[–—-]\s*(.*))?$/i);
+  const m = name.trim().match(/^(?:#|Q-?)?\s*(\d{3,4})(?:\s*[–—-]\s*(.*))?$/i);
   if (!m) return null;
   const number = Number(m[1]);
   if (number < 100) return null;
+  // A folder called just "2026" is a year folder (Completed is split by year), not job #2026.
+  if (!m[2] && !name.trim().startsWith("#") && number >= 2000 && number <= 2099) return null;
   const parts = (m[2] ?? "").split(/\s+[–—-]\s+/).map((s) => s.trim()).filter(Boolean);
   return { number, client: parts[0] ?? "", site: parts.slice(1).join(" – ") };
 }

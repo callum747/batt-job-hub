@@ -92,11 +92,11 @@ export async function syncJobFolder(jobId: string, email: string): Promise<strin
     if (!job.drive_folder_id) {
       const target = folders[area ?? "Live"];
       // If a folder for this number is already there (say a half-finished earlier try), use it.
-      const existing = (await listChildren(email, [target], true)).find((f) => f.name === String(job.number) || f.name.startsWith(`${job.number} `));
+      const existing = (await listChildren(email, [target], true)).find((f) => [String(job.number), `#${job.number}`, `Q-${job.number}`].some((n) => f.name === n || f.name.startsWith(`${n} `)));
       const folder = existing ?? (await createFolder(email, jobFolderName({ number: job.number, client: job.client, site: job.site }), target));
       await ensureSubfolders(email, folder.id);
       const url = folder.webViewLink ?? `https://drive.google.com/drive/folders/${folder.id}`;
-      await sql`update jobs set drive_folder_id = ${folder.id}, drive_folder_url = ${url}, drive_error = '', updated_at = now() where id = ${jobId}`;
+      await sql`update jobs set drive_folder_id = ${folder.id}, drive_folder_url = ${url}, drive_folder_name = ${folder.name ?? ""}, drive_folder_area = ${area ?? "Live"}, drive_error = '', updated_at = now() where id = ${jobId}`;
       message = `Drive folder ${existing ? "linked" : "created"} in ${AREA_WORDS[area ?? "Live"]}${testNote}.`;
     } else if (area) {
       const file = await getFile(email, job.drive_folder_id);
@@ -104,8 +104,11 @@ export async function syncJobFolder(jobId: string, email: string): Promise<strin
       const known = Object.values(folders);
       if (parent === folders[area]) {
         message = "";
+        await sql`update jobs set drive_folder_area = ${area} where id = ${jobId} and drive_folder_area = ''`;
       } else if (parent && known.includes(parent)) {
         await moveFile(email, job.drive_folder_id, parent, folders[area]);
+        // Remember where the app put it, so the Drive check doesn't take this for a move made by hand.
+        await sql`update jobs set drive_folder_area = ${area} where id = ${jobId}`;
         message = `Drive folder moved to ${AREA_WORDS[area]}${testNote}.`;
       } else {
         message =

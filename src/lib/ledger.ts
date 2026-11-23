@@ -10,6 +10,8 @@ export type LedgerInvoice = {
   client: string;
   clientEmail: string;
   quoteRef: string;
+  /** The job number the Quote Ref points at: #559, 559 or Q-559 all give 559. */
+  jobNumber: number | null;
   site: string;
   type: string;
   vat: string;
@@ -56,6 +58,7 @@ export function parseLedger(values: string[][]): LedgerInvoice[] {
       client: r[3] ?? "",
       clientEmail: (r[4] ?? "").trim(),
       quoteRef: r[5] ?? "",
+      jobNumber: (() => { const m = String(r[5] ?? "").trim().match(/^(?:#|Q-?)?\s*(\d{3,4})$/i); return m ? Number(m[1]) : null; })(),
       site: r[6] ?? "",
       type: r[7] ?? "",
       vat: r[8] ?? "",

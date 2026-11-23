@@ -141,7 +141,7 @@ export function structurePass(doc: Doc, q: ShortQuote): Request[] {
 export function textPass(doc: Doc, q: ShortQuote): Request[] {
   const l = locate(doc);
   const edits: (Edit | null)[] = [];
-  for (const p of l.ref) edits.push(replaceInParagraph(p, "Q-[000]", String(q.number)));
+  for (const p of l.ref) edits.push(replaceInParagraph(p, "Q-[000]", `#${q.number}`));
   edits.push(setParagraph(l.client, clean(q.client)));
   edits.push(replaceInParagraph(l.projectLine, "[Site address, postcode]", clean(q.site)));
   edits.push(replaceInParagraph(l.projectLine, "[Project name]", clean(q.project)));

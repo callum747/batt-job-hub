@@ -135,7 +135,7 @@ d("invoices", () => {
     expect(quarter.parents).toEqual([folder.id]);
     expect(files.filter((f) => f.parents[0] === quarter.id).map((f) => f.name)).toHaveLength(5);
     expect(writes.every((w) => w.sheet !== LEDGER)).toBe(true);
-    expect(writes[0]).toMatchObject({ range: "Invoices!A3:J3", values: ["TEST-INV-1", "23/11/2026", "23/11/2026", "Test Client", "a@example.com", "559", "12 Test Lane", "Deposit", "Standard 20%", 1825] });
+    expect(writes[0]).toMatchObject({ range: "Invoices!A3:J3", values: ["TEST-INV-1", "23/11/2026", "23/11/2026", "Test Client", "a@example.com", "#559", "12 Test Lane", "Deposit", "Standard 20%", 1825] });
     // The real job folder isn't written to in test mode.
     expect(uploads.map((u) => u.parent)).not.toContain("q01");
     // Test invoices don't change the job's money.

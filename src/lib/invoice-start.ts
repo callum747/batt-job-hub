@@ -42,7 +42,7 @@ export async function invoiceStart(job: JobRow): Promise<InvoiceStart> {
   const vars = variations.map((v) => ({ ...v }));
   return {
     test,
-    quoteRef: job.number ? String(job.number) : job.legacy_ref,
+    quoteRef: job.number ? `#${job.number}` : job.legacy_ref,
     quoteNet,
     stages,
     finalAmount: finalAmount(quoteNet, vars.map((v) => v.amount), counted.map((i) => i.net)),

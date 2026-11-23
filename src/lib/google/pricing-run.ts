@@ -85,7 +85,7 @@ export async function priceJob(jobId: string, input: PricingInput, me: { email: 
     }
     const [{ n }] = await sql<{ n: number }[]>`select count(*)::int as n from documents where job_id = ${jobId} and kind = 'pricing'`;
     const revision = n + 1;
-    const name = `${job.number} – ${(job.site || job.client || "Job").replace(/[\\/]+/g, "-")} – Pricing${revision > 1 ? ` rev ${revision}` : ""}`;
+    const name = `#${job.number} – ${(job.site || job.client || "Job").replace(/[\\/]+/g, "-")} – Pricing${revision > 1 ? ` rev ${revision}` : ""}`;
 
     const copy = await google<{ id: string; webViewLink?: string }>(me.email, `/drive/v3/files/${await templateId("pricing")}/copy`, {
       method: "POST",

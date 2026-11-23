@@ -95,7 +95,7 @@ d("Gmail", () => {
   it("drafts the quote email to the client, from the last quote", async () => {
     const job = (await (await import("../data")).findJob("559"))!;
     const start = (await qe.quoteEmailStart(job, CALLUM))!;
-    expect(start).toMatchObject({ documentId: docId, to: "john@client.com", subject: "Quotation 559 – Ground floor rewire", pdfName: "559 – Smith Homes – Quote.pdf" });
+    expect(start).toMatchObject({ documentId: docId, to: "john@client.com", subject: "Quotation #559 – Ground floor rewire", pdfName: "559 – Smith Homes – Quote.pdf" });
     expect(start.body).toContain("Hi John,");
     expect(start.body).toContain("£7,300.00 + VAT (£8,760.00 including VAT)");
     expect(start.body).toContain("Callum Blacknell\nProject Manager, Batt Electrical");

@@ -101,6 +101,11 @@ Things that weren't spelled out in the brief or the playbook. Say if any should 
 76. **A statement is filed in the VAT quarter of its tax month,** in 03 - CIS Statements Received, named "CIS Statement – Contractor – Tax month ending 5 Mon YYYY".
 77. **Subcontractor payments use the name, UTR, verification number and rate on the ledger's Subcontractors tab.** "[TBC]" counts as not known.
 
+78. **Job numbers are written with a #** everywhere the app writes them (your request, 23/11/2026). Old refs like 23-001 and H-001 aren't job numbers and stay as they are.
+79. **Drive is followed, not overruled:** a folder moved by hand sets the job's stage to Live = Draft quote, Active = Booked, Completed = Paid, Lost = Lost, unless the job's stage already belongs in that folder (so Invoiced in Active stays Invoiced). A rename changes the client or site only when that part of the name changes.
+80. **A folder named only "2000"–"2099" is a year folder,** not a job.
+81. **Existing Drive names were changed from "Q-552" to "#552"** (folders and file names only, never what's inside a file), and the ledger's Quote Ref from Q-549 to #549 (your answer, 23/11/2026).
+
 ## Still needed from Callum
 - **Jed's email address** (the one his Google Calendar uses). Without it he can't be invited to visits. Add it in Settings, under People.
 - **For Jed's monthly CIS statement:** his full legal name, email and address (on the ledger's Subcontractors tab), and Batt's CIS employer's reference (GPG have it).

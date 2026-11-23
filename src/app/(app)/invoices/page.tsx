@@ -101,7 +101,7 @@ export default async function InvoicesPage() {
                     <span className="font-semibold">{i.number}</span>
                     <span className="min-w-0 flex-1">{i.client} <span className="text-muted">{i.type}</span></span>
                     <span className="tabular-nums">{gbp(i.payable ?? 0)}</span>
-                    {/^\d+$/.test(i.quoteRef) && <Link href={`/jobs/${i.quoteRef}`} className="underline underline-offset-4">#{i.quoteRef}</Link>}
+                    {i.jobNumber && <Link href={`/jobs/${i.jobNumber}`} className="underline underline-offset-4">#{i.jobNumber}</Link>}
                   </li>
                 ))}
               </ul>

@@ -18,10 +18,10 @@ const base: EventInput = {
 
 describe("job folder", () => {
   it("is named number, client, site with en dashes", () => {
-    expect(jobFolderName({ number: 557, client: "Meterz", site: "1 Finsbury Circus, London" })).toBe("557 – Meterz – 1 Finsbury Circus, London");
+    expect(jobFolderName({ number: 557, client: "Meterz", site: "1 Finsbury Circus, London" })).toBe("#557 – Meterz – 1 Finsbury Circus, London");
   });
   it("copes with no client and slashes", () => {
-    expect(jobFolderName({ number: 558, client: null, site: "Unit 4/5 The Yard" })).toBe("558 – Unit 4-5 The Yard");
+    expect(jobFolderName({ number: 558, client: null, site: "Unit 4/5 The Yard" })).toBe("#558 – Unit 4-5 The Yard");
   });
   it("has the eight standard subfolders", () => {
     expect(JOB_SUBFOLDERS).toHaveLength(8);
@@ -41,6 +41,9 @@ describe("reading a folder made by hand", () => {
     expect(parseJobFolderName("00 - Templates")).toBeNull();
     expect(parseJobFolderName("Old quotes")).toBeNull();
     expect(parseJobFolderName("2026 Archive")).toBeNull();
+    expect(parseJobFolderName("2026")).toBeNull();
+    expect(parseJobFolderName("2025")).toBeNull();
+    expect(parseJobFolderName("#560")).toEqual({ number: 560, client: "", site: "" });
     expect(parseJobFolderName("23-001 Kitchen")).toBeNull();
   });
 });

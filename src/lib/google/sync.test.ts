@@ -118,7 +118,7 @@ d("Drive and Calendar sync", () => {
     jobId = j.id;
     const msg = await drive.syncJobFolder(jobId, ME);
     expect(msg).toBe("Drive folder created in Live (test folder).");
-    const folder = files.find((f) => f.name === "557 – Meterz – 1 Finsbury Circus")!;
+    const folder = files.find((f) => f.name === "#557 – Meterz – 1 Finsbury Circus")!;
     expect(folder.parents).toEqual([T.Live]);
     expect(files.filter((f) => f.parents[0] === folder.id).map((f) => f.name)).toEqual([
       "01 - Quote & Contract", "02 - Drawings & Specs", "03 - RAMS & Site H&S", "04 - Procurement",
@@ -133,7 +133,7 @@ d("Drive and Calendar sync", () => {
   it("moves the folder when the stage changes, and not when it doesn't need to", async () => {
     await sql`update jobs set stage = 'Booked' where id = ${jobId}`;
     expect(await drive.syncJobFolder(jobId, ME)).toBe("Drive folder moved to Active (test folder).");
-    expect(files.find((f) => f.name.startsWith("557 "))!.parents).toEqual([T.Active]);
+    expect(files.find((f) => f.name.startsWith("#557 "))!.parents).toEqual([T.Active]);
     await sql`update jobs set stage = 'In progress' where id = ${jobId}`;
     expect(await drive.syncJobFolder(jobId, ME)).toBe("");
     await sql`update jobs set stage = 'On hold' where id = ${jobId}`;
@@ -170,7 +170,7 @@ d("Drive and Calendar sync", () => {
   });
 
   it("lists a job folder's files by subfolder", async () => {
-    const folder = files.find((f) => f.name.startsWith("557 "))!;
+    const folder = files.find((f) => f.name.startsWith("#557 "))!;
     const sub = files.find((f) => f.parents[0] === folder.id && f.name.startsWith("01"))!;
     files.push({ id: "pdf1", name: "557 – Quote.pdf", mimeType: "application/pdf", parents: [sub.id] });
     const listing = await drive.listJobFiles(ME, folder.id);

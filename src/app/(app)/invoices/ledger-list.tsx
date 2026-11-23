@@ -19,7 +19,7 @@ function Row({ i, today }: { i: LedgerInvoice; today: string }) {
   const [e, setE] = useState<{ to: string; cc: string; subject: string; body: string } | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string; url?: string } | null>(null);
   const due = dueForChase(i, today);
-  const job = /^\d+$/.test(i.quoteRef) ? i.quoteRef : null;
+  const job = i.jobNumber;
 
   return (
     <li className="px-4 py-3">

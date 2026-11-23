@@ -80,6 +80,33 @@ d("Drive folders made by hand", () => {
     expect(again.created).toEqual([]);
   });
 
+  it("follows folders moved or renamed by hand, but changes nothing on the first look", async () => {
+    // 558 was linked on the first look; it's in Active and the job is Booked. Moving it to Completed marks it Paid.
+    folders.find((f) => f.id === "f558")!.parent = T.Completed;
+    // 560 renamed by hand: new site.
+    folders.find((f) => f.id === "f560")!.name = "#560 – Smith Homes – 6 Oak Road, Aylesbury";
+    // 557 (linked from the start, never seen before): just remembered, even though it's in Live and the job is Quoted.
+    const r = await di.importDriveFolders(ME, { force: true });
+    expect(r.updated.sort()).toEqual(['#558 moved to Paid', '#560 renamed to "#560 – Smith Homes – 6 Oak Road, Aylesbury"']);
+    const rows = await sql`select number, stage, site, drive_folder_area from jobs where number in (557, 558, 560) order by number`;
+    expect(rows.map((j) => ({ ...j }))).toEqual([
+      { number: 557, stage: "Quoted", site: "x", drive_folder_area: "Live" },
+      { number: 558, stage: "Paid", site: "Depot", drive_folder_area: "Completed" },
+      { number: 560, stage: "Draft quote", site: "6 Oak Road, Aylesbury", drive_folder_area: "Live" },
+    ]);
+    // Q-552 becoming #552 (or 560 becoming #560) is only a new prefix: nothing changes.
+    folders.find((f) => f.id === "f560")!.name = "560 - Smith Homes - 6 Oak Road, Aylesbury";
+    expect((await di.importDriveFolders(ME, { force: true })).updated).toEqual([]);
+  });
+
+  it("finds job folders inside year folders in Completed", async () => {
+    folders.push({ id: "y2026", name: "2026", parent: T.Completed }, { id: "f530", name: "#530 – Archive Client – Old Site", parent: "y2026" });
+    const r = await di.importDriveFolders(ME, { force: true });
+    expect(r.created).toEqual(["#530 – Archive Client – Old Site"]);
+    const [j] = await sql`select stage from jobs where number = 530`;
+    expect(j.stage).toBe("Paid");
+  });
+
   it("never gives out a number already used by a folder made by hand", async () => {
     folders.push({ id: "f561", name: "561 – Hand Made – Somewhere", parent: T.Live });
     const [j] = await sql`insert into jobs (stage, site) values ('Enquiry', 'New one') returning id`;

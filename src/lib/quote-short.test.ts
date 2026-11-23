@@ -134,7 +134,7 @@ describe("pass 2: text", () => {
     expect(out).not.toMatch(/\[/);
   });
   it("fills the cover", () => {
-    expect(out).toContain("PROPOSAL REF\n557\n");
+    expect(out).toContain("PROPOSAL REF\n#557\n");
     expect(out).toContain("\nAmit Tripathi\nKitchen sockets and new radial circuit  |  8 Alwin Close, Aylesbury, HP21 8RP\n");
     expect(out).toContain("DATE\n23/11/2026\nVALID UNTIL\n23/12/2026\nPREPARED BY\nCallum Blacknell\n");
   });
@@ -148,7 +148,7 @@ describe("pass 2: text", () => {
   it("signs it from whoever is preparing it", () => {
     expect(out).toContain("Callum Blacknell   Project Manager, Batt Electrical  |  01296 321321  |  callum@battelectrical.com");
     expect(out).not.toContain("Cameron");
-    expect(out).toContain("accept this quotation (557),");
+    expect(out).toContain("accept this quotation (#557),");
     expect(out).toContain("quote for Kitchen sockets and new radial circuit.");
   });
   it("lists the assumptions as separate lines", () => {

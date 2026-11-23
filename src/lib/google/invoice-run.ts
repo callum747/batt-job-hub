@@ -124,7 +124,7 @@ export async function makeInvoice(jobId: string, f: InvoiceForm, me: { email: st
     const [job] = await sql<{ number: number | null; legacy_ref: string; site: string; client: string | null; drive_folder_id: string; stage: string }[]>`
       select j.number, j.legacy_ref, j.site, c.name as client, j.drive_folder_id, j.stage from jobs j left join clients c on c.id = j.client_id where j.id = ${jobId}`;
     if (!job) return { ok: false, message: "That job doesn't exist." };
-    const quoteRef = job.number ? String(job.number) : job.legacy_ref;
+    const quoteRef = job.number ? `#${job.number}` : job.legacy_ref;
     const places = await invoicePlaces(me.email);
     reserved = await reserveNumber(me.email, places, jobId, me.email);
     const label = invoiceLabel(reserved.number, places.test);
@@ -213,7 +213,7 @@ export async function writeLedgerRow(email: string, ledgerId: string, invoiceId:
   if (row > 501) throw new Error("The ledger's Invoices tab is full (row 501). Extend its formulas first.");
   const writes = ledgerRow({
     number: label, invoiceDate: i.invoice_date, supplyDate: i.supply_date, client: i.client_name, clientEmail: i.client_email,
-    quoteRef: job ? (job.number ? String(job.number) : job.legacy_ref) : "", site: i.site, type: i.type, vat: i.vat_treatment, net: i.net,
+    quoteRef: job ? (job.number ? `#${job.number}` : job.legacy_ref) : "", site: i.site, type: i.type, vat: i.vat_treatment, net: i.net,
     cisLabour: i.cis ? i.cis_labour : null, termsDays: i.terms_days, pdfUrl: i.pdf_url, notes: i.stage_label ? `${i.stage_label}. Made by the Job Hub.` : "Made by the Job Hub.",
   });
   await google(email, `${SHEETS}/v4/spreadsheets/${ledgerId}/values:batchUpdate`, {

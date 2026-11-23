@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "migrate": "node scripts/migrate.mjs",
-    "import": "node scripts/import-prototype.mjs"
+    "import": "node scripts/import-prototype.mjs",
+    "update": "git pull --no-rebase --no-edit -X theirs origin main && npm install && npm run build"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.12.0",

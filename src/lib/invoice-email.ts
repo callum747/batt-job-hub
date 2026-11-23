@@ -26,7 +26,7 @@ export async function invoiceEmailStart(invoiceId: string, email: string): Promi
   const client = job?.client_id ? await getClient(job.client_id) : null;
   const sender = (await preparedByFor(email)) ?? { name: email, title: "" };
   const label = invoiceLabel(i.number, i.test);
-  const ref = job?.number ? `quotation ${job.number}` : "the works";
+  const ref = job?.number ? `quotation #${job.number}` : "the works";
   const covers =
     i.type === "Survey" ? `the survey${job?.site ? ` at ${job.site}` : ""}`
     : i.stage_label ? `${i.stage_label.toLowerCase()} on ${ref}`
