@@ -2,6 +2,14 @@
 
 Plain-English notes on what's new in the Batt Job Hub, newest first.
 
+## 23/11/2026: Survey proposals
+- **Survey jobs** (job type "Survey") get a survey form on the Quote & money tab instead of the pricing spreadsheet.
+- **Fill in the sites and units:** each site's name, address and postcode, then each unit with its area in sq ft (left empty it shows "tbc") and what's being surveyed.
+- **Price it:** survey days, the exact round-trip miles and, for a trip covering several sites, the route. A weekend box charges 1.5 times. The price shows as you type.
+- **Press "Price it and make the survey proposal".** The app prices it from the rates in Settings (£280 a survey day, 45p a mile), gives the job its number and folder if it hasn't got them, and makes the survey proposal from your template with a PDF beside it.
+- Checked against Batt's past survey quotes: Q-546 £416.80, Q-547 £634.25, Q-548 £1,400.35 and Q-549 £506.80 all come out to the penny.
+- Tested on a real copy of the survey template with three sites and seven units: four pages, no placeholders left.
+
 ## 23/11/2026: The quote document (short form)
 - **Make the quote** from a priced job, on its Quote & money tab. The app fills in a first draft from the pricing: the cover, a room-by-room schedule (one area per room you priced), the investment lines, totals and VAT, your name, title and email, today's date and valid for 30 days.
 - **Check and change the wording** before it's made: the job name on the cover, the project summary, the installation description, every schedule line (add or remove rooms and lines), exclusions and assumptions, the deposit and the payment days.

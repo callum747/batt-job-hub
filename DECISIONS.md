@@ -33,6 +33,13 @@ Things that weren't spelled out in the brief or the playbook. Say if any should 
 24. **Payment days:** the client's payment days replace "within 7 days of invoice". The late-payment wording ("5% after 7 days") is left exactly as the template has it.
 25. **Revision on the cover stays "A".** A rebuilt quote is saved as "rev 2" in the file name. Say if you'd like the cover's revision letter to change too (B, C…).
 
+## Phase 3: Survey proposals
+26. **A job is a survey when its type is "Survey".** It gets the survey form instead of the pricing spreadsheet.
+27. **Survey rates come from Settings, never from the browser:** £280 a day, 45p a mile, weekends 1.5 times.
+28. **Mileage wording:** one site reads "304 miles round trip (152 miles each way) from our Aylesbury registered office, at 45p per mile". Several sites read "165 miles round trip (Aylesbury to X, Y and Z and back) from our Aylesbury registered office…", with no per-site times.
+29. **No travel:** if the miles are 0, the Mileage row is taken out of the proposal.
+30. **Site rows** read "SITE NAME, ADDRESS, POSTCODE" in capitals, as the playbook asks. A unit with no area says "tbc".
+
 ## Still needed from Callum
 - **Jed's email address** (the one his Google Calendar uses). Without it he can't be invited to visits. Add it in Settings, under People.
 - **Round-trip miles** for each live job, on the job's Details tab, so travel is counted in profit.
