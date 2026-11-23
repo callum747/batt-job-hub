@@ -4,14 +4,29 @@ import type { Stage } from "@/lib/jobs-rules";
 
 type P = { id: string; short_name: string; colour: string };
 
+/**
+ * Stage badges read at a glance, in brand colours only: an outline while it's an enquiry, blue while it's a
+ * quote, solid black once the work is on, steel when it's finished and waiting for money, green when paid.
+ */
+const STAGE_STYLE: Record<Stage, { box: string; dot: string }> = {
+  Enquiry: { box: "border border-line-strong bg-bg text-text", dot: "bg-line-strong" },
+  "Draft quote": { box: "bg-blue-soft text-text", dot: "border border-blue bg-bg" },
+  Quoted: { box: "bg-blue-soft text-text", dot: "bg-blue" },
+  Booked: { box: "bg-text text-white", dot: "bg-white/50" },
+  "In progress": { box: "bg-text text-white", dot: "bg-blue" },
+  Complete: { box: "bg-muted text-white", dot: "bg-white/60" },
+  Invoiced: { box: "bg-muted text-white", dot: "bg-warn" },
+  Paid: { box: "bg-good/12 text-text", dot: "bg-good" },
+  "On hold": { box: "border border-dashed border-line-strong bg-bg text-muted", dot: "bg-warn" },
+  Lost: { box: "bg-surface text-muted", dot: "bg-line-strong" },
+  Closed: { box: "bg-surface text-muted", dot: "bg-line-strong" },
+};
+
 export function StageBadge({ stage }: { stage: Stage }) {
-  const quiet = stage === "Lost" || stage === "Closed" || stage === "On hold" || stage === "Paid";
+  const st = STAGE_STYLE[stage] ?? STAGE_STYLE.Enquiry;
   return (
-    <span
-      className={`inline-flex h-7 items-center whitespace-nowrap rounded-full px-3 text-[13px] font-medium ${
-        quiet ? "bg-surface text-muted" : "bg-blue-soft text-text"
-      }`}
-    >
+    <span className={`inline-flex h-6.5 items-center gap-1.5 whitespace-nowrap rounded-full pl-2 pr-2.5 text-[12.5px] font-semibold ${st.box}`}>
+      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${st.dot}`} aria-hidden="true" />
       {stage}
     </span>
   );
@@ -28,13 +43,14 @@ export function LightDot({ light, className = "h-3 w-3" }: { light: Light; class
   return <span className={`inline-block shrink-0 rounded-full ${LIGHT[light].cls} ${className}`} title={LIGHT[light].label} aria-label={LIGHT[light].label} role="img" />;
 }
 
+/** A person: a quiet white tag with their colour as a dot, so a row of people never shouts. */
 export function PersonChip({ person, size = "md" }: { person: P; size?: "sm" | "md" }) {
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-full font-semibold text-white ${size === "sm" ? "h-7 min-w-7 px-2 text-[12px]" : "h-8 min-w-8 px-2.5 text-[13px]"}`}
-      style={{ backgroundColor: person.colour }}
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-line bg-bg font-medium text-text ${size === "sm" ? "h-6.5 pl-2 pr-2.5 text-[12.5px]" : "h-8 pl-2.5 pr-3 text-[13.5px]"}`}
       title={person.short_name}
     >
+      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: person.colour }} aria-hidden="true" />
       {person.short_name}
     </span>
   );
@@ -42,7 +58,7 @@ export function PersonChip({ person, size = "md" }: { person: P; size?: "sm" | "
 
 export function PeopleChips({ ids, people, size, nowrap }: { ids: string[]; people: P[]; size?: "sm" | "md"; nowrap?: boolean }) {
   const list = people.filter((p) => ids.includes(p.id));
-  if (list.length === 0) return <span className="whitespace-nowrap text-[14px] text-muted">Nobody yet</span>;
+  if (list.length === 0) return <span className="whitespace-nowrap text-[13.5px] text-muted">Nobody yet</span>;
   return (
     <span className={`flex gap-1.5 ${nowrap ? "" : "flex-wrap"}`}>
       {list.map((p) => (
@@ -54,10 +70,10 @@ export function PeopleChips({ ids, people, size, nowrap }: { ids: string[]; peop
 
 export function Card({ title, action, children, className = "" }: { title?: string; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
-    <section className={`rounded-2xl border border-line bg-bg ${className}`}>
+    <section className={`rounded-2xl border border-line bg-bg shadow-card ${className}`}>
       {title && (
-        <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
-          <h2 className="text-[18px] font-semibold">{title}</h2>
+        <div className="flex min-h-14 items-center justify-between gap-3 border-b border-line px-5 py-3">
+          <h2 className="bar-title text-[16px] font-semibold">{title}</h2>
           {action}
         </div>
       )}
@@ -66,24 +82,44 @@ export function Card({ title, action, children, className = "" }: { title?: stri
   );
 }
 
+/** A headline figure: small tracked label, the number in the headline face, a line of support. */
+export function Stat({ label, value, sub, light, href }: { label: string; value: string; sub?: React.ReactNode; light?: Light; href?: string }) {
+  const body = (
+    <>
+      <p className="label flex items-center gap-2">
+        {label}
+        {light && <LightDot light={light} className="h-2 w-2" />}
+      </p>
+      <p className="headline mt-2 text-[20px] tabular-nums md:text-[26px]">{value}</p>
+      {sub && <p className="mt-1 text-[13px] text-muted">{sub}</p>}
+    </>
+  );
+  const cls = "block rounded-2xl border border-line bg-bg p-4 shadow-card md:p-5";
+  return href ? (
+    <Link href={href} className={`${cls} transition hover:border-line-strong hover:shadow-lift`}>{body}</Link>
+  ) : (
+    <div className={cls}>{body}</div>
+  );
+}
+
 export function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[15px] font-medium">{label}</span>
+      <span className="mb-1.5 block text-[14px] font-medium">{label}</span>
       {children}
-      {hint && <span className="mt-1 block text-[14px] text-muted">{hint}</span>}
+      {hint && <span className="mt-1.5 block text-[13px] leading-snug text-muted">{hint}</span>}
     </label>
   );
 }
 
 export const inputCls =
-  "h-12 w-full rounded-xl border border-line bg-bg px-4 text-[16px] outline-none placeholder:text-muted focus:border-blue";
+  "h-11 w-full rounded-[10px] border border-line-strong bg-bg px-3.5 text-[16px] outline-none transition placeholder:text-muted/70 hover:border-muted/60 focus:border-blue focus:ring-3 focus:ring-blue/20";
 export const textareaCls =
-  "min-h-28 w-full rounded-xl border border-line bg-bg px-4 py-3 text-[16px] outline-none placeholder:text-muted focus:border-blue";
+  "min-h-28 w-full rounded-[10px] border border-line-strong bg-bg px-3.5 py-2.5 text-[16px] outline-none transition placeholder:text-muted/70 hover:border-muted/60 focus:border-blue focus:ring-3 focus:ring-blue/20";
 export const primaryBtn =
-  "inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-blue px-5 text-[16px] font-semibold text-blue-ink transition hover:brightness-95 disabled:opacity-60";
+  "inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-[10px] bg-blue px-4.5 text-[15px] font-semibold text-blue-ink shadow-card transition hover:brightness-95 active:brightness-90 disabled:cursor-not-allowed disabled:opacity-50";
 export const secondaryBtn =
-  "inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-line bg-bg px-5 text-[16px] font-medium transition hover:bg-surface disabled:opacity-60";
+  "inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-[10px] border border-line-strong bg-bg px-4.5 text-[15px] font-medium shadow-card transition hover:bg-surface active:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50";
 
 export function ButtonLink({ href, children, primary }: { href: string; children: React.ReactNode; primary?: boolean }) {
   return (

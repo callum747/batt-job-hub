@@ -42,7 +42,7 @@ function Row({ inv, onDone }: { inv: QueuedInvoice; onDone: (msg: string) => voi
   const [pending, run] = useTransition();
   const link = `https://mail.google.com/mail/?authuser=${encodeURIComponent(inv.mailbox)}#all/${inv.message_id}`;
   return (
-    <li className="rounded-2xl border border-line p-4 md:p-5">
+    <li className="rounded-2xl border border-line bg-bg shadow-card p-4 md:p-5">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="font-semibold">
           {inv.supplier || inv.email_from} {inv.credit_note ? "credit note" : "invoice"} {inv.invoice_number}

@@ -23,7 +23,7 @@ export default async function ClientsPage() {
       <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {clients.map((c) => (
           <li key={c.id}>
-            <Link href={`/clients/${c.id}`} className="block h-full rounded-2xl border border-line p-5 hover:bg-surface">
+            <Link href={`/clients/${c.id}`} className="block h-full rounded-2xl border border-line bg-bg shadow-card p-5 hover:bg-surface">
               <p className="text-[18px] font-semibold">{c.name}</p>
               <p className="text-[15px] text-muted">{[c.type, c.contact !== c.name ? c.contact : ""].filter(Boolean).join(" · ") || "No details yet"}</p>
               <p className="mt-3 text-[15px]">

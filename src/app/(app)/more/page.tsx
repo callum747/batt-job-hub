@@ -10,7 +10,7 @@ export default function MorePage() {
   return (
     <>
       <PageHeader title="More" />
-      <ul className="overflow-hidden rounded-2xl border border-line">
+      <ul className="overflow-hidden rounded-2xl border border-line bg-bg shadow-card">
         {NAV.filter((n) => !n.phone).map(({ href, label, icon: Icon }) => (
           <li key={href} className="border-b border-line last:border-0">
             <Link href={href} className="flex h-16 items-center gap-4 px-5 text-[17px] font-medium hover:bg-surface">

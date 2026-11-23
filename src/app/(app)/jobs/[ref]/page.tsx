@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ChevronLeft, FileText, FolderOpen } from "lucide-react";
-import { Card, LightDot } from "@/components/ui";
+import { Card, LightDot, Stat } from "@/components/ui";
 import { findJob, getPeople, getSettings, jobDetail, listClients } from "@/lib/data";
 import { gbp } from "@/lib/money";
 import { jobLabel, todayUK, ukDate } from "@/lib/jobs-rules";
@@ -65,48 +65,39 @@ export default async function JobPage({ params, searchParams }: { params: Promis
 
   return (
     <div className="mx-auto max-w-5xl">
-      <Link href="/jobs" className="mb-4 inline-flex h-10 items-center gap-1 text-[15px] font-medium text-muted hover:text-text">
-        <ChevronLeft className="h-5 w-5" aria-hidden="true" /> Jobs
+      <Link href="/jobs" className="mb-3 inline-flex h-9 items-center gap-1 text-[14px] font-medium text-muted hover:text-text">
+        <ChevronLeft className="h-4 w-4" aria-hidden="true" /> Jobs
       </Link>
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-[30px] font-semibold leading-tight md:text-[34px]">
-            {jobLabel(job)} <span className="font-medium">{job.client_name ?? "No client"}</span>
-          </h1>
-          <p className="mt-1 text-[17px] text-muted">{where || job.type || "No site yet"}</p>
-          {job.also.length > 0 && <p className="mt-1 text-[15px] text-muted">Also covers {job.also.map((n) => `#${n}`).join(", ")}</p>}
+      {/* The job's header: number, client, where, stage and who, on one card. */}
+      <div className="rounded-2xl border border-line bg-bg p-5 shadow-card md:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <p className="label">{job.type || "Job"}</p>
+            <h1 className="headline mt-1.5 text-[22px] md:text-[28px]">
+              <span className="text-blue-deep">{jobLabel(job)}</span> {job.client_name ?? "No client"}
+            </h1>
+            <p className="mt-1.5 text-[15px] text-muted">{where || "No site yet"}</p>
+            {job.also.length > 0 && <p className="mt-1 text-[14px] text-muted">Also covers {job.also.map((n) => `#${n}`).join(", ")}</p>}
+          </div>
+          <StageControl jobId={job.id} stage={job.stage} />
         </div>
-        <StageControl jobId={job.id} stage={job.stage} />
+        <div className="mt-4 border-t border-line pt-4">
+          <PeopleControl jobId={job.id} selected={job.people} people={activePeople} />
+        </div>
       </div>
 
       {numbered && job.number && (
-        <p role="status" className="mt-4 rounded-xl bg-blue-soft px-4 py-3 text-[15px] font-medium">
+        <p role="status" className="mt-4 rounded-xl border border-blue/25 bg-blue-soft px-4 py-3 text-[15px] font-medium">
           This job is now #{job.number}. Use that number on the quote, the Drive folder and wholesaler orders.
         </p>
       )}
 
-      <div className="mt-5">
-        <PeopleControl jobId={job.id} selected={job.people} people={activePeople} />
+      <div className="mt-4 grid grid-cols-3 gap-2 md:gap-4">
+        <Stat label="Quote" value={m.income ? gbp(m.income, { whole: true }) : "–"} />
+        <Stat label="Spent so far" value={gbp(m.spent, { whole: true })} />
+        <Stat label="Profit so far" light={job.light} value={m.income ? gbp(m.profit, { whole: true }) : "–"} sub={m.margin !== null ? `${m.margin}% margin` : undefined} />
       </div>
-
-      <dl className="mt-6 grid grid-cols-3 gap-2 md:gap-3">
-        <div className="rounded-2xl border border-line p-3 md:p-4">
-          <dt className="text-[13px] text-muted md:text-[14px]">Quote</dt>
-          <dd className="mt-1 text-[18px] font-semibold tabular-nums md:text-[24px]">{m.income ? gbp(m.income, { whole: true }) : "–"}</dd>
-        </div>
-        <div className="rounded-2xl border border-line p-3 md:p-4">
-          <dt className="text-[13px] text-muted md:text-[14px]">Spent so far</dt>
-          <dd className="mt-1 text-[18px] font-semibold tabular-nums md:text-[24px]">{gbp(m.spent, { whole: true })}</dd>
-        </div>
-        <div className="rounded-2xl border border-line p-3 md:p-4">
-          <dt className="flex items-center gap-1.5 text-[13px] text-muted md:text-[14px]">
-            Profit so far <LightDot light={job.light} className="h-2.5 w-2.5 md:h-3 md:w-3" />
-          </dt>
-          <dd className="mt-1 text-[18px] font-semibold tabular-nums md:text-[24px]">{m.income ? gbp(m.profit, { whole: true }) : "–"}</dd>
-          {m.margin !== null && <dd className="text-[13px] font-medium text-muted md:text-[14px]">{m.margin}% margin</dd>}
-        </div>
-      </dl>
 
       <nav className="-mx-4 mt-6 overflow-x-auto border-b border-line px-4 md:mx-0 md:px-0" aria-label="Job sections">
         <ul className="flex gap-1">
@@ -118,8 +109,8 @@ export default async function JobPage({ params, searchParams }: { params: Promis
                   href={t.key === "overview" ? base : `${base}?tab=${t.key}`}
                   scroll={false}
                   aria-current={active ? "page" : undefined}
-                  className={`inline-flex h-12 items-center whitespace-nowrap border-b-2 px-4 text-[16px] font-medium ${
-                    active ? "border-blue text-text" : "border-transparent text-muted hover:text-text"
+                  className={`inline-flex h-11 items-center whitespace-nowrap border-b-2 px-3.5 text-[15px] ${
+                    active ? "border-blue font-semibold text-text" : "border-transparent font-medium text-muted hover:text-text"
                   }`}
                 >
                   {t.label}
@@ -134,7 +125,7 @@ export default async function JobPage({ params, searchParams }: { params: Promis
         {tab === "overview" && (
           <>
             <Card title="The job">
-              <p className="whitespace-pre-line text-[17px]">{job.description || <span className="text-muted">No description yet.</span>}</p>
+              <p className="whitespace-pre-line text-[16px]">{job.description || <span className="text-muted">No description yet.</span>}</p>
               <dl className="mt-5 grid gap-4 text-[15px] sm:grid-cols-2">
                 <Info label="Type" value={job.type} />
                 <Info label="Contact" value={job.contact} />
@@ -313,7 +304,7 @@ async function FilesTab({ job }: { job: { id: string; number: number | null; dri
                     <span className="ml-2 text-[14px] font-normal text-muted">{folder.files.length || "empty"}</span>
                   </p>
                   {folder.files.length > 0 && (
-                    <ul className="mt-1 divide-y divide-line rounded-xl border border-line">
+                    <ul className="mt-1 divide-y divide-line rounded-xl border border-line bg-bg">
                       {folder.files.map((f) => (
                         <li key={f.id}>
                           <a href={f.webViewLink} target="_blank" rel="noreferrer" className="flex items-center gap-3 px-4 py-3 hover:bg-surface">
@@ -469,7 +460,7 @@ async function QuoteCard({ job, lines, templateChoice }: { job: Awaited<ReturnTy
   return (
     <Card title="Quote document">
       {quotes.length > 0 && (
-        <ul className="mb-5 divide-y divide-line rounded-xl border border-line">
+        <ul className="mb-5 divide-y divide-line rounded-xl border border-line bg-bg">
           {quotes.map((d) => (
             <li key={d.id} className="flex flex-wrap items-center gap-3 px-4 py-3 text-[15px]">
               <span className="min-w-0 flex-1">
@@ -508,7 +499,7 @@ async function SurveyCard({ job, rates }: { job: Awaited<ReturnType<typeof findJ
   return (
     <Card title="Survey proposal">
       {proposals.length > 0 && (
-        <ul className="mb-5 divide-y divide-line rounded-xl border border-line">
+        <ul className="mb-5 divide-y divide-line rounded-xl border border-line bg-bg">
           {proposals.map((x) => (
             <li key={x.id} className="flex flex-wrap items-center gap-3 px-4 py-3 text-[15px]">
               <span className="min-w-0 flex-1">
@@ -611,7 +602,7 @@ async function EmailTab({ job }: { job: Awaited<ReturnType<typeof findJob>> & ob
           ))}
           {result && result.threads.length === 0 && <p className="text-muted">No emails found.</p>}
           {result && result.threads.length > 0 && (
-            <ul className="divide-y divide-line rounded-xl border border-line">
+            <ul className="divide-y divide-line rounded-xl border border-line bg-bg">
               {result.threads.map((t) => (
                 <li key={t.mailbox + t.threadId} className="px-4 py-3">
                   <div className="flex flex-wrap items-baseline gap-x-3">
@@ -661,7 +652,7 @@ async function InvoicesCard({ job }: { job: Awaited<ReturnType<typeof findJob>> 
         ) : !job.client_id ? (
           <p className="text-muted">Add the client on the Details tab before invoicing.</p>
         ) : (
-          <details className="group rounded-xl border border-line" open={rows.length === 0}>
+          <details className="group rounded-xl border border-line bg-bg" open={rows.length === 0}>
             <summary className="cursor-pointer list-none px-4 py-3 font-semibold">Raise an invoice</summary>
             <div className="border-t border-line p-4">
               <NewInvoice jobId={job.id} start={start} />

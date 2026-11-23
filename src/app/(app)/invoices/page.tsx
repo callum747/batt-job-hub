@@ -41,7 +41,7 @@ export default async function InvoicesPage() {
     <>
       <PageHeader title="Invoices" intro="Straight from the 00 - Batt Job Hub ledger: who owes what, what's overdue, and chasers. Raise new invoices from the job." />
       {!ok ? (
-        <div className="rounded-2xl border border-line p-5">
+        <div className="rounded-2xl border border-line bg-bg shadow-card p-5">
           <p className="mb-3">Connect Google to read the ledger.</p>
           <ConnectGoogleButton className={secondaryBtn}>Connect Google</ConnectGoogleButton>
         </div>
@@ -53,9 +53,9 @@ export default async function InvoicesPage() {
         <div className="space-y-8">
           {data?.test && <p className="rounded-xl bg-blue-soft px-4 py-3 text-[15px]">Test mode: this is the test copy of the ledger. Go live in Settings to see the real one.</p>}
           <dl className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-line p-4"><dt className="text-muted">Owed to Batt</dt><dd className="text-[26px] font-semibold tabular-nums">{gbp(owed)}</dd></div>
-            <div className="rounded-2xl border border-line p-4"><dt className="text-muted">Overdue</dt><dd className="text-[26px] font-semibold tabular-nums">{gbp(overdue.reduce((s, i) => s + (i.payable ?? 0), 0))}</dd><dd className="text-[14px] text-muted">{overdue.length} invoice{overdue.length === 1 ? "" : "s"}</dd></div>
-            <div className="rounded-2xl border border-line p-4"><dt className="text-muted">To chase today</dt><dd className="text-[26px] font-semibold tabular-nums">{chase.length}</dd></div>
+            <div className="rounded-2xl border border-line bg-bg shadow-card p-4"><dt className="text-muted">Owed to Batt</dt><dd className="text-[26px] font-semibold tabular-nums">{gbp(owed)}</dd></div>
+            <div className="rounded-2xl border border-line bg-bg shadow-card p-4"><dt className="text-muted">Overdue</dt><dd className="text-[26px] font-semibold tabular-nums">{gbp(overdue.reduce((s, i) => s + (i.payable ?? 0), 0))}</dd><dd className="text-[14px] text-muted">{overdue.length} invoice{overdue.length === 1 ? "" : "s"}</dd></div>
+            <div className="rounded-2xl border border-line bg-bg shadow-card p-4"><dt className="text-muted">To chase today</dt><dd className="text-[26px] font-semibold tabular-nums">{chase.length}</dd></div>
           </dl>
           <section>
             <h2 className="mb-3 text-[20px] font-semibold">Not paid yet</h2>
@@ -80,7 +80,7 @@ export default async function InvoicesPage() {
                     </p>
                   )}
                   {cis.paid.length > 0 && (
-                    <ul className="mt-3 divide-y divide-line rounded-xl border border-line text-[15px]">
+                    <ul className="mt-3 divide-y divide-line rounded-xl border border-line bg-bg text-[15px]">
                       {cis.paid.slice(-10).reverse().map((x) => (
                         <li key={x.row} className="flex flex-wrap gap-x-3 px-4 py-2">
                           <span className="font-medium">{x.date}</span><span>{x.name}</span><span className="text-muted">gross {x.gross}, CIS {x.deducted}, paid {x.net}</span><span className="ml-auto text-muted">tax month ending {x.taxMonthEnding}</span>
@@ -95,7 +95,7 @@ export default async function InvoicesPage() {
           {paid.length > 0 && (
             <section>
               <h2 className="mb-3 text-[20px] font-semibold">Recently paid</h2>
-              <ul className="divide-y divide-line rounded-xl border border-line">
+              <ul className="divide-y divide-line rounded-xl border border-line bg-bg">
                 {paid.map((i) => (
                   <li key={i.number} className="flex flex-wrap items-center gap-3 px-4 py-3 text-[15px]">
                     <span className="font-semibold">{i.number}</span>

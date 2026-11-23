@@ -93,5 +93,5 @@ function Row({ i, today }: { i: LedgerInvoice; today: string }) {
 }
 
 export function LedgerList({ items, today }: { items: LedgerInvoice[]; today: string }) {
-  return <ul className="divide-y divide-line rounded-xl border border-line">{items.map((i) => <Row key={i.number} i={i} today={today} />)}</ul>;
+  return <ul className="divide-y divide-line rounded-xl border border-line bg-bg">{items.map((i) => <Row key={i.number} i={i} today={today} />)}</ul>;
 }

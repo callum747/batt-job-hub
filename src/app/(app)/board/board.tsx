@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useOptimistic, useState, useTransition } from "react";
-import { LightDot, PeopleChips, jobHref } from "@/components/ui";
+import { LightDot, PeopleChips, StageBadge, jobHref } from "@/components/ui";
 import { BOARD_STAGES, STAGES, jobLabel, type Stage } from "@/lib/jobs-rules";
 import { gbp } from "@/lib/money";
 import type { JobWithMoney, PersonRow } from "@/lib/data";
@@ -58,11 +58,11 @@ export function Board({ jobs, people }: { jobs: JobWithMoney[]; people: PersonRo
                 setOver(null);
                 move(e.dataTransfer.getData("text/job"), stage);
               }}
-              className={`flex w-72 shrink-0 flex-col rounded-2xl p-3 transition ${over === stage ? "bg-blue-soft ring-2 ring-blue" : "bg-surface"}`}
+              className={`flex w-72 shrink-0 flex-col rounded-2xl border p-2.5 transition ${over === stage ? "border-blue bg-blue-soft" : "border-line bg-surface/70"}`}
             >
-              <h2 className="flex items-baseline justify-between px-1 pb-3">
-                <span className="text-[16px] font-semibold">{stage}</span>
-                <span className="text-[14px] text-muted">
+              <h2 className="flex items-center justify-between px-1.5 pb-2.5 pt-1">
+                <StageBadge stage={stage} />
+                <span className="text-[13px] tabular-nums text-muted">
                   {col.length}
                   {total > 0 && ` · ${gbp(total, { whole: true })}`}
                 </span>
@@ -76,19 +76,19 @@ export function Board({ jobs, people }: { jobs: JobWithMoney[]; people: PersonRo
                       e.dataTransfer.setData("text/job", j.id);
                       e.dataTransfer.effectAllowed = "move";
                     }}
-                    className="cursor-grab rounded-xl border border-line bg-bg p-3 shadow-sm active:cursor-grabbing"
+                    className="cursor-grab rounded-xl border border-line bg-bg p-3 shadow-card transition hover:border-line-strong hover:shadow-lift active:cursor-grabbing"
                   >
                     <Link href={jobHref(j)} draggable={false} className="block">
                       <p className="flex items-center justify-between gap-2">
-                        <span className="font-semibold">{jobLabel(j)}</span>
+                        <span className="text-[15px] font-semibold tabular-nums text-blue-deep">{jobLabel(j)}</span>
                         {j.money.income > 0 && (
-                          <span className="flex items-center gap-1.5 text-[14px] tabular-nums">
+                          <span className="flex items-center gap-1.5 text-[13.5px] font-medium tabular-nums">
                             {gbp(j.money.income, { whole: true })} <LightDot light={j.light} className="h-2.5 w-2.5" />
                           </span>
                         )}
                       </p>
-                      <p className="truncate text-[15px] font-medium">{j.client_name || "No client"}</p>
-                      <p className="truncate text-[14px] text-muted">{j.site || j.type}</p>
+                      <p className="mt-0.5 truncate text-[15px] font-semibold">{j.client_name || "No client"}</p>
+                      <p className="truncate text-[13.5px] text-muted">{j.site || j.type}</p>
                     </Link>
                     <div className="mt-2 flex items-center justify-between gap-2">
                       <PeopleChips ids={j.people} people={people} size="sm" />

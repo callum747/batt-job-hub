@@ -80,7 +80,7 @@ function Contractor({ name, rows, today }: { name: string; rows: CisReceived[]; 
 
 export function CisFromContractors({ rows, today }: { rows: CisReceived[]; today: string }) {
   const names = [...new Set(rows.map((r) => r.contractor))];
-  return <ul className="divide-y divide-line rounded-xl border border-line">{names.map((n) => <Contractor key={n} name={n} rows={rows.filter((r) => r.contractor === n)} today={today} />)}</ul>;
+  return <ul className="divide-y divide-line rounded-xl border border-line bg-bg">{names.map((n) => <Contractor key={n} name={n} rows={rows.filter((r) => r.contractor === n)} today={today} />)}</ul>;
 }
 
 export function PaySubcontractor({ names, today }: { names: string[]; today: string }) {

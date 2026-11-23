@@ -153,7 +153,7 @@ export function NewInvoice({ jobId, start }: { jobId: string; start: InvoiceStar
         </div>
       </div>
 
-      <dl className="max-w-sm divide-y divide-line rounded-xl border border-line text-[15px]">
+      <dl className="max-w-sm divide-y divide-line rounded-xl border border-line bg-bg text-[15px]">
         <div className="flex justify-between px-4 py-2"><dt>Subtotal</dt><dd className="tabular-nums">{gbp(t.net)}</dd></div>
         <div className="flex justify-between px-4 py-2"><dt>{cis ? "VAT (reverse charge)" : "VAT @ 20%"}</dt><dd className="tabular-nums">{gbp(t.vat)}</dd></div>
         <div className="flex justify-between px-4 py-2 font-semibold"><dt>Total due</dt><dd className="tabular-nums">{gbp(t.gross)}</dd></div>
@@ -271,7 +271,7 @@ function InvoiceRow({ inv, today }: { inv: InvoiceListRow; today: string }) {
 
 export function InvoiceList({ items, today }: { items: InvoiceListRow[]; today: string }) {
   return (
-    <ul className="divide-y divide-line rounded-xl border border-line">
+    <ul className="divide-y divide-line rounded-xl border border-line bg-bg">
       {items.map((i) => <InvoiceRow key={i.id} inv={i} today={today} />)}
     </ul>
   );

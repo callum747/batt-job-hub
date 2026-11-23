@@ -28,15 +28,13 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b0d10" },
-  ],
+  themeColor: "#ffffff",
+  colorScheme: "light",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-GB" className={`${inter.variable} ${saira.variable}`}>
+    <html lang="en-GB" data-theme="light" className={`${inter.variable} ${saira.variable}`}>
       <body className="min-h-dvh antialiased">{children}</body>
     </html>
   );

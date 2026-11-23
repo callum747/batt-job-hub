@@ -99,7 +99,7 @@ export function Chat({ chatId: startId, initial, prefill }: { chatId: string | n
   const waiting = busy && items.at(-1)?.role === "user";
 
   return (
-    <section className="flex min-h-[60dvh] flex-col rounded-2xl border border-line">
+    <section className="flex min-h-[60dvh] flex-col rounded-2xl border border-line bg-bg shadow-card">
       <div className="flex-1 space-y-4 p-4 md:p-6" aria-live="polite">
         {items.length === 0 && (
           <div className="space-y-2">

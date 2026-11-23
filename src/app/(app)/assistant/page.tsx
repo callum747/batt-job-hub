@@ -21,7 +21,7 @@ export default async function AssistantPage({ searchParams }: { searchParams: Pr
         title="Ask"
         intro="Tell it what you need: price a job, make the quote, find a job, check the diary."
         action={
-          <Link href="/assistant" className="inline-flex h-12 items-center gap-2 rounded-xl border border-line px-5 font-medium hover:bg-surface">
+          <Link href="/assistant" className="inline-flex h-12 items-center gap-2 rounded-xl border border-line bg-bg px-5 font-medium hover:bg-surface">
             <MessageSquarePlus className="h-5 w-5" aria-hidden="true" /> New chat
           </Link>
         }

@@ -16,7 +16,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
       {clients.length > 0 && (
         <section className="mb-6">
           <h2 className="mb-2 text-[18px] font-semibold">Clients</h2>
-          <ul className="divide-y divide-line rounded-2xl border border-line">
+          <ul className="divide-y divide-line rounded-2xl border border-line bg-bg shadow-card">
             {clients.map((c) => (
               <li key={c.id}>
                 <Link href={`/clients/${c.id}`} className="block px-5 py-3 hover:bg-surface">
@@ -30,7 +30,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
       {jobs.length > 0 && (
         <section>
           <h2 className="mb-2 text-[18px] font-semibold">Jobs</h2>
-          <ul className="divide-y divide-line rounded-2xl border border-line">
+          <ul className="divide-y divide-line rounded-2xl border border-line bg-bg shadow-card">
             {jobs.map((j) => (
               <li key={j.id}>
                 <Link href={jobHref(j)} className="flex items-center gap-3 px-5 py-3 hover:bg-surface">

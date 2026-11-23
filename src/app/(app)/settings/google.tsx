@@ -26,7 +26,7 @@ export function GoogleSettings({ connected, mode, preview }: { connected: boolea
         )}
       </div>
 
-      <div className="rounded-xl border border-line p-4">
+      <div className="rounded-xl border border-line bg-bg p-4">
         <p className="font-semibold">{mode === "test" ? "Test mode is on" : "Live: using the real folders and calendar"}</p>
         <p className="mt-1 text-[15px] text-muted">
           {mode === "test"
@@ -55,7 +55,7 @@ export function GoogleSettings({ connected, mode, preview }: { connected: boolea
           {pending ? "Checking…" : "Check the connection"}
         </button>
         {checks && (
-          <ul className="mt-3 divide-y divide-line rounded-xl border border-line">
+          <ul className="mt-3 divide-y divide-line rounded-xl border border-line bg-bg">
             {checks.map((c) => (
               <li key={c.label} className="flex items-start gap-3 px-4 py-3 text-[15px]">
                 {c.ok ? <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-good" aria-label="Working" /> : <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-bad" aria-label="Problem" />}

@@ -44,7 +44,7 @@ export function QuoteForm({ jobId, start: initial, note }: { jobId: string; star
         <p className="mb-2 text-[15px] font-medium">Room-by-room schedule</p>
         <div className="space-y-3">
           {q.schedule.map((g, gi) => (
-            <div key={gi} className="rounded-xl border border-line p-3">
+            <div key={gi} className="rounded-xl border border-line bg-bg p-3">
               <div className="flex gap-2">
                 <input value={g.area} onChange={(e) => setGroup(gi, { area: e.target.value })} placeholder="Room or area" aria-label="Room or area" className={`${small} font-semibold uppercase`} />
                 <button type="button" onClick={() => set({ schedule: q.schedule.filter((_, i) => i !== gi) })} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted hover:text-bad" aria-label={`Remove ${g.area}`}>

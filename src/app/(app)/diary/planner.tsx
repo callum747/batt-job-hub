@@ -77,21 +77,21 @@ export function Planner({ days, today, visits, people, jobs, prev, next, thisWee
   return (
     <>
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <Link href={`/diary?week=${prev}`} className="flex h-11 w-11 items-center justify-center rounded-xl border border-line hover:bg-surface" aria-label="Previous week">
+        <Link href={`/diary?week=${prev}`} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-line-strong bg-bg shadow-card hover:bg-surface" aria-label="Previous week">
           <ChevronLeft className="h-5 w-5" aria-hidden="true" />
         </Link>
-        <Link href={`/diary?week=${next}`} className="flex h-11 w-11 items-center justify-center rounded-xl border border-line hover:bg-surface" aria-label="Next week">
+        <Link href={`/diary?week=${next}`} className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-line-strong bg-bg shadow-card hover:bg-surface" aria-label="Next week">
           <ChevronRight className="h-5 w-5" aria-hidden="true" />
         </Link>
-        <p className="px-2 text-[17px] font-semibold">
+        <p className="px-2 text-[16px] font-semibold tabular-nums">
           {ukDate(days[0])} to {ukDate(days[6])}
         </p>
         {days[0] !== thisWeek && (
-          <Link href="/diary" className="flex h-11 items-center rounded-xl border border-line px-4 text-[15px] font-medium hover:bg-surface">
+          <Link href="/diary" className="flex h-10 items-center rounded-[10px] border border-line-strong bg-bg px-4 text-[14px] font-medium shadow-card hover:bg-surface">
             This week
           </Link>
         )}
-        <button type="button" onClick={() => setDraft(newVisit(days.includes(today) ? today : days[0]))} className="ml-auto inline-flex h-11 items-center gap-2 rounded-xl bg-blue px-4 text-[15px] font-semibold text-blue-ink hover:brightness-95">
+        <button type="button" onClick={() => setDraft(newVisit(days.includes(today) ? today : days[0]))} className="ml-auto inline-flex h-11 items-center gap-2 rounded-[10px] bg-blue px-4.5 text-[15px] font-semibold text-blue-ink shadow-card hover:brightness-95">
           <Plus className="h-5 w-5" aria-hidden="true" /> Book a visit
         </button>
       </div>
@@ -102,18 +102,18 @@ export function Planner({ days, today, visits, people, jobs, prev, next, thisWee
       )}
 
       {/* Laptop: a row per person, a column per day */}
-      <div className="hidden overflow-x-auto rounded-2xl border border-line md:block">
+      <div className="hidden overflow-x-auto rounded-2xl border border-line bg-bg shadow-card md:block">
         <div className="grid min-w-[60rem] grid-cols-[7rem_repeat(7,minmax(0,1fr))]">
-          <div className="border-b border-line bg-surface" />
+          <div className="border-b border-line" />
           {days.map((d) => (
-            <div key={d} className={`border-b border-l border-line px-3 py-2 text-[14px] ${d === today ? "bg-blue-soft font-semibold" : "bg-surface text-muted"}`}>
+            <div key={d} className={`label border-b border-l border-line px-3 py-2.5 ${d === today ? "bg-blue-soft !text-text shadow-[inset_0_-2px_0_var(--blue)]" : ""}`}>
               {dayName(d)} {dayNum(d)}
             </div>
           ))}
           {rows.map((row, ri) => (
             <div key={row.key} className="contents">
               <div className={`flex items-start gap-2 px-3 py-3 text-[15px] font-semibold ${ri ? "border-t border-line" : ""}`}>
-                <span className="mt-1.5 inline-block h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: row.colour }} />
+                <span className="mt-[7px] inline-block h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: row.colour }} />
                 <span className={row.key === NOBODY ? "font-medium text-muted" : ""}>{row.name}</span>
               </div>
               {days.map((d) => {
@@ -128,7 +128,7 @@ export function Planner({ days, today, visits, people, jobs, prev, next, thisWee
                     }}
                     onDragLeave={() => setOver((o) => (o === cell ? null : o))}
                     onDrop={(e) => drop(e, row.key, d)}
-                    className={`group relative min-h-24 space-y-1.5 border-l border-line p-1.5 ${ri ? "border-t" : ""} ${over === cell ? "bg-blue-soft" : d < today ? "bg-surface/50" : ""}`}
+                    className={`group relative min-h-24 space-y-1.5 border-l border-line p-1.5 ${ri ? "border-t" : ""} ${over === cell ? "bg-blue-soft" : d === today ? "bg-blue-soft/35" : d < today ? "bg-surface/60" : ""}`}
                   >
                     {inCell(row.key, d).map((v) => (
                       <div
@@ -142,8 +142,8 @@ export function Planner({ days, today, visits, people, jobs, prev, next, thisWee
                         }}
                         onClick={() => setDraft({ ...v })}
                         onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setDraft({ ...v })}
-                        className={`cursor-grab rounded-lg border border-line bg-bg px-2 py-1.5 text-[13px] leading-snug shadow-sm hover:border-blue ${v.confirmed ? "" : "border-dashed"}`}
-                        style={{ borderLeftWidth: 4, borderLeftColor: row.colour }}
+                        className={`cursor-grab rounded-lg border border-line bg-bg px-2 py-1.5 text-[12.5px] leading-snug shadow-card transition hover:border-line-strong hover:shadow-lift ${v.confirmed ? "" : "border-dashed"}`}
+                        style={{ borderLeftWidth: 3, borderLeftColor: row.colour }}
                       >
                         <p className="truncate font-semibold">{titleOf(v)}</p>
                         <p className="truncate text-muted">{[timeOf(v), v.job_id ? v.work : ""].filter(Boolean).join(" · ")}</p>
@@ -176,7 +176,7 @@ export function Planner({ days, today, visits, people, jobs, prev, next, thisWee
           const list = items.filter((v) => v.date === d);
           return (
             <section key={d}>
-              <h2 className={`mb-2 flex items-center justify-between text-[17px] font-semibold ${d < today ? "text-muted" : ""}`}>
+              <h2 className={`mb-2 flex items-center justify-between text-[15px] font-semibold ${d < today ? "text-muted" : ""}`}>
                 <span>
                   {d === today ? "Today" : ukDate(d, { weekday: true })}
                 </span>
@@ -185,12 +185,12 @@ export function Planner({ days, today, visits, people, jobs, prev, next, thisWee
                 </button>
               </h2>
               {list.length === 0 ? (
-                <p className="rounded-xl bg-surface px-4 py-3 text-[15px] text-muted">Nothing booked</p>
+                <p className="rounded-xl border border-dashed border-line-strong px-4 py-3 text-[14px] text-muted">Nothing booked</p>
               ) : (
                 <ul className="space-y-2">
                   {list.map((v) => (
                     <li key={v.id}>
-                      <button type="button" onClick={() => setDraft({ ...v })} className={`block w-full rounded-xl border border-line p-4 text-left active:bg-surface ${v.confirmed ? "" : "border-dashed"}`}>
+                      <button type="button" onClick={() => setDraft({ ...v })} className={`block w-full rounded-xl border border-line bg-bg p-4 text-left active:bg-surface ${v.confirmed ? "" : "border-dashed"}`}>
                         <p className="font-semibold">{titleOf(v)}</p>
                         <p className="truncate text-[15px] text-muted">{[timeOf(v), v.job_id ? v.work : "", v.site || v.job_site].filter(Boolean).join(" · ")}</p>
                         <div className="mt-2">

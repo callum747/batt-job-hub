@@ -107,7 +107,7 @@ export function PricingForm({
         {rows.map((r, i) => {
           const p = byLabel.get(r.pick.trim());
           return (
-            <div key={r.id} className="rounded-xl border border-line p-3">
+            <div key={r.id} className="rounded-xl border border-line bg-bg p-3">
               <div className="grid gap-2 sm:grid-cols-[9rem_1fr_5rem_2.75rem]">
                 <label>
                   <span className="sr-only">Area for line {i + 1}</span>

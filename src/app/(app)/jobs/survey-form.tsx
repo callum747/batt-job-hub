@@ -42,7 +42,7 @@ export function SurveyForm({ jobId, start, dayRate, perMile }: { jobId: string; 
         <p className="mb-2 text-[15px] font-medium">Survey schedule</p>
         <div className="space-y-3">
           {f.sites.map((s, si) => (
-            <div key={si} className="rounded-xl border border-line p-3">
+            <div key={si} className="rounded-xl border border-line bg-bg p-3">
               <div className="grid gap-2 sm:grid-cols-[1fr_1fr_8rem_2.75rem]">
                 <input value={s.name} onChange={(e) => setSite(si, { name: e.target.value })} placeholder="Site name" aria-label="Site name" className={`${small} font-semibold`} />
                 <input value={s.address} onChange={(e) => setSite(si, { address: e.target.value })} placeholder="Address" aria-label="Site address" className={small} />

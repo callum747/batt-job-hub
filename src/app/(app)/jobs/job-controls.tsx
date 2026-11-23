@@ -45,7 +45,7 @@ export function StageControl({ jobId, stage }: { jobId: string; stage: Stage }) 
               }
             });
           }}
-          className="h-12 w-full rounded-xl border border-line bg-bg px-4 text-[16px] font-medium outline-none focus:border-blue sm:w-56"
+          className="h-11 w-full cursor-pointer rounded-[10px] border border-line-strong bg-bg px-3.5 text-[15px] font-semibold shadow-card outline-none transition hover:border-muted/60 focus:border-blue focus:ring-3 focus:ring-blue/20 sm:w-52"
         >
           {STAGES.map((s) => (
             <option key={s} value={s}>
@@ -80,12 +80,12 @@ export function PeopleControl({ jobId, selected, people }: { jobId: string; sele
                 router.refresh();
               });
             }}
-            className={`inline-flex h-11 items-center gap-2 rounded-full border px-4 text-[15px] font-medium transition ${
-              on ? "border-transparent text-white" : "border-line text-muted hover:text-text"
+            className={`inline-flex h-9 items-center gap-2 rounded-full border px-3.5 text-[14px] transition ${
+              on ? "border-text bg-bg font-semibold text-text" : "border-line bg-bg font-medium text-muted hover:border-line-strong hover:text-text"
             }`}
-            style={on ? { backgroundColor: p.colour } : undefined}
           >
-            {on && <Check className="h-4 w-4" aria-hidden="true" />}
+            <span className={`h-2 w-2 rounded-full ${on ? "" : "opacity-40"}`} style={{ backgroundColor: p.colour }} aria-hidden="true" />
+            {on && <Check className="-ml-0.5 h-3.5 w-3.5" strokeWidth={3} aria-hidden="true" />}
             {p.short_name}
           </button>
         );
@@ -132,7 +132,7 @@ export function Variations({ jobId, items }: { jobId: string; items: VariationRo
     <div className="space-y-4" aria-busy={pending}>
       {items.length === 0 && !adding && <p className="text-muted">No extras on this job.</p>}
       {items.length > 0 && (
-        <ul className="divide-y divide-line rounded-xl border border-line">
+        <ul className="divide-y divide-line rounded-xl border border-line bg-bg">
           {items.map((v) => (
             <li key={v.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
               <div className="min-w-0 flex-1">
@@ -217,7 +217,7 @@ export function NotesText({ notes }: { notes: string }) {
         .filter((l) => l.trim())
         .reverse()
         .map((line, i) => (
-          <li key={i} className="rounded-xl bg-surface px-4 py-3 text-[15px] leading-relaxed">
+          <li key={i} className="border-l-2 border-line-strong py-0.5 pl-3.5 text-[15px] leading-relaxed">
             {line}
           </li>
         ))}

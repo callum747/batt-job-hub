@@ -1,92 +1,106 @@
 @import "tailwindcss" source("../");
 
-/* Batt brand tokens. Colours from the brand guide; status colours only for green/amber/red. */
+/*
+ * Batt brand tokens (brand guide: Batt Blue, Batt Black, Steel, Light Grey, White).
+ * The app is always light: a Light Grey page with white cards, black text, steel for support and
+ * Batt Blue as the single accent. Green, amber and red are only ever used for money and status lights.
+ */
 :root {
-  --bg: #ffffff;
-  --surface: #f7f8fa;
-  --surface-2: #eef1f4;
-  --line: #e3e7ec;
-  --text: #0b0d10;
-  --muted: #5a6470;
-  --blue: #26a8e0;
+  --page: #f7f8fa; /* Light Grey: the page */
+  --bg: #ffffff; /* White: cards, bars, inputs */
+  --surface: #f1f3f6; /* a quiet fill on white or on the page */
+  --surface-2: #e7eaee;
+  --line: #e2e6eb;
+  --line-strong: #cdd3da;
+  --text: #0b0d10; /* Batt Black */
+  --muted: #5a6470; /* Steel */
+  --blue: #26a8e0; /* Batt Blue */
   --blue-ink: #0b0d10; /* text on Batt Blue is always black */
   --blue-soft: #e6f5fc;
+  --blue-deep: #0d6f9c; /* blue dark enough to read as text on white */
   --green: #1e9e5a;
   --amber: #d98a00;
   --red: #d0342c;
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0b0d10;
-    --surface: #14181d;
-    --surface-2: #1c2128;
-    --line: #262c34;
-    --text: #f7f8fa;
-    --muted: #9aa4b0;
-    --blue-soft: #0f2a38;
-    color-scheme: dark;
-  }
-}
-
-:root[data-theme="dark"] {
-  --bg: #0b0d10;
-  --surface: #14181d;
-  --surface-2: #1c2128;
-  --line: #262c34;
-  --text: #f7f8fa;
-  --muted: #9aa4b0;
-  --blue-soft: #0f2a38;
-  color-scheme: dark;
-}
-
 @theme inline {
+  --color-page: var(--page);
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
   --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
   --color-text: var(--text);
   --color-muted: var(--muted);
   --color-blue: var(--blue);
   --color-blue-ink: var(--blue-ink);
   --color-blue-soft: var(--blue-soft);
+  --color-blue-deep: var(--blue-deep);
   --color-good: var(--green);
   --color-warn: var(--amber);
   --color-bad: var(--red);
   --font-sans: var(--font-inter);
   --font-display: var(--font-saira);
+  --shadow-card: 0 1px 2px rgb(11 13 16 / 0.04), 0 1px 1px rgb(11 13 16 / 0.02);
+  --shadow-lift: 0 6px 20px rgb(11 13 16 / 0.08), 0 1px 2px rgb(11 13 16 / 0.05);
 }
 
 html {
   -webkit-text-size-adjust: 100%;
+  background: var(--page);
 }
 
 body {
-  background: var(--bg);
+  background: var(--page);
   color: var(--text);
   font-family: var(--font-inter), system-ui, sans-serif;
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.5;
+  font-feature-settings: "cv11", "ss01";
 }
 
-/* Logo swaps for dark mode */
+/* Headlines: Saira Expanded Bold capitals, as the brand guide sets them. */
+.headline {
+  font-family: var(--font-saira), var(--font-inter), sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+}
+
+/* Small tracked capitals for labels: Inter SemiBold, steel. */
+.label {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* The brand's heading marker: a short blue vertical bar. */
+.bar-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.bar-title::before {
+  content: "";
+  width: 3px;
+  height: 1.05em;
+  border-radius: 2px;
+  background: var(--blue);
+  flex: none;
+}
+
+:where(a, button, input, select, textarea, summary, [role="tab"]):focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+/* One logo: the app is always light. */
 .logo-dark {
   display: none;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .logo-light {
-    display: none;
-  }
-  :root:not([data-theme="light"]) .logo-dark {
-    display: block;
-  }
-}
-:root[data-theme="dark"] .logo-light {
-  display: none;
-}
-:root[data-theme="dark"] .logo-dark {
-  display: block;
 }
 
 /* The assistant's replies */

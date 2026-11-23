@@ -13,7 +13,7 @@ export function PersonForm({ person }: { person: PersonRow }) {
   const [msg, setMsg] = useState<string | null>(null);
   return (
     <form
-      className="rounded-xl border border-line p-4"
+      className="rounded-xl border border-line bg-bg p-4"
       onSubmit={(e) => {
         e.preventDefault();
         const f = new FormData(e.currentTarget);

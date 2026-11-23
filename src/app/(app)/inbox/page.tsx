@@ -33,7 +33,7 @@ export default async function InboxPage() {
     <>
       <PageHeader title="Inbox" intro="Emails from the last 30 days in your inbox that aren't on a job yet, and supplier invoices that need a person." />
       {!ok ? (
-        <div className="rounded-2xl border border-line p-5">
+        <div className="rounded-2xl border border-line bg-bg shadow-card p-5">
           <p className="mb-3">Connect Google and tick the Gmail boxes to see your emails here. The app reads your inbox; it never sends or deletes.</p>
           <ConnectGoogleButton className={secondaryBtn}>Connect Google</ConnectGoogleButton>
         </div>
@@ -61,7 +61,7 @@ export default async function InboxPage() {
         {filed.length > 0 && (
           <div className="mt-6">
             <h3 className="mb-2 text-[16px] font-semibold">Recently put on jobs</h3>
-            <ul className="divide-y divide-line rounded-xl border border-line">
+            <ul className="divide-y divide-line rounded-xl border border-line bg-bg">
               {filed.map((f) => (
                 <li key={f.id} className="flex flex-wrap items-center gap-3 px-4 py-3 text-[15px]">
                   <span className="min-w-0 flex-1">

@@ -35,7 +35,7 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
           ["Work won", gbp(wonValue, { whole: true })],
           ["Profit so far", gbp(profit, { whole: true })],
         ].map(([k, v]) => (
-          <div key={k} className="rounded-2xl border border-line p-4">
+          <div key={k} className="rounded-2xl border border-line bg-bg shadow-card p-4">
             <dt className="text-[14px] text-muted">{k}</dt>
             <dd className="mt-1 text-[20px] font-semibold tabular-nums md:text-[24px]">{v}</dd>
           </div>

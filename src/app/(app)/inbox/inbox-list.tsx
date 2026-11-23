@@ -101,7 +101,7 @@ function Item({ item, ai, onGone }: { item: InboxItem; ai: boolean; onGone: (msg
   }
 
   return (
-    <li className="rounded-2xl border border-line p-4 md:p-5">
+    <li className="rounded-2xl border border-line bg-bg shadow-card p-4 md:p-5">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <a href={item.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold underline-offset-4 hover:underline">
           {item.subject} <ExternalLink className="h-4 w-4 text-muted" aria-hidden="true" />
