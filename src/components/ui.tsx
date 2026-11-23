@@ -56,11 +56,25 @@ export function PersonChip({ person, size = "md" }: { person: P; size?: "sm" | "
   );
 }
 
+/** People on a job. In a tight row (a table) they're names with a colour dot; elsewhere, named tags. */
 export function PeopleChips({ ids, people, size, nowrap }: { ids: string[]; people: P[]; size?: "sm" | "md"; nowrap?: boolean }) {
   const list = people.filter((p) => ids.includes(p.id));
   if (list.length === 0) return <span className="whitespace-nowrap text-[13.5px] text-muted">Nobody yet</span>;
+  if (nowrap) {
+    // A tight row (a table): names with their colour dot, no boxes.
+    return (
+      <span className="flex items-center gap-3 text-[13.5px] font-medium">
+        {list.map((p) => (
+          <span key={p.id} className="inline-flex items-center gap-1.5 whitespace-nowrap">
+            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: p.colour }} aria-hidden="true" />
+            {p.short_name}
+          </span>
+        ))}
+      </span>
+    );
+  }
   return (
-    <span className={`flex gap-1.5 ${nowrap ? "" : "flex-wrap"}`}>
+    <span className="flex flex-wrap gap-1.5">
       {list.map((p) => (
         <PersonChip key={p.id} person={p} size={size} />
       ))}
@@ -70,7 +84,7 @@ export function PeopleChips({ ids, people, size, nowrap }: { ids: string[]; peop
 
 export function Card({ title, action, children, className = "" }: { title?: string; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
-    <section className={`rounded-2xl border border-line bg-bg shadow-card ${className}`}>
+    <section className={`min-w-0 rounded-2xl border border-line bg-bg shadow-card ${className}`}>
       {title && (
         <div className="flex min-h-14 items-center justify-between gap-3 border-b border-line px-5 py-3">
           <h2 className="bar-title text-[16px] font-semibold">{title}</h2>
@@ -86,15 +100,15 @@ export function Card({ title, action, children, className = "" }: { title?: stri
 export function Stat({ label, value, sub, light, href }: { label: string; value: string; sub?: React.ReactNode; light?: Light; href?: string }) {
   const body = (
     <>
-      <p className="label flex items-center gap-2">
+      <p className="label flex items-center gap-2 max-md:text-[10px] max-md:tracking-[0.05em]">
         {label}
         {light && <LightDot light={light} className="h-2 w-2" />}
       </p>
-      <p className="headline mt-2 text-[20px] tabular-nums md:text-[26px]">{value}</p>
-      {sub && <p className="mt-1 text-[13px] text-muted">{sub}</p>}
+      <p className="headline mt-1.5 text-[16px] tabular-nums min-[400px]:text-[17px] md:mt-2 md:text-[26px]">{value}</p>
+      {sub && <p className="mt-0.5 text-[12.5px] text-muted md:mt-1 md:text-[13px]">{sub}</p>}
     </>
   );
-  const cls = "block rounded-2xl border border-line bg-bg p-4 shadow-card md:p-5";
+  const cls = "block min-w-0 rounded-2xl border border-line bg-bg p-3 shadow-card md:p-5";
   return href ? (
     <Link href={href} className={`${cls} transition hover:border-line-strong hover:shadow-lift`}>{body}</Link>
   ) : (

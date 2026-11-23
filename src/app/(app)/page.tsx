@@ -35,10 +35,10 @@ export default async function TodayPage() {
       <div className="grid grid-cols-3 gap-2 md:gap-4">
         <Stat label="Live quotes" value={gbp(sum(quotes), { whole: true })} sub={`${quotes.length} job${quotes.length === 1 ? "" : "s"}`} href="/jobs?show=quotes" />
         <Stat label="Work on" value={gbp(sum(on), { whole: true })} sub={`${on.length} job${on.length === 1 ? "" : "s"}`} href="/jobs?show=on" />
-        <Stat label="Invoiced, not paid" value={gbp(sum(invoiced), { whole: true })} sub={`${invoiced.length} job${invoiced.length === 1 ? "" : "s"}`} href="/jobs?show=invoiced" />
+        <Stat label="Unpaid invoices" value={gbp(sum(invoiced), { whole: true })} sub={`${invoiced.length} job${invoiced.length === 1 ? "" : "s"}`} href="/jobs?show=invoiced" />
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-4 grid grid-cols-1 items-start gap-4 md:mt-6 md:gap-6 lg:grid-cols-2">
         <Card title="Today on site">
           {todays.length === 0 ? (
             <EmptyState icon={CalendarDays} title="No visits today" text="Visits booked in the diary show here, with who is going where." />
@@ -46,7 +46,7 @@ export default async function TodayPage() {
             <VisitList visits={todays} people={people} />
           )}
         </Card>
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-4 md:space-y-6">
           {toChase.length > 0 && (
             <Card title="Quotes to chase">
               <p className="mb-2 text-[14px] text-muted">Sent more than 7 days ago with no answer.</p>

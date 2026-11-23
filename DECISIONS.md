@@ -108,6 +108,12 @@ Things that weren't spelled out in the brief or the playbook. Say if any should 
 
 82. **A survey's quoted miles cover the whole trip,** so they're counted once (as soon as a survey day has been done), not once per day: #548's 623 miles across four days is 623 miles, as the proposal charged.
 
+## Design
+83. **The app is always light** (your request): dark mode on the device is ignored.
+84. **Brand guide followed:** only Batt Blue, Black, Steel, Light Grey and White for the interface (plus green, amber and red for money lights and status); Saira Expanded Bold capitals for headlines and figures; Inter elsewhere; the blue bar as the heading marker; text on blue is black.
+85. **People's default colours moved to brand colours** (Cam black, Callum Batt Blue, Jed steel). A colour picked by hand in Settings is kept.
+86. **Phone tiles use shorter labels:** "Spent", "Profit", "Unpaid invoices".
+
 ## Still needed from Callum
 - **Jed's email address** (the one his Google Calendar uses). Without it he can't be invited to visits. Add it in Settings, under People.
 - **For Jed's monthly CIS statement:** his full legal name, email and address (on the ledger's Subcontractors tab), and Batt's CIS employer's reference (GPG have it).

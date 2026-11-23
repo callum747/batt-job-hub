@@ -12,7 +12,6 @@ vi.mock("server-only", () => ({}));
 const url = process.env.TEST_DATABASE_URL;
 const d = url ? describe : describe.skip;
 const ME = { email: "office@battelectrical.com", name: "Office" };
-const LEDGER = "1IFRTQz-rsTclYKGRVZxC0CjVO1769ByCXLc9msEaJBY";
 const ROOT = "1M7EMynAWErpUv-FL7Zp1JIzJGgY48D7B";
 
 d("CIS", () => {

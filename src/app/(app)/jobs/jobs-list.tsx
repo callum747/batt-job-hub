@@ -82,7 +82,7 @@ export function JobsList({ jobs, people, show }: { jobs: JobWithMoney[]; people:
                   <th className="w-24 px-4 py-3 label">Job</th>
                   <th className="px-4 py-3 label">Client and site</th>
                   <th className="w-36 px-4 py-3 label">Stage</th>
-                  <th className="w-44 px-4 py-3 label">Who</th>
+                  <th className="w-48 px-4 py-3 label">Who</th>
                   <th className="w-28 px-4 py-3 text-right label">Quote</th>
                   <th className="w-24 px-4 py-3 text-right label">Spent</th>
                   <th className="w-32 px-4 py-3 text-right label">Profit</th>
@@ -101,7 +101,7 @@ export function JobsList({ jobs, people, show }: { jobs: JobWithMoney[]; people:
                       <p className="truncate text-[13.5px] text-muted">{[j.site, j.postcode].filter(Boolean).join(", ") || j.type}</p>
                     </td>
                     <td className="px-4 py-3.5 align-top"><StageBadge stage={j.stage} /></td>
-                    <td className="whitespace-nowrap px-4 py-3.5 align-top"><PeopleChips ids={j.people} people={people} size="sm" nowrap /></td>
+                    <td className="overflow-hidden whitespace-nowrap px-4 py-3 align-top"><PeopleChips ids={j.people} people={people} size="sm" nowrap /></td>
                     <td className="px-4 py-3.5 text-right align-top text-[15px] tabular-nums">{j.quote_value || j.money.income ? <span className={j.stage === "Lost" ? "text-muted line-through" : ""}>{gbp(j.money.income || j.quote_value, { whole: true })}</span> : "–"}</td>
                     <td className="px-4 py-3.5 text-right align-top text-[15px] tabular-nums text-muted">{j.money.spent ? gbp(j.money.spent, { whole: true }) : "–"}</td>
                     <td className="px-4 py-3.5 text-right align-top text-[15px] tabular-nums">

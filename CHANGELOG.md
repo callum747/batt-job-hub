@@ -2,6 +2,16 @@
 
 Plain-English notes on what's new in the Batt Job Hub, newest first.
 
+## 23/11/2026: New design, always in white
+- **Always the white theme,** even on a phone or computer set to dark mode.
+- **Built on the brand guide:** a light grey page with white cards, Batt Black text, steel for supporting text, and Batt Blue as the one accent. Headlines and big figures are in Saira Expanded capitals, everything else in Inter, and section headings carry the blue bar from your documents.
+- **Stage badges mean something at a glance:** an outline for an enquiry, blue for quotes, solid black once work is on, steel when it's finished and waiting for money, green when paid.
+- **People are quiet tags with a colour dot** in brand colours (Cam black, Callum blue, Jed steel) instead of purple, teal and orange blocks. Change them in Settings if you like.
+- **The menu is grouped** into Work, Office and Set-up, with the blue bar marking where you are. On the phone the bottom bar does the same.
+- **Today, Jobs, each job, the Board and the Diary were laid out again:** clearer figures, tighter tables, a proper header card on each job, and today's column picked out in the diary.
+- **The sign-in page carries the property city artwork** with the slogan, made with the brand script.
+- Tidied for phones: figures fit their tiles and nothing runs off the side.
+
 ## 23/11/2026: # for job numbers, and Drive changes flow into the app
 - **Every job number is written with a #** from now on: Drive folders ("#560 – Client – Site"), quote and pricing file names, the quote cover and acceptance ("#560"), the invoice's quote reference and the ledger's Quote Ref, and email subjects ("Quotation #560 – …"). Older "Q-560" and plain "560" folder names are still understood.
 - **Change it in Drive, and the app follows** (every 10 minutes while the app is open, or with Check Drive): a new job folder becomes a job; a job folder moved between Live, Active, Completed and Lost changes the job's stage; a job folder renamed with a different client or site updates the job. Just adding the # (Q-552 → #552) changes nothing in the app.

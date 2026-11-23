@@ -95,8 +95,8 @@ export default async function JobPage({ params, searchParams }: { params: Promis
 
       <div className="mt-4 grid grid-cols-3 gap-2 md:gap-4">
         <Stat label="Quote" value={m.income ? gbp(m.income, { whole: true }) : "–"} />
-        <Stat label="Spent so far" value={gbp(m.spent, { whole: true })} />
-        <Stat label="Profit so far" light={job.light} value={m.income ? gbp(m.profit, { whole: true }) : "–"} sub={m.margin !== null ? `${m.margin}% margin` : undefined} />
+        <Stat label="Spent" value={gbp(m.spent, { whole: true })} />
+        <Stat label="Profit" light={job.light} value={m.income ? gbp(m.profit, { whole: true }) : "–"} sub={m.margin !== null ? `${m.margin}% margin` : undefined} />
       </div>
 
       <nav className="-mx-4 mt-6 overflow-x-auto border-b border-line px-4 md:mx-0 md:px-0" aria-label="Job sections">
@@ -233,8 +233,8 @@ export default async function JobPage({ params, searchParams }: { params: Promis
 function Info({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-muted">{label}</dt>
-      <dd className="mt-0.5 font-medium">{value || "–"}</dd>
+      <dt className="label">{label}</dt>
+      <dd className="mt-1 text-[15px] font-medium">{value || "–"}</dd>
     </div>
   );
 }
