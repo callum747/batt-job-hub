@@ -165,6 +165,26 @@ d("the assistant", () => {
     expect((run.slim(saved)[2].content as { type: string }[]).map((b) => b.type)).toEqual(["text"]);
   });
 
+  it("drops a saved chat's old working-out when the instructions have changed since, and keeps the date out of the instructions", async () => {
+    const id = await run.createChat(me.email, "Earlier");
+    const old = [
+      { role: "user", content: "Earlier" },
+      { role: "assistant", content: [{ type: "thinking", thinking: "x", signature: "sig" }, { type: "text", text: "Hello." }] },
+    ];
+    await sql`update assistant_chats set messages = ${sql.json(old as never)}, fingerprint = 'an-older-version' where id = ${id}`;
+    script.push([{ type: "text", text: "Still here." }]);
+    for await (const ev of run.runTurn(id, me, "And now?")) void ev;
+    const sdk = (await import("@anthropic-ai/sdk")).default as unknown as { requests: { system: { text: string }[]; messages: { role: string; content: { type: string; text?: string }[] }[] }[] };
+    const sent = sdk.requests.at(-1)!;
+    expect(sent.messages[1].content.map((b) => b.type)).toEqual(["text"]);
+    expect(sent.system).toHaveLength(1);
+    expect(sent.system[0].text).not.toMatch(/Today is/);
+    expect(sent.messages[2].content[1].text).toMatch(/^\[From the app, not the user\] Today is [\d\/-]{10}\. Google mode: test\./);
+    const again = await run.getChat(id, me.email);
+    expect(again!.fingerprint).not.toBe("an-older-version");
+    expect(run.toDisplay(again!.messages).map((x) => x.role === "tool" ? x.label : x.text)).toEqual(["Earlier", "Hello.", "And now?", "Still here."]);
+  });
+
   it("runs a turn: calls a tool, answers, and saves the conversation", async () => {
     script.push([{ type: "text", text: "Looking it up. " }, { type: "tool_use", id: "tu_1", name: "get_job", input: { job: "559" } }]);
     script.push([{ type: "text", text: "Job 559 is Brook House for Meterz." }]);

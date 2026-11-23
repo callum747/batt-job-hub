@@ -250,8 +250,9 @@ const tools: Tool[] = [
       access: z.number().nonnegative().default(0).describe("Access equipment hire, £."),
       other: z.number().nonnegative().default(0).describe("Other site costs, £."),
       one_electrician: z.boolean().default(false).describe("True when one electrician does it all with no apprentice."),
+      apprentice_share: z.number().min(0).max(1).optional().describe("The share of all the labour hours that the apprentice works, 0 to 1, when you know the crew: apprentice hours ÷ all hours. The sheet charges the electrician's hours at the electrician rate and the apprentice's at the apprentice rate. A day of electrician plus apprentice is 0.5; that day plus one hour of electrician alone is 8 ÷ 17. Leave out to use the sheet's standard crew (a third)."),
     }),
-    run: async (i: { job: string; items: { area: string; key: string | null; description: string; qty: number; materials_each?: number; hours_each?: number }[]; miles: number; people: number; vans: number; parking: number; waste: number; access: number; other: number; one_electrician: boolean }, me: Me) => {
+    run: async (i: { job: string; items: { area: string; key: string | null; description: string; qty: number; materials_each?: number; hours_each?: number }[]; miles: number; people: number; vans: number; parking: number; waste: number; access: number; other: number; one_electrician: boolean; apprentice_share?: number }, me: Me) => {
       const job = await mustFind(i.job);
       const r = await priceJob(
         job.id,
@@ -271,6 +272,7 @@ const tools: Tool[] = [
           access: i.access,
           other: i.other,
           oneElectrician: i.one_electrician,
+          ...(i.apprentice_share !== undefined && !i.one_electrician ? { apprenticeShare: i.apprentice_share } : {}),
         },
         me,
       );

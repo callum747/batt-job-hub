@@ -1,7 +1,10 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 
+/** The model for the background jobs: reading emails, supplier invoices and drawings. */
 export const MODEL = "claude-opus-5-5";
+/** The model Ask talks with: Opus, unless ASSISTANT_MODEL in Replit Secrets names another. */
+export const ASK_MODEL = process.env.ASSISTANT_MODEL?.trim() || MODEL;
 
 export const assistantConfigured = () => Boolean(process.env.ANTHROPIC_API_KEY);
 

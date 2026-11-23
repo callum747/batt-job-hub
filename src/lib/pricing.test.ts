@@ -50,6 +50,11 @@ describe("writing the sheet", () => {
     expect(w[0]).toEqual({ range: "'Job Pricing'!B5:D5", values: [["Kitchen", "Double socket | Click | White Plastic", 8]] });
     expect(w.map((x) => x.range)).toEqual(["'Job Pricing'!B5:D5", "Profit!C12:C14", "Profit!C17:C20"]);
   });
+  it("tells the sheet the electrician and apprentice mix when it's known", () => {
+    expect(buildWrites({ ...sockets, apprenticeShare: 8 / 17 }).at(-1)).toEqual({ range: "Rates!C9", values: [[8 / 17]] });
+    expect(buildWrites({ ...sockets, apprenticeShare: 0.5, oneElectrician: true }).at(-1)).toEqual({ range: "Rates!C9", values: [[0]] });
+    expect(buildWrites(sockets).some((w) => w.range === "Rates!C9")).toBe(false);
+  });
   it("never writes column F, or any formula column", () => {
     const w = buildWrites({ ...sockets, items: [...sockets.items, { area: "", key: null, description: "Special isolator", qty: 2, materialEach: 45, hoursEach: 1.5 }] });
     const cols = w.filter((x) => x.range.startsWith("'Job Pricing'")).map((x) => x.range.split("!")[1]);

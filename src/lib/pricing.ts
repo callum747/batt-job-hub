@@ -37,6 +37,11 @@ export type PricingInput = {
   other: number;
   /** One electrician, no apprentice: the full electrician rate applies to every hour. */
   oneElectrician: boolean;
+  /**
+   * The share of the labour hours worked by the apprentice, 0 to 1 (the sheet's own setting, Rates!C9, normally a third).
+   * Set when the crew for this job is known: a day of electrician plus apprentice and one hour of electrician alone is 8/17.
+   */
+  apprenticeShare?: number;
 };
 
 export type PricingResult = {
@@ -111,6 +116,7 @@ export function validatePricing(input: PricingInput, products: Product[]): strin
   if (!(input.miles >= 0) || !Number.isFinite(input.miles)) problems.push("Add the exact round-trip road miles from 18 Alwin Close (0 if there's no travel).");
   if (!(input.people >= 1)) problems.push("People on site must be at least 1.");
   if (!(input.vans >= 0)) problems.push("Vans can't be negative.");
+  if (input.apprenticeShare !== undefined && !(input.apprenticeShare >= 0 && input.apprenticeShare <= 1)) problems.push("The apprentice's share of the hours must be between 0 and 1.");
   for (const [k, label] of [["parking", "Parking"], ["waste", "Waste"], ["access", "Access hire"], ["other", "Other"]] as const) {
     if (!(input[k] >= 0)) problems.push(`${label} can't be negative.`);
   }
@@ -137,6 +143,7 @@ export function buildWrites(input: PricingInput): RangeWrite[] {
     { range: "Profit!C17:C20", values: [[input.parking], [input.waste], [input.access], [input.other]] },
   );
   if (input.oneElectrician) writes.push({ range: "Rates!C9", values: [[0]] });
+  else if (input.apprenticeShare !== undefined) writes.push({ range: "Rates!C9", values: [[input.apprenticeShare]] });
   return writes;
 }
 

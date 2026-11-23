@@ -181,3 +181,9 @@ Plain-English notes on what's new in the Batt Job Hub, newest first.
 ## Ask: fewer questions, prices from what you tell it
 - Ask now does the work first and only asks for what it cannot find, once, in a short list.
 - It takes a materials total and labour given as days or hours and prices them directly, once, without searching the price list for parts you have already costed.
+
+## Pricing by who does the hours, and steadier chats
+- Pricing can now be told the electrician and apprentice mix for a job (the sheet's own "share of hours worked by apprentice" setting). A day of electrician plus apprentice and an hour of electrician alone now prices at exactly those rates. The pricing template itself is unchanged.
+- Ask works the mix out itself from the days and people you give it.
+- A chat no longer breaks after an update or the next day: the instructions stay fixed inside a chat, and a saved chat is tidied when they change.
+- Ask's model can be changed with ASSISTANT_MODEL in Replit Secrets. It stays on Opus by default.
