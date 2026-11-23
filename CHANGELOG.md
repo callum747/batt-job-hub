@@ -173,3 +173,7 @@ Plain-English notes on what's new in the Batt Job Hub, newest first.
 
 ## Ask can set client and quote value
 - Ask can now set a job's client and quote value (ex VAT) when you give them, instead of only writing them in the notes.
+
+## Ask keeps its place
+- Opening Ask, or refreshing the page, carries on with your last conversation. New chat starts a clean one. Earlier chats are still listed at the side.
+- Fixed: after Ask had opened a file, the next message in that chat was refused.

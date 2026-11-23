@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { MessageSquarePlus } from "lucide-react";
 import { currentPerson } from "@/lib/auth";
 import { assistantConfigured, getChat, listChats, toDisplay } from "@/lib/assistant/run";
@@ -8,11 +9,13 @@ import { Chat } from "./chat";
 
 export const metadata = { title: "Ask" };
 
-export default async function AssistantPage({ searchParams }: { searchParams: Promise<{ c?: string; job?: string }> }) {
-  const { c, job } = await searchParams;
+export default async function AssistantPage({ searchParams }: { searchParams: Promise<{ c?: string; job?: string; new?: string }> }) {
+  const { c, job, new: fresh } = await searchParams;
   const me = await currentPerson();
   if (!me) return null;
   const [chats, chat] = await Promise.all([listChats(me.email), c ? getChat(c, me.email) : null]);
+  // Coming back to Ask (or refreshing) carries on with the last conversation. "New chat" starts a clean one.
+  if (!c && !job && !fresh && chats.length > 0) redirect(`/assistant?c=${chats[0].id}`);
   const ready = assistantConfigured();
 
   return (
@@ -21,7 +24,7 @@ export default async function AssistantPage({ searchParams }: { searchParams: Pr
         title="Ask"
         intro="Tell it what you need: price a job, make the quote, find a job, check the diary."
         action={
-          <Link href="/assistant" className="inline-flex h-12 items-center gap-2 rounded-xl border border-line bg-bg px-5 font-medium hover:bg-surface">
+          <Link href="/assistant?new=1" className="inline-flex h-12 items-center gap-2 rounded-xl border border-line bg-bg px-5 font-medium hover:bg-surface">
             <MessageSquarePlus className="h-5 w-5" aria-hidden="true" /> New chat
           </Link>
         }
