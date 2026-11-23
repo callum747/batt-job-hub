@@ -19,5 +19,17 @@ function connect() {
   });
 }
 
-/** One shared connection pool (kept across hot reloads in development). */
-export const sql = globalThis.__battSql ?? (globalThis.__battSql = connect());
+const pool = () => globalThis.__battSql ?? (globalThis.__battSql = connect());
+
+/**
+ * One shared connection pool (kept across hot reloads in development).
+ * It connects on first use, so building the app never needs the database.
+ */
+export const sql = new Proxy(function () {} as unknown as ReturnType<typeof postgres>, {
+  apply: (_t, _this, args) => Reflect.apply(pool() as never, undefined, args),
+  get: (_t, prop) => {
+    const p = pool();
+    const v = Reflect.get(p, prop);
+    return typeof v === "function" ? v.bind(p) : v;
+  },
+});
