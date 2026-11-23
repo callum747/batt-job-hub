@@ -95,7 +95,9 @@ export async function* runTurn(chatId: string, me: Me, userText: string): AsyncG
     yield { t: "error", message: "That conversation wasn't found." };
     return;
   }
-  const client = new Anthropic();
+  // A key made outside a workspace needs to say which workspace to use.
+  const workspace = process.env.ANTHROPIC_WORKSPACE_ID?.trim();
+  const client = new Anthropic(workspace ? { defaultHeaders: { "anthropic-workspace-id": workspace } } : {});
   const mode = (await googleSettings()).mode;
   const messages: Msg[] = [...repair(chat.messages), { role: "user", content: userText }];
   await saveChat({ ...chat, messages });
@@ -185,6 +187,8 @@ function explain(err: unknown) {
   if (err instanceof Anthropic.APIError) {
     // A 400 means the app sent something the service didn't accept: show its reason so it can be fixed.
     const reason = (err.error as { error?: { message?: string } } | undefined)?.error?.message ?? err.message;
+    if (err.status === 400 && /workspace/i.test(reason))
+      return "The API key isn't linked to a workspace. In the Anthropic Console, make a new key inside a workspace and put it in Replit Secrets as ANTHROPIC_API_KEY (or add ANTHROPIC_WORKSPACE_ID with the workspace's ID).";
     return err.status === 400
       ? `The assistant service didn't accept the request: ${reason}`
       : `The assistant service had a problem (${err.status ?? "no status"}). Try again in a moment.`;
