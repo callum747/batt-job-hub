@@ -177,3 +177,7 @@ Plain-English notes on what's new in the Batt Job Hub, newest first.
 ## Ask keeps its place
 - Opening Ask, or refreshing the page, carries on with your last conversation. New chat starts a clean one. Earlier chats are still listed at the side.
 - Fixed: after Ask had opened a file, the next message in that chat was refused.
+
+## Ask: fewer questions, prices from what you tell it
+- Ask now does the work first and only asks for what it cannot find, once, in a short list.
+- It takes a materials total and labour given as days or hours and prices them directly, once, without searching the price list for parts you have already costed.

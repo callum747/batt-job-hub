@@ -238,7 +238,7 @@ const tools: Tool[] = [
             description: z.string().default("").describe("What it is, for the client. Needed when key is null."),
             qty: z.number().positive(),
             materials_each: z.number().nonnegative().optional(),
-            hours_each: z.number().nonnegative().optional(),
+            hours_each: z.number().nonnegative().optional().describe("Person-hours each: the total for everyone working on it. A day for two people is 16."),
           }),
         )
         .min(1),
