@@ -39,6 +39,17 @@ describe("miles from Google Maps", () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({}), { status: 200 })));
     await expect(roundTripMiles("Nowhere at all")).rejects.toThrow("couldn't find a driving route");
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ error: { message: "Routes API has not been used in project 1 before or it is disabled." } }), { status: 403 })));
-    await expect(roundTripMiles("TA1 2LR")).rejects.toThrow("Check the Routes API is enabled");
+    await expect(roundTripMiles("TA1 2LR")).rejects.toThrow("The Routes API isn't switched on");
+  });
+});
+
+describe("why Google Maps turned the key down", () => {
+  it("names the one setting to fix", async () => {
+    const { keyFix } = await import("./miles");
+    expect(keyFix("API_KEY_SERVICE_BLOCKED Requests to this API routes.googleapis.com method are blocked.")).toContain("API restrictions");
+    expect(keyFix("API_KEY_HTTP_REFERRER_BLOCKED")).toContain("Application restrictions");
+    expect(keyFix("BILLING_DISABLED")).toContain("billing account");
+    expect(keyFix("API_KEY_INVALID API key not valid.")).toContain("Replit Secrets");
+    expect(keyFix("something else")).toBe("");
   });
 });

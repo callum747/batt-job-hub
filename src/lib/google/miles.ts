@@ -16,15 +16,28 @@ async function metres(from: string, to: string): Promise<number> {
     headers: { "content-type": "application/json", "X-Goog-Api-Key": process.env.GOOGLE_MAPS_API_KEY ?? "", "X-Goog-FieldMask": "routes.distanceMeters" },
     body: JSON.stringify({ origin: { address: from }, destination: { address: to }, travelMode: "DRIVE", regionCode: "GB" }),
   });
-  const data = (await res.json().catch(() => ({}))) as { routes?: { distanceMeters?: number }[]; error?: { message?: string; status?: string } };
+  const data = (await res.json().catch(() => ({}))) as { routes?: { distanceMeters?: number }[]; error?: { message?: string; status?: string; details?: { reason?: string }[] } };
   if (!res.ok) {
     const why = data.error?.message ?? `error ${res.status}`;
-    if (res.status === 403) throw new Error(`Google Maps turned the key down: ${why} Check the Routes API is enabled, billing is on, and the key is allowed to use the Routes API.`);
+    if (res.status === 403 || res.status === 400) {
+      const fix = keyFix(data.error?.details?.map((d) => d.reason ?? "").join(" ") + " " + why);
+      if (fix || res.status === 403) throw new Error(`Google Maps turned the key down. ${fix || `Google said: ${why} Check the Routes API is enabled, billing is on, and the key is allowed to use the Routes API.`}`);
+    }
     throw new Error(`Google Maps couldn't work that out: ${why}`);
   }
   const m = data.routes?.[0]?.distanceMeters;
   if (!m) throw new Error(`Google Maps couldn't find a driving route to "${to}". Check the address and postcode.`);
   return m;
+}
+
+/** Which of the Google Cloud settings is wrong, from the reason Google gives. Empty if it doesn't say. */
+export function keyFix(reason: string): string {
+  if (/SERVICE_DISABLED|has not been used in project|it is disabled/i.test(reason)) return "The Routes API isn't switched on in the Google Cloud project the key belongs to. Fix: APIs & Services, Library, search Routes API, press Enable. Make sure the project named at the top of the page is the one the key was made in.";
+  if (/BILLING_DISABLED|billing/i.test(reason)) return "The Google Cloud project has no billing account linked. Fix: Billing, link a billing account to the project.";
+  if (/API_KEY_SERVICE_BLOCKED|not authorized to use this (service|API)|are blocked/i.test(reason)) return "The key's own settings don't allow the Routes API. Fix: APIs & Services, Credentials, click the key, and under API restrictions choose Don't restrict key (or tick Routes API), then Save.";
+  if (/API_KEY_HTTP_REFERRER_BLOCKED|API_KEY_IP_ADDRESS_BLOCKED|API_KEY_ANDROID_APP_BLOCKED|API_KEY_IOS_APP_BLOCKED|referer|referrer|IP address/i.test(reason)) return "The key is limited to certain websites or addresses, and the app's server isn't one of them. Fix: APIs & Services, Credentials, click the key, and under Application restrictions choose None, then Save.";
+  if (/API_KEY_INVALID|API key not valid|expired/i.test(reason)) return "The key in Replit Secrets isn't a valid key. Fix: copy the key again from APIs & Services, Credentials, paste it into GOOGLE_MAPS_API_KEY in Replit Secrets with no spaces, and Republish.";
+  return "";
 }
 
 const toMiles = (m: number) => m / 1609.344;
