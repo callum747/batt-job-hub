@@ -177,12 +177,33 @@ d("the assistant", () => {
     const sdk = (await import("@anthropic-ai/sdk")).default as unknown as { requests: { system: { text: string }[]; messages: { role: string; content: { type: string; text?: string }[] }[] }[] };
     const sent = sdk.requests.at(-1)!;
     expect(sent.messages[1].content.map((b) => b.type)).toEqual(["text"]);
-    expect(sent.system).toHaveLength(1);
-    expect(sent.system[0].text).not.toMatch(/Today is/);
+    expect(sent.system).toHaveLength(2);
+    expect(sent.system.map((b) => b.text).join(" ")).not.toMatch(/Today is \d/);
     expect(sent.messages[2].content[1].text).toMatch(/^\[From the app, not the user\] Today is [\d\/-]{10}\. Google mode: test\./);
     const again = await run.getChat(id, me.email);
     expect(again!.fingerprint).not.toBe("an-older-version");
     expect(run.toDisplay(again!.messages).map((x) => x.role === "tool" ? x.label : x.text)).toEqual(["Earlier", "Hello.", "And now?", "Still here."]);
+  });
+
+  it("remembers lasting rules for everyone and gives them, with the handbook, to a new chat", async () => {
+    const saved = JSON.parse((await tools.runTool("remember", { note: "Meterz invoices go to accounts, not Gwen." }, me)).content);
+    expect(saved.saved).toBe(true);
+    const gone = JSON.parse((await tools.runTool("remember", { note: "An old rule that no longer holds." }, me)).content);
+    expect((await tools.runTool("forget", { id: gone.id }, me)).ok).toBe(true);
+    expect(JSON.parse((await tools.runTool("memory", {}, me)).content).notes.map((n: { note: string }) => n.note)).toEqual(["Meterz invoices go to accounts, not Gwen."]);
+
+    const id = await run.createChat(me.email, "Hi");
+    script.push([{ type: "text", text: "Hello." }]);
+    for await (const ev of run.runTurn(id, me, "Hi")) void ev;
+    script.push([{ type: "text", text: "Yes." }]);
+    for await (const ev of run.runTurn(id, me, "Again")) void ev;
+    const sdk = (await import("@anthropic-ai/sdk")).default as unknown as { requests: { system: { text: string }[]; messages: { content: { text?: string }[] }[] }[] };
+    const sent = sdk.requests.at(-1)!;
+    expect(sent.system[1].text).toMatch(/^# Batt handbook/);
+    expect(sent.messages[0].content[1].text).toContain("- Meterz invoices go to accounts, not Gwen. (Callum,");
+    expect(sent.messages[0].content[1].text).not.toContain("An old rule");
+    expect(sent.messages[2].content[1].text).not.toContain("Saved to memory");
+    expect(run.toDisplay((await run.getChat(id, me.email))!.messages).map((x) => (x as { text: string }).text)).toEqual(["Hi", "Hello.", "Again", "Yes."]);
   });
 
   it("runs a turn: calls a tool, answers, and saves the conversation", async () => {

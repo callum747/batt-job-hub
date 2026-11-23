@@ -187,3 +187,7 @@ Plain-English notes on what's new in the Batt Job Hub, newest first.
 - Ask works the mix out itself from the days and people you give it.
 - A chat no longer breaks after an update or the next day: the instructions stay fixed inside a chat, and a saved chat is tidied when they change.
 - Ask's model can be changed with ASSISTANT_MODEL in Replit Secrets. It stays on Opus by default.
+
+## Ask knows how Batt works
+- Ask now starts every chat with Batt's handbook: the company, people, rates, pricing and quote rules, clients (Meterz, Ace Pro, ep8), past jobs as a sense check, and how Batt writes. It comes from Batt's own playbook built up in the Claude chats.
+- Ask has a shared memory. Tell it a lasting rule ("from now on...", a client's new terms) and it saves it for both Callum and Cam. Ask "what do you remember?" to see the list, or tell it to forget one (it is switched off, not deleted).

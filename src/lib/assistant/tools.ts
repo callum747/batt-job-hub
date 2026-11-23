@@ -31,6 +31,12 @@ type Tool = {
   run: (input: never, me: Me) => Promise<unknown>;
 };
 
+/** The notes saved with remember that still hold, oldest first. */
+export async function memoryNotes() {
+  return (await sql<{ id: string; note: string; by: string; saved: string }[]>`
+    select id, note, created_by as by, created_at::date::text as saved from assistant_memory where active order by created_at limit 200`).map((r) => ({ ...r }));
+}
+
 /** A tool result that carries a file (text, a PDF or a photo) for the assistant to read, not just words. */
 class FileResult {
   constructor(public file: FileContents) {}
@@ -405,6 +411,37 @@ const tools: Tool[] = [
       if (!job.drive_folder_id) return { ok: false, message: "This job has no Drive folder yet." };
       const r = await readJobFile(me.email, job.drive_folder_id, i.file_id);
       return new FileResult(r);
+    },
+  },
+  {
+    name: "remember",
+    label: () => "Saving that to memory",
+    description:
+      "Save a lasting rule, preference, correction or fact that Callum or Cam has told you, so every future chat (theirs and the other person's) starts knowing it. Use it whenever they say something like \"from now on\", \"always\", \"never\", \"we've agreed with X that\", correct how you did something, or give a client's terms or a person's name. Write the note so it makes sense on its own, with the date if it matters. Not for things about one job (use add_note) and never for passwords or keys.",
+    schema: z.object({ note: z.string().min(5).max(600) }),
+    run: async (i: { note: string }, me: Me) => {
+      const [row] = await sql<{ id: string }[]>`insert into assistant_memory (note, created_by) values (${i.note.trim()}, ${me.name}) returning id`;
+      await audit(sql, me.email, "assistant memory added", "memory", row.id, { note: i.note.trim() });
+      return { saved: true, id: row.id, tell_the_user: "Say in one line that it's saved for both of them." };
+    },
+  },
+  {
+    name: "memory",
+    label: () => "Reading what's been saved to memory",
+    description: "Lists everything saved with remember, with ids. Use it when asked what you remember, or before forgetting something.",
+    schema: z.object({}),
+    run: async () => ({ notes: await memoryNotes() }),
+  },
+  {
+    name: "forget",
+    label: () => "Switching off a saved note",
+    description: "Switches off a saved note that no longer holds (it is kept, not deleted). Only when the user asks. Takes the id from memory.",
+    schema: z.object({ id: z.string().uuid() }),
+    run: async (i: { id: string }, me: Me) => {
+      const done = await sql`update assistant_memory set active = false, ended_by = ${me.name}, ended_at = now() where id = ${i.id} and active returning id`;
+      if (done.length === 0) return { ok: false, message: "There's no active note with that id. Use memory to list them." };
+      await audit(sql, me.email, "assistant memory switched off", "memory", i.id);
+      return { switched_off: true };
     },
   },
   {
