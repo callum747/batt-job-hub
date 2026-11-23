@@ -55,6 +55,7 @@ export type JobRow = {
   drive_folder_url: string;
   drive_error: string;
   pricing: import("./google/pricing-run").SavedPricing | null;
+  quote_draft: import("./quote-short").ShortQuote | null;
   links: { name: string; url: string }[];
   notes: string;
   updated_at: string;
@@ -251,4 +252,16 @@ export async function searchEverything(q: string) {
   const clients = await sql<ClientRow[]>`
     select * from clients where name ilike ${like} or contact ilike ${like} or email ilike ${like} or notes ilike ${like} order by name limit 20`;
   return { jobs: await withMoney(jobRows.slice(0, 50)), clients: plain(clients) };
+}
+
+export type DocumentRow = { id: string; kind: string; revision: number; name: string; url: string; pdf_url: string; pages: number | null; note: string; created_by: string; created_at: string };
+
+export async function jobDocuments(jobId: string) {
+  return plain(await sql<DocumentRow[]>`
+    select id, kind, revision, name, url, pdf_url, pages, note, created_by, created_at::text from documents where job_id = ${jobId} order by created_at desc`);
+}
+
+export async function getPersonByEmail(email: string) {
+  const [p] = await sql<PersonRow[]>`select id, short_name, full_name, email, role, day_cost, colour, active from people where lower(email) = lower(${email})`;
+  return p ? { ...p } : null;
 }

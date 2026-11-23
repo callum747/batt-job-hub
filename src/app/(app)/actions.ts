@@ -10,6 +10,8 @@ import { removeVisitEvent, syncVisit } from "@/lib/google/calendar";
 import { errorText, getFileCheck, googleConnected, googleSettings, type GoogleArea } from "@/lib/google/client";
 import { syncJobFolder } from "@/lib/google/drive";
 import { loadPriceList, priceJob } from "@/lib/google/pricing-run";
+import { buildShortQuote } from "@/lib/google/quote-run";
+import type { ShortQuote } from "@/lib/quote-short";
 import type { PricingInput } from "@/lib/pricing";
 
 async function who() {
@@ -369,4 +371,33 @@ export async function refreshPriceList() {
   } catch (e) {
     return { ok: false, message: errorText(e) };
   }
+}
+
+export async function makeQuote(jobId: string, q: ShortQuote) {
+  const me = await who();
+  const str = (v: unknown) => String(v ?? "");
+  const num = (v: unknown) => Number(v);
+  const clean: ShortQuote = {
+    number: num(q.number),
+    client: str(q.client),
+    project: str(q.project),
+    site: str(q.site),
+    date: str(q.date),
+    validUntil: str(q.validUntil),
+    preparedBy: { name: str(q.preparedBy?.name), title: str(q.preparedBy?.title), email: str(q.preparedBy?.email) },
+    summary: str(q.summary),
+    installation: str(q.installation),
+    schedule: (q.schedule ?? []).map((g) => ({ area: str(g.area), items: (g.items ?? []).map((i) => ({ item: str(i.item), ref: str(i.ref), works: str(i.works) })) })),
+    investment: (q.investment ?? []).map((l) => ({ section: str(l.section), description: str(l.description), amount: num(l.amount) })),
+    subtotal: num(q.subtotal),
+    vat: num(q.vat),
+    total: num(q.total),
+    deposit: Boolean(q.deposit),
+    paymentDays: Math.round(num(q.paymentDays)),
+    exclusions: (q.exclusions ?? []).map(str),
+    assumptions: (q.assumptions ?? []).map(str),
+  };
+  const r = await buildShortQuote(jobId, clean, me);
+  refreshJobs();
+  return r;
 }

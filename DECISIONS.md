@@ -22,6 +22,17 @@ Things that weren't spelled out in the brief or the playbook. Say if any should 
 15. **Labour difficulty** is left at the sheet's default (Easy) for every line. Say if you want to choose it per line.
 16. **In test mode the app won't save a pricing sheet into a real job folder.** Price a new test job instead, or go live.
 
+## Phase 3: The quote document
+17. **The cover reference is the plain number** (557), as the playbook says, and the acceptance line reads "you accept this quotation (557)".
+18. **The schedule's Item / Ref / Works columns** are filled as: the item (e.g. "Double socket"), the quantity in Ref (e.g. "8"), and "Supply and fit 8 × double socket (Click, White Plastic)" in Works. You can change any of it before making the quote.
+19. **The investment table has one line per priced line** (e.g. "Kitchen | 8 × Double socket | £544.29"), plus "Travel and site costs" with the miles. That itemises it for private clients, as the playbook asks.
+20. **VAT is 20% of the subtotal, rounded to the penny,** and the total is the two added together. The app refuses a quote whose lines don't add up to the subtotal.
+21. **The job name on the cover** starts as the first sentence of the job's description (if it's short), otherwise the site.
+22. **The installation paragraph starts as a plain sentence** about BS 7671 and NAPIT certification. Please add the cable types, containment and finish for each job: the app won't invent them.
+23. **No deposit:** when a client's notes say "no deposit", the payment table becomes "On completion 100%" and the deposit paragraph becomes "No deposit is needed. To go ahead, simply reply to this quotation or email info@battelectrical.com."
+24. **Payment days:** the client's payment days replace "within 7 days of invoice". The late-payment wording ("5% after 7 days") is left exactly as the template has it.
+25. **Revision on the cover stays "A".** A rebuilt quote is saved as "rev 2" in the file name. Say if you'd like the cover's revision letter to change too (B, C…).
+
 ## Still needed from Callum
 - **Jed's email address** (the one his Google Calendar uses). Without it he can't be invited to visits. Add it in Settings, under People.
 - **Round-trip miles** for each live job, on the job's Details tab, so travel is counted in profit.

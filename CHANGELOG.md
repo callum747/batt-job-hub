@@ -2,6 +2,16 @@
 
 Plain-English notes on what's new in the Batt Job Hub, newest first.
 
+## 23/11/2026: The quote document (short form)
+- **Make the quote** from a priced job, on its Quote & money tab. The app fills in a first draft from the pricing: the cover, a room-by-room schedule (one area per room you priced), the investment lines, totals and VAT, your name, title and email, today's date and valid for 30 days.
+- **Check and change the wording** before it's made: the job name on the cover, the project summary, the installation description, every schedule line (add or remove rooms and lines), exclusions and assumptions, the deposit and the payment days.
+- **The money can't be typed in.** It always comes from the pricing sheet; price it again to change it.
+- **Client terms are followed:** a client whose notes say "no deposit" gets 100% on completion, and the client's payment days replace "7 days".
+- **What it makes:** a copy of your short-form template in the job's 01 - Quote & Contract folder, filled in, and a PDF beside it. A second quote is "rev 2"; nothing is overwritten.
+- **It checks its own work:** if anything in square brackets is left, or the PDF is too short, it stops and says so, and no PDF is saved.
+- Tested on a real copy of your template with four rooms (one more than the template has): four pages, nothing cut off, no placeholders left.
+- Jobs of £2,000 or more still get the short form for now, with a note. The long form and the survey proposal are next.
+
 ## 22/11/2026: Pricing (first half of Phase 3)
 - **Price a job** on its Quote & money tab. Pick items from your price list (start typing "double socket"), give the area and quantity, and add the round-trip miles, people on site, vans and any parking, waste or hire costs.
 - **Items not on the price list** can be added with their material cost and labour hours each. The app never guesses these.

@@ -15,6 +15,9 @@ import { FolderButton } from "../job-files";
 import { PricingForm, SheetLink } from "../pricing-form";
 import { loadPriceList } from "@/lib/google/pricing-run";
 import { pricingLight, type Product } from "@/lib/pricing";
+import { QuoteForm } from "../quote-form";
+import { defaultShortQuote } from "@/lib/quote-defaults";
+import { getClient, getPersonByEmail, jobDocuments } from "@/lib/data";
 import { JobForm } from "../job-form";
 import { NoteForm, NotesText, PeopleControl, StageControl, Variations } from "../job-controls";
 
@@ -182,6 +185,7 @@ export default async function JobPage({ params, searchParams }: { params: Promis
               </Card>
             )}
             <PricingCard job={job} lines={detail.lines} redBelow={settings.margins.red} />
+            <QuoteCard job={job} lines={detail.lines} />
           </>
         )}
 
@@ -396,5 +400,70 @@ async function PricingCard({ job, lines, redBelow }: { job: Awaited<ReturnType<t
         )}
       </Card>
     </>
+  );
+}
+
+async function QuoteCard({ job, lines }: { job: Awaited<ReturnType<typeof findJob>> & object; lines: Awaited<ReturnType<typeof jobDetail>>["lines"] }) {
+  const [docs, me, client] = await Promise.all([jobDocuments(job.id), currentPerson(), job.client_id ? getClient(job.client_id) : null]);
+  const quotes = docs.filter((d) => d.kind === "quote");
+  const person = me ? await getPersonByEmail(me.email) : null;
+  const preview = me?.email === "preview@localhost";
+  const preparedBy = person
+    ? { name: person.full_name, title: person.role, email: person.email }
+    : preview
+      ? { name: "Callum Blacknell", title: "Project Manager", email: "callum@battelectrical.com" }
+      : null;
+
+  let body: React.ReactNode;
+  if (!job.pricing || !job.number) {
+    body = <p className="text-muted">Price the job first. The quote is built from the pricing.</p>;
+  } else if (!preparedBy) {
+    body = <p className="text-muted">Your email ({me?.email}) isn&apos;t on the People list in Settings, so the quote can&apos;t say who prepared it. Add it there first.</p>;
+  } else {
+    const fromPricing = defaultShortQuote({
+      number: job.number,
+      client: client ? { name: client.name, notes: client.notes, payment_days: client.payment_days } : null,
+      site: job.site,
+      postcode: job.postcode,
+      description: job.description,
+      pricing: job.pricing.input,
+      lines,
+      subtotal: job.pricing.result.sellExVat,
+      preparedBy,
+      today: todayUK(),
+    });
+    // Reuse the wording from the last quote, but always take the numbers and dates afresh.
+    const d = job.quote_draft;
+    const start = d
+      ? { ...fromPricing, project: d.project, site: d.site, summary: d.summary, installation: d.installation, schedule: d.schedule, deposit: d.deposit, paymentDays: d.paymentDays, exclusions: d.exclusions, assumptions: d.assumptions }
+      : fromPricing;
+    const note =
+      fromPricing.subtotal >= 2000
+        ? "This job is £2,000 or more, which normally gets the long-form quote. The long form is coming next; for now this makes a short-form quote."
+        : "";
+    body = <QuoteForm key={`${job.pricing.pricedAt}-${quotes.length}`} jobId={job.id} start={start} note={note} />;
+  }
+  return (
+    <Card title="Quote document">
+      {quotes.length > 0 && (
+        <ul className="mb-5 divide-y divide-line rounded-xl border border-line">
+          {quotes.map((d) => (
+            <li key={d.id} className="flex flex-wrap items-center gap-3 px-4 py-3 text-[15px]">
+              <span className="min-w-0 flex-1">
+                <span className="font-medium">{d.name}</span>
+                <span className="block text-[14px] text-muted">
+                  {ukDate(d.created_at.slice(0, 10))}
+                  {d.pages ? ` · ${d.pages} pages` : ""}
+                  {d.note ? ` · ${d.note}` : ""}
+                </span>
+              </span>
+              {d.pdf_url && <a href={d.pdf_url} target="_blank" rel="noreferrer" className="font-semibold underline underline-offset-4">PDF</a>}
+              <a href={d.url} target="_blank" rel="noreferrer" className="underline underline-offset-4">Doc</a>
+            </li>
+          ))}
+        </ul>
+      )}
+      {body}
+    </Card>
   );
 }

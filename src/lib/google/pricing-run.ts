@@ -37,6 +37,20 @@ export async function loadPriceList(email: string, force = false): Promise<{ pro
   return value;
 }
 
+/**
+ * The job's "01 - Quote & Contract" folder, or null when the app is in test mode and the job
+ * folder is a real one (nothing is ever written into a real folder in test mode).
+ */
+export async function quoteFolder(email: string, jobFolderId: string): Promise<string | null> {
+  const settings = await googleSettings();
+  if (settings.mode === "test") {
+    const parent = (await getFile(email, jobFolderId)).parents?.[0];
+    if (!parent || !Object.values(settings.test.folders).includes(parent)) return null;
+  }
+  const subfolders = await listChildren(email, [jobFolderId], true);
+  return subfolders.find((f) => f.name.startsWith("01"))?.id ?? jobFolderId;
+}
+
 export type SavedPricing = { input: PricingInput; result: PricingResult; sheetId: string; sheetUrl: string; pricedAt: string; by: string; revision: number };
 export type PriceOutcome = { ok: boolean; message: string; problems?: string[]; number?: number | null };
 
@@ -65,17 +79,10 @@ export async function priceJob(jobId: string, input: PricingInput, me: { email: 
       from jobs j left join clients c on c.id = j.client_id where j.id = ${jobId}`;
     if (!job.drive_folder_id) return { ok: false, message: `The job needs its Drive folder before it can be priced. ${job.drive_error}`, number: job.number };
 
-    // In test mode, never put anything in a real job folder.
-    const settings = await googleSettings();
-    if (settings.mode === "test") {
-      const parent = (await getFile(me.email, job.drive_folder_id)).parents?.[0];
-      if (!parent || !Object.values(settings.test.folders).includes(parent)) {
-        return { ok: false, message: "This job's Drive folder is a real one and the app is in test mode, so nothing was saved to it. Try pricing a new test job, or go live in Settings.", number: job.number };
-      }
+    const target = await quoteFolder(me.email, job.drive_folder_id);
+    if (!target) {
+      return { ok: false, message: "This job's Drive folder is a real one and the app is in test mode, so nothing was saved to it. Try pricing a new test job, or go live in Settings.", number: job.number };
     }
-
-    const subfolders = await listChildren(me.email, [job.drive_folder_id], true);
-    const target = subfolders.find((f) => f.name.startsWith("01"))?.id ?? job.drive_folder_id;
     const [{ n }] = await sql<{ n: number }[]>`select count(*)::int as n from documents where job_id = ${jobId} and kind = 'pricing'`;
     const revision = n + 1;
     const name = `${job.number} – ${(job.site || job.client || "Job").replace(/[\\/]+/g, "-")} – Pricing${revision > 1 ? ` rev ${revision}` : ""}`;

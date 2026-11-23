@@ -102,12 +102,10 @@ export async function google<T>(
   path: string,
   opts: { method?: string; query?: Query; body?: unknown } = {},
 ): Promise<T> {
-  const token = await accessToken(email);
-  const url = new URL(path.startsWith("http") ? path : API + path);
-  for (const [k, v] of Object.entries(opts.query ?? {})) if (v !== undefined) url.searchParams.set(k, String(v));
-  const res = await fetch(url, {
+  const res = await googleFetch(email, path, {
     method: opts.method ?? "GET",
-    headers: { authorization: `Bearer ${token}`, ...(opts.body ? { "content-type": "application/json" } : {}) },
+    query: opts.query,
+    headers: opts.body ? { "content-type": "application/json" } : {},
     body: opts.body ? JSON.stringify(opts.body) : undefined,
   });
   if (res.status === 204) return undefined as T;
@@ -121,6 +119,21 @@ export async function google<T>(
   }
   return data as T;
 }
+
+/** A signed-in request to Google that returns the raw response (for files rather than JSON). */
+export async function googleFetch(
+  email: string,
+  path: string,
+  opts: { method?: string; query?: Query; headers?: Record<string, string>; body?: BodyInit } = {},
+): Promise<Response> {
+  const token = await accessToken(email);
+  const url = new URL(path.startsWith("http") ? path : API + path);
+  for (const [k, v] of Object.entries(opts.query ?? {})) if (v !== undefined) url.searchParams.set(k, String(v));
+  return fetch(url, { method: opts.method ?? "GET", headers: { authorization: `Bearer ${token}`, ...opts.headers }, body: opts.body });
+}
+
+/** Google Docs lives on its own address. */
+export const DOCS = process.env.GOOGLE_DOCS_BASE || "https://docs.googleapis.com";
 
 export type GoogleArea = "Live" | "Lost" | "Active" | "Completed";
 export type GoogleSettings = {
