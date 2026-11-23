@@ -14,6 +14,9 @@ import { loadPriceList, priceJob } from "../google/pricing-run";
 import { buildLongQuote, buildShortQuote } from "../google/quote-run";
 import { draftLongQuote, draftShortQuote, isPriced, loadClient, preparedByFor, productsFor, suggestLong } from "../quote-drafts";
 import { errorText } from "../google/client";
+import { jobThreads } from "../google/gmail";
+import { findEmail, jobSearch, unescapeHtml } from "../email";
+import { draftQuoteEmail, quoteEmailStart } from "../quote-email";
 
 export type Me = { email: string; name: string };
 type Tool = {
@@ -278,6 +281,41 @@ const tools: Tool[] = [
     },
   },
   {
+    name: "draft_quote_email",
+    label: (i) => `Drafting the quote email for job ${i.job} in Gmail`,
+    description:
+      "Save the covering email for the job's latest quote (or survey proposal) as a draft in the user's own Gmail, with the PDF attached. It is never sent: the user checks it and presses Send in Gmail. The wording is drafted for you; pass message only to replace it with the user's words. to defaults to the client's email.",
+    schema: z.object({
+      job: jobRef,
+      to: z.string().optional().describe("Email address(es), comma separated. Only if the user gave one or the client has none."),
+      cc: z.string().optional(),
+      message: z.string().optional().describe("The whole email body, only if the user wants different wording."),
+    }),
+    run: async (i: { job: string; to?: string; cc?: string; message?: string }, me: Me) => {
+      const job = await mustFind(i.job);
+      const start = await quoteEmailStart(job, me.email);
+      if (!start) return { ok: false, message: "There's no quote PDF on this job yet. Make the quote first." };
+      const to = i.to?.trim() || start.to;
+      if (!to) return { ok: false, message: "There's no email for this client. Ask the user who it should go to." };
+      const r = await draftQuoteEmail(job.id, start.documentId, { to, cc: i.cc ?? "", subject: start.subject, body: i.message?.trim() || start.body }, me);
+      return { ...r, to, subject: start.subject, attachment: start.pdfName };
+    },
+  },
+  {
+    name: "job_emails",
+    label: (i) => `Looking for job ${i.job}'s emails`,
+    description: "The job's email threads from everyone's connected mailbox: subject, who wrote last, when, and a snippet. Read-only.",
+    schema: z.object({ job: jobRef }),
+    run: async (i: { job: string }, me: Me) => {
+      const job = await mustFind(i.job);
+      const client = await loadClient(job);
+      const q = jobSearch({ number: job.number, legacy_ref: job.legacy_ref, clientEmail: client?.email || findEmail(job.contact) });
+      if (!q) return { threads: [], note: "No job number or client email to search for." };
+      const r = await jobThreads(q, me.email);
+      return { threads: r.threads.map((t) => ({ subject: t.subject, from: t.from, date: t.date.slice(0, 10), snippet: unescapeHtml(t.snippet), emails: t.count, mailbox: t.mailbox, link: t.url })), problems: r.problems };
+    },
+  },
+  {
     name: "set_stage",
     label: (i) => `Moving job ${i.job} to ${i.stage}`,
     description:
@@ -319,11 +357,18 @@ const tools: Tool[] = [
 
 const byName = new Map(tools.map((t) => [t.name, t]));
 
+/** The tool's input as plain JSON Schema: an object with properties, without the "$schema" line the API doesn't want. */
+function inputSchema(schema: z.ZodObject): Anthropic.Beta.BetaTool["input_schema"] {
+  const { $schema, ...rest } = z.toJSONSchema(schema, { io: "input" }) as Record<string, unknown>;
+  void $schema;
+  return { type: "object", properties: {}, ...rest } as Anthropic.Beta.BetaTool["input_schema"];
+}
+
 /** Tool definitions for the API. Inputs stream as they're written; run() validates them before anything happens. */
 export const toolDefinitions: Anthropic.Beta.BetaTool[] = tools.map((t) => ({
   name: t.name,
   description: t.description,
-  input_schema: z.toJSONSchema(t.schema, { io: "input" }) as Anthropic.Beta.BetaTool["input_schema"],
+  input_schema: inputSchema(t.schema),
   eager_input_streaming: true,
 }));
 

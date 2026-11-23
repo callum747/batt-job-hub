@@ -7,7 +7,7 @@ import { sql } from "@/lib/db";
 import { STAGES, type Stage, ukDate, todayUK } from "@/lib/jobs-rules";
 import { audit, changeStage } from "@/lib/mutations";
 import { removeVisitEvent, syncVisit } from "@/lib/google/calendar";
-import { errorText, getFileCheck, googleConnected, googleSettings, type GoogleArea } from "@/lib/google/client";
+import { errorText, getFileCheck, gmailConnected, googleConnected, googleSettings, type GoogleArea } from "@/lib/google/client";
 import { syncJobFolder } from "@/lib/google/drive";
 import { loadPriceList, priceJob } from "@/lib/google/pricing-run";
 import { buildLongQuote, buildShortQuote } from "@/lib/google/quote-run";
@@ -15,6 +15,7 @@ import type { LongQuote } from "@/lib/quote-long";
 import { makeSurveyProposal, type SurveyForm } from "@/lib/google/survey-run";
 import type { ShortQuote } from "@/lib/quote-short";
 import type { PricingInput } from "@/lib/pricing";
+import { draftQuoteEmail } from "@/lib/quote-email";
 
 async function who() {
   const p = await currentPerson();
@@ -322,6 +323,8 @@ export async function checkGoogle(): Promise<Check[]> {
   const connected = await googleConnected(me.email);
   out.push({ label: "Your Google permission", ok: connected, detail: connected ? `Connected as ${me.email}` : "Not connected. Press Connect Google." });
   if (!connected) return out;
+  const mail = await gmailConnected(me.email);
+  out.push({ label: "Gmail (drafts and job emails)", ok: mail, detail: mail ? "Connected. The app saves drafts only; it never sends." : "Not yet. Press Connect Google and tick the Gmail boxes." });
   const s = await googleSettings();
   for (const which of ["test", "live"] as const) {
     for (const area of ["Live", "Lost", "Active", "Completed"] as GoogleArea[]) {
@@ -450,6 +453,14 @@ export async function makeLongQuote(jobId: string, q: LongQuote) {
     fittings: (q.fittings ?? []).map((f) => ({ ref: str(f.ref), fitting: str(f.fitting), notes: str(f.notes) })),
   };
   const r = await buildLongQuote(jobId, clean, me);
+  refreshJobs();
+  return r;
+}
+
+export async function draftEmail(jobId: string, documentId: string, e: { to: string; cc: string; subject: string; body: string }) {
+  const me = await who();
+  const str = (v: unknown) => String(v ?? "");
+  const r = await draftQuoteEmail(jobId, str(documentId), { to: str(e.to), cc: str(e.cc), subject: str(e.subject), body: str(e.body) }, me);
   refreshJobs();
   return r;
 }

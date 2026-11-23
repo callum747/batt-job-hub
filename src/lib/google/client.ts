@@ -9,8 +9,12 @@ export const GOOGLE_SCOPES = [
   "profile",
   "https://www.googleapis.com/auth/drive",
   "https://www.googleapis.com/auth/calendar",
+  // Read email for each job's threads, and save drafts. The app never sends.
+  "https://www.googleapis.com/auth/gmail.readonly",
+  "https://www.googleapis.com/auth/gmail.compose",
 ];
-const NEEDED = GOOGLE_SCOPES.slice(3);
+const NEEDED = GOOGLE_SCOPES.slice(3, 5);
+const GMAIL_NEEDED = GOOGLE_SCOPES.slice(5);
 
 const API = process.env.GOOGLE_API_BASE || "https://www.googleapis.com";
 /** Google Sheets lives on its own address. */
@@ -28,6 +32,7 @@ export class GoogleError extends Error {
 }
 
 export const NOT_CONNECTED = "Google Drive and Calendar aren't connected for you yet. Open Settings and press Connect Google.";
+export const GMAIL_NOT_CONNECTED = "Gmail isn't connected for you yet. Press Connect Google at the top of the page and tick the Gmail boxes.";
 
 function key() {
   const secret = process.env.NEXTAUTH_SECRET;
@@ -56,12 +61,23 @@ export async function saveRefreshToken(email: string, refreshToken: string, scop
   cache.delete(email.toLowerCase());
 }
 
-/** True when this person has given the app Drive and Calendar permission. */
-export async function googleConnected(email: string) {
+async function hasScopes(email: string, needed: string[]) {
   const [row] = await sql<{ scopes: string }[]>`select scopes from google_tokens where email = ${email.toLowerCase()}`;
   if (!row) return false;
   const have = row.scopes.split(/\s+/);
-  return NEEDED.every((s) => have.includes(s));
+  return needed.every((s) => have.includes(s));
+}
+
+/** True when this person has given the app Drive and Calendar permission. */
+export const googleConnected = (email: string) => hasScopes(email, NEEDED);
+
+/** True when this person has also given Gmail permission (added later, so people connected before need to connect again). */
+export const gmailConnected = (email: string) => hasScopes(email, GMAIL_NEEDED);
+
+/** Everyone who has given Gmail permission, so a job's emails can be found in each mailbox. */
+export async function gmailMailboxes(): Promise<string[]> {
+  const rows = await sql<{ email: string; scopes: string }[]>`select email, scopes from google_tokens order by email`;
+  return rows.filter((r) => GMAIL_NEEDED.every((s) => r.scopes.split(/\s+/).includes(s))).map((r) => r.email);
 }
 
 const cache = new Map<string, { token: string; expires: number }>();

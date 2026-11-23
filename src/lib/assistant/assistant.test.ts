@@ -20,6 +20,7 @@ vi.mock("../google/pricing-run", () => ({
   priceJob: vi.fn(async () => ({ ok: false, message: "A few things need fixing before this can be priced.", problems: ["Item 1: not on the price list"] })),
 }));
 vi.mock("../google/quote-run", () => ({ buildShortQuote: vi.fn(), buildLongQuote: vi.fn() }));
+vi.mock("../google/gmail", () => ({ jobThreads: vi.fn(async () => ({ threads: [], problems: [] })), createDraft: vi.fn(), driveFileBytes: vi.fn() }));
 vi.mock("../google/client", () => ({
   errorText: (e: unknown) => (e instanceof Error ? e.message : String(e)),
   googleSettings: async () => ({ mode: "test" }),
@@ -89,6 +90,8 @@ d("the assistant", () => {
     expect(new Set(names).size).toBe(names.length);
     for (const t of tools.toolDefinitions) {
       expect(t.input_schema.type).toBe("object");
+      expect(t.input_schema).not.toHaveProperty("$schema");
+      expect(t.input_schema.properties).toBeDefined();
       expect(t.description!.length).toBeGreaterThan(20);
     }
   });

@@ -28,7 +28,7 @@ function initials(name: string) {
     .join("");
 }
 
-export function Shell({ person, preview, needsGoogle, children }: { person: Person; preview: boolean; needsGoogle?: boolean; children: React.ReactNode }) {
+export function Shell({ person, preview, googleNote, children }: { person: Person; preview: boolean; googleNote?: string | null; children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
@@ -95,9 +95,9 @@ export function Shell({ person, preview, needsGoogle, children }: { person: Pers
           </label>
           </form>
         </div>
-        {needsGoogle && (
+        {googleNote && (
           <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-blue-soft px-4 py-2 text-center text-[14px] md:px-8">
-            One more step: let the app use your Google Drive and Calendar.
+            {googleNote}
             <ConnectGoogleButton className="font-semibold underline underline-offset-4">Connect Google</ConnectGoogleButton>
           </p>
         )}

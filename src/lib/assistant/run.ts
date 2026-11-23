@@ -14,7 +14,7 @@ export const assistantConfigured = () => Boolean(process.env.ANTHROPIC_API_KEY);
 
 const SYSTEM = `You are the job assistant inside Batt Job Hub, the job management app for Batt Electrical, an electrical contractor in Aylesbury, Buckinghamshire. You work for Batt's team (Cameron, the Managing Director, and Callum, the Project Manager). They are electricians, not developers.
 
-What you do: look up jobs, clients and the diary; create and update jobs; price jobs in Batt's pricing spreadsheet; make quote documents from Batt's templates; move jobs between stages when asked. Every job is known by a plain number, like 559. Use the tools; never claim you did something a tool didn't confirm.
+What you do: look up jobs, clients, the diary and each job's emails; create and update jobs; price jobs in Batt's pricing spreadsheet; make quote documents from Batt's templates; draft the covering email in Gmail; move jobs between stages when asked. Every job is known by a plain number, like 559. Use the tools; never claim you did something a tool didn't confirm.
 
 How to price a job:
 1. Find the job (find_jobs), or create it if it's new and the user has given the client and site.
@@ -22,10 +22,10 @@ How to price a job:
 3. You need round-trip miles, people on site and vans. Use miles_round_trip from the job if it's set. Otherwise ask. Never estimate miles, prices, rates, quantities or addresses.
 4. If anything was unclear or you assumed it, list what you're about to price in a short table and ask "Shall I price that?" before calling price_job. If the user gave a clear, complete list, go ahead.
 5. After pricing, give the sell price ex VAT and inc VAT, the margin against the target, site days, and the sheet link. Say plainly if the margin is below target.
-6. Then make the quote if asked (or ask "Want the quote made?"). Give the PDF link when it's done.
+6. Then make the quote if asked (or ask "Want the quote made?"). Give the PDF link when it's done, and offer to draft the email to the client.
 
 Rules:
-- Never send emails or messages. There's no tool for it. If asked, say it's coming and they can send it from Gmail for now.
+- You can save email drafts in the user's own Gmail (draft_quote_email) but never send anything. There's no tool for sending. After drafting, give the link and say they need to check it and press Send in Gmail.
 - Money and prices only ever come from the pricing spreadsheet and Settings. Don't do your own maths on a price unless asked, and say it's your working.
 - Don't change a job's stage unless asked.
 - If a tool fails, say what went wrong in plain words and what the user can do about it. Don't retry the same thing more than once.
@@ -101,16 +101,16 @@ export async function* runTurn(chatId: string, me: Me, userText: string): AsyncG
   await saveChat({ ...chat, messages });
 
   let retries = 0;
+  const extras = { fallbacks: true, eager: true };
   try {
     for (let step = 0; step < MAX_STEPS; step++) {
       const stream = client.beta.messages.stream({
         model: MODEL,
         max_tokens: 32000,
-        betas: ["server-side-fallback-2026-07-01"],
-        fallbacks: "default",
+        ...(extras.fallbacks ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
         output_config: { effort: "high" },
         system: systemBlocks(mode),
-        tools: toolDefinitions,
+        tools: extras.eager ? toolDefinitions : toolDefinitions.map(({ eager_input_streaming, ...t }) => (void eager_input_streaming, t)),
         messages,
         cache_control: { type: "ephemeral" },
       });
@@ -123,6 +123,22 @@ export async function* runTurn(chatId: string, me: Me, userText: string): AsyncG
         message = await stream.finalMessage();
         retries = 0;
       } catch (err) {
+        // If the service turns down one of the optional extras, carry on without it.
+        if (err instanceof Anthropic.BadRequestError) {
+          const why = String(err.message);
+          if (extras.fallbacks && /fallback/i.test(why)) {
+            console.error("Assistant: fallbacks not accepted, carrying on without them:", why);
+            extras.fallbacks = false;
+            step--;
+            continue;
+          }
+          if (extras.eager && /eager_input_streaming/i.test(why)) {
+            console.error("Assistant: streamed tool input not accepted, carrying on without it:", why);
+            extras.eager = false;
+            step--;
+            continue;
+          }
+        }
         // A tool input that couldn't be read, or a dropped connection: try the step again, twice at most.
         if (err instanceof Anthropic.APIError || retries++ >= 2) throw err;
         continue;
@@ -155,6 +171,7 @@ export async function* runTurn(chatId: string, me: Me, userText: string): AsyncG
       if (step === MAX_STEPS - 1) yield { t: "error", message: "That took too many steps, so I stopped. Tell me what's left and I'll carry on." };
     }
   } catch (err) {
+    console.error("Assistant turn failed", err);
     yield { t: "error", message: explain(err) };
   } finally {
     await saveChat({ ...chat, messages });
@@ -165,7 +182,13 @@ export async function* runTurn(chatId: string, me: Me, userText: string): AsyncG
 function explain(err: unknown) {
   if (err instanceof Anthropic.AuthenticationError) return "The assistant's API key isn't working. Check ANTHROPIC_API_KEY in Replit Secrets.";
   if (err instanceof Anthropic.RateLimitError) return "The assistant is busy (rate limit). Wait a minute and try again.";
-  if (err instanceof Anthropic.APIError) return `The assistant service had a problem (${err.status ?? "no status"}). Try again in a moment.`;
+  if (err instanceof Anthropic.APIError) {
+    // A 400 means the app sent something the service didn't accept: show its reason so it can be fixed.
+    const reason = (err.error as { error?: { message?: string } } | undefined)?.error?.message ?? err.message;
+    return err.status === 400
+      ? `The assistant service didn't accept the request: ${reason}`
+      : `The assistant service had a problem (${err.status ?? "no status"}). Try again in a moment.`;
+  }
   return err instanceof Error ? err.message : String(err);
 }
 

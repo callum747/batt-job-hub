@@ -2,6 +2,16 @@
 
 Plain-English notes on what's new in the Batt Job Hub, newest first.
 
+## 23/11/2026: Email (first part)
+- **Email the quote:** once a quote or survey proposal has its PDF, the Quote & money tab shows the covering email, already written: to the client's email, "Quotation 559 – project", the total with and without VAT, and your name. Change anything, then press **Save as a draft in Gmail**. The PDF is attached and the draft opens in Gmail for you to check and send. **The app never sends.** A line goes in the job's notes saying it was drafted.
+- **Each job has an Email tab** showing its email threads: anything with the job number in the subject, or to or from the client's email, from the last two years, in everyone's connected mailbox. Your own threads open in Gmail.
+- **Ask can do it too:** "draft the email for 559" or "any emails on 559?".
+- **You need to connect Google once more** and tick the Gmail boxes (a blue bar at the top asks). Settings › check connection now shows Gmail too.
+- Next: the Inbox (turn an enquiry email into a job) and wholesaler invoices landing on jobs by themselves.
+
+## 23/11/2026: Ask fix
+- Ask was turning every message down with "problem (400)". The app now sends the tool descriptions in the exact shape the service wants, carries on without any optional extra the service won't accept, and if anything is still refused it shows the real reason instead of a code.
+
 ## 23/11/2026: Ask (the chat assistant)
 - **A new Ask screen** (in the menu, and on the phone's bottom bar where Clients was; Clients is now under More). Type what you need, like you would to Claude in chat: "Price job 559: 8 double sockets and 12 downlights in the kitchen, 2 people, 1 van", then "make the quote".
 - **What it can do:** find jobs and clients, open a job's details and money, look things up in the price list, create a job, change a job's details, add a note, price a job in the pricing spreadsheet, make the short or long-form quote, move a job's stage when you ask, read the diary and the rates.

@@ -6,7 +6,7 @@ import { findJob, getPeople, getSettings, jobDetail, listClients } from "@/lib/d
 import { gbp } from "@/lib/money";
 import { jobLabel, todayUK, ukDate } from "@/lib/jobs-rules";
 import { currentPerson } from "@/lib/auth";
-import { errorText, googleConnected } from "@/lib/google/client";
+import { errorText, gmailConnected, googleConnected } from "@/lib/google/client";
 import { listJobFiles, type FolderListing } from "@/lib/google/drive";
 import { ConnectGoogleButton } from "@/components/connect-google";
 import { secondaryBtn } from "@/components/ui";
@@ -19,6 +19,10 @@ import { QuoteForm } from "../quote-form";
 import { SurveyForm } from "../survey-form";
 import { LongForm } from "../long-form";
 import { plusDays } from "@/lib/quote-defaults";
+import { quoteEmailStart } from "@/lib/quote-email";
+import { findEmail, jobSearch, unescapeHtml } from "@/lib/email";
+import { jobThreads } from "@/lib/google/gmail";
+import { EmailDraftForm } from "../email-form";
 import { draftLongQuote, draftShortQuote, isPriced, preparedByFor, productsFor, suggestLong } from "@/lib/quote-drafts";
 import { getClient, getPersonByEmail, jobDocuments } from "@/lib/data";
 import { JobForm } from "../job-form";
@@ -29,6 +33,7 @@ const TABS = [
   { key: "money", label: "Quote & money" },
   { key: "visits", label: "Visits" },
   { key: "files", label: "Files" },
+  { key: "email", label: "Email" },
   { key: "details", label: "Details" },
 ];
 
@@ -195,6 +200,7 @@ export default async function JobPage({ params, searchParams }: { params: Promis
                 <QuoteCard job={job} lines={detail.lines} templateChoice={formChoice} />
               </>
             )}
+            <EmailQuoteCard job={job} />
           </>
         )}
 
@@ -206,6 +212,8 @@ export default async function JobPage({ params, searchParams }: { params: Promis
         )}
 
         {tab === "files" && <FilesTab job={job} />}
+
+        {tab === "email" && <EmailTab job={job} />}
 
         {tab === "details" && (
           <Card title="Details">
@@ -527,6 +535,88 @@ async function SurveyCard({ job, rates }: { job: Awaited<ReturnType<typeof findJ
             preparedBy,
           }}
         />
+      )}
+    </Card>
+  );
+}
+
+async function EmailQuoteCard({ job }: { job: Awaited<ReturnType<typeof findJob>> & object }) {
+  const me = await currentPerson();
+  if (!me || me.email === "preview@localhost") return null;
+  const start = await quoteEmailStart(job, me.email);
+  if (!start) return null;
+  const ok = await gmailConnected(me.email);
+  return (
+    <Card title="Email the quote">
+      {ok ? (
+        <EmailDraftForm jobId={job.id} start={start} />
+      ) : (
+        <div className="rounded-xl bg-surface p-4">
+          <p className="mb-3">To draft the email in Gmail, connect Google again and tick the Gmail boxes. The app only ever saves drafts; it never sends.</p>
+          <ConnectGoogleButton className={secondaryBtn}>Connect Google</ConnectGoogleButton>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+async function EmailTab({ job }: { job: Awaited<ReturnType<typeof findJob>> & object }) {
+  const me = await currentPerson();
+  const ok = me && me.email !== "preview@localhost" ? await gmailConnected(me.email) : false;
+  const client = job.client_id ? await getClient(job.client_id) : null;
+  const query = jobSearch({ number: job.number, legacy_ref: job.legacy_ref, clientEmail: client?.email || findEmail(job.contact) });
+  let result: Awaited<ReturnType<typeof jobThreads>> | null = null;
+  let problem = "";
+  if (ok && query) {
+    try {
+      result = await jobThreads(query, me!.email);
+    } catch (e) {
+      problem = errorText(e);
+    }
+  }
+  const people = await getPeople(true);
+  const whose = (box: string) => people.find((p) => p.email.toLowerCase() === box)?.short_name ?? box;
+  return (
+    <Card title="Email">
+      {!ok ? (
+        <div className="rounded-xl bg-surface p-4">
+          <p className="mb-3">Connect Google again and tick the Gmail boxes to see this job&apos;s emails here.</p>
+          <ConnectGoogleButton className={secondaryBtn}>Connect Google</ConnectGoogleButton>
+        </div>
+      ) : !query ? (
+        <p className="text-muted">This job has no number or client email yet, so there&apos;s nothing to search for.</p>
+      ) : (
+        <div className="space-y-4">
+          <p className="text-[14px] text-muted">
+            Emails with {job.number ? `${job.number} in the subject` : `${job.legacy_ref} in the subject`}{client?.email ? `, or to or from ${client.email}` : ""}, from the last two years, in everyone&apos;s mailbox that&apos;s connected.
+          </p>
+          {problem && <p className="rounded-xl border border-warn/30 bg-warn/10 px-4 py-3 text-[15px]">{problem}</p>}
+          {result?.problems.map((p) => (
+            <p key={p} className="rounded-xl border border-warn/30 bg-warn/10 px-4 py-3 text-[15px]">Couldn&apos;t search {p}</p>
+          ))}
+          {result && result.threads.length === 0 && <p className="text-muted">No emails found.</p>}
+          {result && result.threads.length > 0 && (
+            <ul className="divide-y divide-line rounded-xl border border-line">
+              {result.threads.map((t) => (
+                <li key={t.mailbox + t.threadId} className="px-4 py-3">
+                  <div className="flex flex-wrap items-baseline gap-x-3">
+                    {t.url ? (
+                      <a href={t.url} target="_blank" rel="noreferrer" className="font-medium underline underline-offset-4">{t.subject}</a>
+                    ) : (
+                      <span className="font-medium">{t.subject}</span>
+                    )}
+                    {t.count > 1 && <span className="text-[14px] text-muted">{t.count} emails</span>}
+                    <span className="ml-auto text-[14px] text-muted">{t.date ? ukDate(t.date.slice(0, 10)) : ""}</span>
+                  </div>
+                  <p className="mt-1 line-clamp-2 text-[15px] text-muted">
+                    <span className="text-text">{t.from}</span> · {unescapeHtml(t.snippet)}
+                  </p>
+                  <p className="mt-1 text-[13px] text-muted">In {whose(t.mailbox)}&apos;s mailbox</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
     </Card>
   );

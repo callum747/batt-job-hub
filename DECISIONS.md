@@ -56,6 +56,11 @@ Things that weren't spelled out in the brief or the playbook. Say if any should 
 41. **Clients moved off the phone's bottom bar** to make room for Ask. It's under More.
 42. **Built on Anthropic's standard API, run by the app itself** (not Anthropic's hosted "Managed Agents"), because everything the assistant does is the app's own database and Google work, which has to run inside the app.
 
+## Email
+43. **Drafts only, in the sender's own Gmail.** The app asks Google for permission to read email and to compose drafts; it has no way to send.
+44. **The covering email is a fixed, plain wording** (thanks, what's attached, the total ex and inc VAT, how to go ahead, phone number, your name and title). It's not written by AI, so it's the same every time and you edit it before saving.
+45. **A job's emails are found by the job number in the subject, or the client's email address**, over the last two years, in every mailbox that's connected (yours and Cam's). You only get links to threads in your own mailbox.
+
 ## Still needed from Callum
 - **Jed's email address** (the one his Google Calendar uses). Without it he can't be invited to visits. Add it in Settings, under People.
 - **An Anthropic API key** for the Ask screen, added in Replit Secrets as `ANTHROPIC_API_KEY`.
