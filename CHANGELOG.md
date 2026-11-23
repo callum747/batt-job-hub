@@ -2,6 +2,13 @@
 
 Plain-English notes on what's new in the Batt Job Hub, newest first.
 
+## 23/11/2026: Count the drawings
+- **Each job's Quote & money tab has a "Count the drawings" card.** It lists the PDFs in the job's Drive folder (looking inside the subfolders of 02 - Drawings & Specs), with the electrical layouts ticked for you. Tick the layouts and the legend or spec, and press Count.
+- **The assistant takes the points off the drawings** room by room: it reads the legend first, counts each symbol, and matches each to your price list. It takes a few minutes; you can leave the page and the count is saved when it's done.
+- **You get a table to check:** room, item, quantity and how sure it is (green clear, amber check, red unsure), totals for each item, questions to ask the client, and what it saw but didn't count.
+- **"Use the drawing count"** in the pricing form loads the lines in for you to check and change before pricing. Items not on your price list come in as off-list lines needing a cost and hours.
+- **It's a first draft, not a final count.** Check it against the drawings, especially the amber and red lines.
+
 ## 23/11/2026: Miles from Google Maps, and Cam's invoices recorded
 - **Work out miles:** each job's Details tab has a Miles card. Press **Work out miles** and Google Maps gives the round-trip road miles from 18 Alwin Close to the site's postcode and back (out and back worked out separately), saved on the job to the nearest mile. Ask can do it too, so it no longer needs to ask you for miles when a job has a postcode.
 - **Three invoices Cameron raised by hand are now in the ledger,** copied from the invoices themselves: INV-546 (31B Church Lane deposit, £363.05), INV-547 (Ace Pro, 31C Buckingham Street final, £2,808.14) and INV-548 (2 Stratford Drive call-out, £78.00). The next number is INV-549. Sent dates are blank until you mark them sent.

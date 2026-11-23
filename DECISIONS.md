@@ -119,6 +119,12 @@ Things that weren't spelled out in the brief or the playbook. Say if any should 
 89. **A hand-raised invoice counts on its job** when the ledger's Quote Ref is the job's number: a Deposit ticks off the deposit stage, a Final ticks off the last stage, and its net comes off what's left to invoice.
 90. **Deleting a job** was done once, by request, for the un-numbered Ace Pro survey enquiry. There's still no delete button in the app.
 
+## Counting drawings
+91. **A count never prices anything by itself.** It's saved on the job and offered to the pricing form; a person checks it and presses price.
+92. **The drawings to read are chosen by a person,** with likely electrical ones ticked from their names ("Small Power", "Lighting", "81_001", "E-101"). Up to 8 PDFs and 20 MB at a time.
+93. **A price list match is only kept if it's exactly a product on your list.** Anything else comes through as "not on the price list".
+94. **Default finish:** the plain standard item (white plastic) unless the drawings or spec name a finish or make.
+
 ## Still needed from Callum
 - **Jed's email address** (the one his Google Calendar uses). Without it he can't be invited to visits. Add it in Settings, under People.
 - **For Jed's monthly CIS statement:** his full legal name, email and address (on the ledger's Subcontractors tab), and Batt's CIS employer's reference (GPG have it).

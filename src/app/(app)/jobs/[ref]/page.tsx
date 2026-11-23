@@ -32,6 +32,10 @@ import { invoiceLabel } from "@/lib/invoicing";
 import { readLedger } from "@/lib/google/ledger-run";
 import { mapsConfigured } from "@/lib/google/miles";
 import { MilesButton } from "../miles-button";
+import { DrawingCountPanel } from "../drawing-count";
+import { listDrawingPdfs, type DrawingFile } from "@/lib/google/drawings-run";
+import { countToItems, type SavedCount } from "@/lib/drawings";
+import { assistantConfigured } from "@/lib/assistant/client";
 import type { LedgerInvoice } from "@/lib/ledger";
 import { draftLongQuote, draftShortQuote, isPriced, preparedByFor, productsFor, suggestLong } from "@/lib/quote-drafts";
 import { getClient, getPersonByEmail, jobDocuments } from "@/lib/data";
@@ -365,6 +369,17 @@ async function PricingCard({ job, lines, redBelow }: { job: Awaited<ReturnType<t
   }
   const p = job.pricing;
   const light = p ? pricingLight(p.result, redBelow) : "none";
+  // The job's drawings (PDFs in its Drive folder) and the latest count of them.
+  let drawings: DrawingFile[] = [];
+  if (connected && job.drive_folder_id) {
+    try {
+      drawings = await listDrawingPdfs(me!.email, job.drive_folder_id);
+    } catch {
+      drawings = [];
+    }
+  }
+  const savedCount: SavedCount | null = job.drawing_count;
+  const counted = savedCount && products.length ? countToItems(savedCount.count, products) : null;
   return (
     <>
       {p && (
@@ -419,6 +434,11 @@ async function PricingCard({ job, lines, redBelow }: { job: Awaited<ReturnType<t
           </p>
         </Card>
       )}
+      {connected && job.drive_folder_id && (
+        <Card title="Count the drawings">
+          <DrawingCountPanel jobId={job.id} files={drawings} saved={savedCount} ready={assistantConfigured()} />
+        </Card>
+      )}
       <Card title={p ? "Change the pricing" : "Price this job"}>
         {!connected ? (
           <div className="rounded-xl bg-surface p-4">
@@ -428,7 +448,7 @@ async function PricingCard({ job, lines, redBelow }: { job: Awaited<ReturnType<t
         ) : problem ? (
           <p className="rounded-xl border border-warn/30 bg-warn/10 px-4 py-3 text-[15px]">Couldn&apos;t read the price list. {problem}</p>
         ) : (
-          <PricingForm jobId={job.id} products={products} listDate={listDate} saved={p?.input ?? null} miles={job.miles_round_trip} />
+          <PricingForm jobId={job.id} products={products} listDate={listDate} saved={p?.input ?? null} miles={job.miles_round_trip} counted={counted} />
         )}
       </Card>
     </>

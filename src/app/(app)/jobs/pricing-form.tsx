@@ -35,12 +35,15 @@ export function PricingForm({
   listDate,
   saved,
   miles,
+  counted,
 }: {
   jobId: string;
   products: Product[];
   listDate: string;
   saved: PricingInput | null;
   miles: number | null;
+  /** Lines from the latest drawing count, offered as a starting point. */
+  counted?: { items: PricingInput["items"]; unmatched: number } | null;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -102,6 +105,18 @@ export function PricingForm({
           </option>
         ))}
       </datalist>
+
+      {counted && counted.items.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3 rounded-[10px] border border-blue/30 bg-blue-soft px-4 py-3 text-[15px]">
+          <span className="min-w-0 flex-1">
+            The drawing count has <b>{counted.items.length} lines</b>
+            {counted.unmatched > 0 ? `, ${counted.unmatched} of them not on the price list (they need a material cost and hours)` : ""}. Loading it replaces the lines below.
+          </span>
+          <button type="button" className={secondaryBtn} onClick={() => { setRows(rowsFrom({ items: counted.items } as PricingInput, products)); setMsg(null); }}>
+            Use the drawing count
+          </button>
+        </div>
+      )}
 
       <div className="space-y-3">
         {rows.map((r, i) => {

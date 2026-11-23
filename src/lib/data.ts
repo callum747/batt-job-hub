@@ -56,6 +56,7 @@ export type JobRow = {
   drive_error: string;
   pricing: import("./google/pricing-run").SavedPricing | null;
   quote_draft: import("./quote-short").ShortQuote | null;
+  drawing_count: import("./drawings").SavedCount | null;
   links: { name: string; url: string }[];
   notes: string;
   updated_at: string;

@@ -14,6 +14,7 @@ export type DriveFile = {
   parents?: string[];
   webViewLink?: string;
   modifiedTime?: string;
+  size?: string;
   trashed?: boolean;
 };
 
@@ -55,7 +56,7 @@ export async function listChildren(email: string, parents: string[], onlyFolders
         pageSize: 200,
         pageToken,
         orderBy: "name",
-        fields: "nextPageToken,files(id,name,mimeType,parents,webViewLink,modifiedTime)",
+        fields: "nextPageToken,files(id,name,mimeType,parents,webViewLink,modifiedTime,size)",
         q: `(${parents.map((p) => `'${q(p)}' in parents`).join(" or ")}) and trashed = false${onlyFolders ? ` and mimeType = '${FOLDER}'` : ""}`,
       },
     });
