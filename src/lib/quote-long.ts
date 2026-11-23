@@ -160,6 +160,8 @@ export function longStructurePass(doc: Doc, q: LongQuote): Request[] {
   return toBatch(edits);
 }
 
+const APPENDIX_NOTE = " Add a row per room; delete this page for smaller jobs.";
+
 /** Pass 2: every word and number. */
 export function longTextPass(doc: Doc, q: LongQuote): Request[] {
   const ps = paragraphs(doc.body?.content);
@@ -224,6 +226,9 @@ export function longTextPass(doc: Doc, q: LongQuote): Request[] {
   edits.push(replaceInParagraph(sig, "Cameron Batt", q.preparedBy.name));
 
   if (q.rooms.length > 0) {
+    // The template's note to whoever fills it in isn't for the client.
+    const note = ps.find((p) => p.text.includes(APPENDIX_NOTE));
+    if (note) edits.push(replaceInParagraph(note, APPENDIX_NOTE, ""));
     const pts = need(T.points(doc), "the point schedule");
     const totalRow = rowOf(pts, "TOTAL");
     if (totalRow - 1 !== q.rooms.length) throw new Error("The point schedule doesn't have the right number of rows yet.");

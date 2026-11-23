@@ -18,7 +18,7 @@ Plain-English notes on what's new in the Batt Job Hub, newest first.
 ## 23/11/2026: The quote document (long form)
 - **Long form or short form** on each priced job's Quote & money tab. Long form is suggested for £2,000 and over, tenders and main contractors; either can be chosen.
 - **The long form is drafted from the pricing:** scope summary, the price grouped by section (power and data, lighting and so on) with travel as Preliminaries, the per-point rates for the items you priced, optional extras, a programme, and the appendix point schedule room by room with a lighting key.
-- Being checked on a real copy of your long-form template now.
+- Tested on a real copy of your long-form template with five rooms, six sections, two fittings and Preliminaries: seven pages, no placeholders left, totals correct. The template's own note ("Add a row per room; delete this page for smaller jobs") is taken out so the client never sees it.
 
 ## 23/11/2026: Survey proposals
 - **Survey jobs** (job type "Survey") get a survey form on the Quote & money tab instead of the pricing spreadsheet.
