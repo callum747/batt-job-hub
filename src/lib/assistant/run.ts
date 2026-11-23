@@ -96,20 +96,34 @@ function repair(messages: Msg[]): Msg[] {
   ];
 }
 
+const FILE_GONE = "(The file itself was shown earlier and is no longer attached. Open it again with read_file if you need to look at it.)";
+
 /**
  * Files opened in earlier turns (PDFs, photos) are big, so they aren't kept or sent again: a line in their place
- * says the file can be opened again.
+ * says the file can be opened again. The assistant's private working-out is tied to the exact conversation before
+ * it, so once an earlier message has been changed, the working-out after it is dropped too (the service refuses it otherwise).
  */
 export function slim(messages: Msg[]): Msg[] {
-  return messages.map((m) => {
+  let changedFrom = -1;
+  const out = messages.map((m, i) => {
     if (m.role !== "user" || !Array.isArray(m.content)) return m;
     return {
       ...m,
       content: m.content.map((b) => {
-        if (b.type !== "tool_result" || !Array.isArray(b.content) || !b.content.some((x) => x.type === "document" || x.type === "image")) return b;
-        return { ...b, content: [...b.content.filter((x) => x.type === "text"), { type: "text" as const, text: "(The file itself was shown earlier and is no longer attached. Open it again with read_file if you need to look at it.)" }] };
+        if (b.type !== "tool_result" || !Array.isArray(b.content)) return b;
+        const hasFile = b.content.some((x) => x.type === "document" || x.type === "image");
+        const already = b.content.some((x) => x.type === "text" && x.text === FILE_GONE);
+        if ((hasFile || already) && changedFrom < 0) changedFrom = i;
+        if (!hasFile) return b;
+        return { ...b, content: [...b.content.filter((x) => x.type === "text"), { type: "text" as const, text: FILE_GONE }] };
       }),
     };
+  });
+  if (changedFrom < 0) return out;
+  return out.map((m, i) => {
+    if (i < changedFrom || m.role !== "assistant" || !Array.isArray(m.content)) return m;
+    const kept = m.content.filter((b) => b.type !== "thinking" && b.type !== "redacted_thinking");
+    return kept.length === m.content.length ? m : { ...m, content: kept.length ? kept : [{ type: "text" as const, text: "(No reply.)" }] };
   });
 }
 

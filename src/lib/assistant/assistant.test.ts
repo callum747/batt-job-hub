@@ -152,6 +152,17 @@ d("the assistant", () => {
     const result = (kept[0].content as { content: { type: string; text?: string }[] }[])[0].content;
     expect(result.map((b) => b.type)).toEqual(["text", "text"]);
     expect(result[1].text).toMatch(/Open it again with read_file/);
+    // The assistant's working-out after a changed message is dropped, including in a chat that was saved already slimmed.
+    const chat = [
+      { role: "assistant" as const, content: [{ type: "thinking" as const, thinking: "a", signature: "s1" }, { type: "tool_use" as const, id: "t", name: "read_file", input: {} }] },
+      { role: "user" as const, content: [{ type: "tool_result" as const, tool_use_id: "t", content: opened.blocks }] },
+      { role: "assistant" as const, content: [{ type: "thinking" as const, thinking: "b", signature: "s2" }, { type: "text" as const, text: "Here it is." }] },
+    ];
+    const once = run.slim(chat);
+    expect((once[0].content as { type: string }[]).map((b) => b.type)).toEqual(["thinking", "tool_use"]);
+    expect((once[2].content as { type: string }[]).map((b) => b.type)).toEqual(["text"]);
+    const saved = [once[0], once[1], chat[2]];
+    expect((run.slim(saved)[2].content as { type: string }[]).map((b) => b.type)).toEqual(["text"]);
   });
 
   it("runs a turn: calls a tool, answers, and saves the conversation", async () => {
