@@ -1,7 +1,28 @@
 /** Email pieces that don't need Google: the draft wording, the raw message Gmail stores, and job searches. Pure, tested. */
 
 export type Attachment = { name: string; mimeType: string; data: Buffer };
-export type DraftInput = { from: string; to: string; cc: string; subject: string; body: string; attachments: Attachment[]; /** A draft with nobody in To yet is fine (the person fills it in, or sends it another way). */ allowNoTo?: boolean };
+export type DraftInput = { from: string; to: string; cc: string; subject: string; body: string; attachments: Attachment[]; /** A draft with nobody in To yet is fine (the person fills it in, or sends it another way). */ allowNoTo?: boolean; /** The person's own Gmail signature, as HTML. When given, the email is sent as HTML with the signature under the wording. */ signatureHtml?: string };
+
+const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+/**
+ * Takes a typed name and job title off the end of an email ("Kind Regards," then a few short lines), for when the
+ * person's own Gmail signature is going underneath: otherwise their name would be there twice.
+ */
+export function withoutTypedName(body: string): string {
+  const lines = body.replace(/\s+$/, "").split("\n");
+  const at = lines.findLastIndex((l) => /^(kind |best |warm )?regards,?$|^many thanks,?$|^thanks,?$/i.test(l.trim()));
+  const after = at < 0 ? [] : lines.slice(at + 1).filter((l) => l.trim());
+  if (at < 0 || after.length === 0 || after.length > 4 || after.some((l) => l.length > 70)) return body;
+  return lines.slice(0, at + 1).join("\n");
+}
+
+/** The plain wording as HTML, the way Gmail writes a message: a line per line, links clickable, then the signature. */
+export function htmlBody(body: string, signatureHtml: string): string {
+  const linked = (line: string) => esc(line).replace(/(https?:\/\/[^\s<]+[^\s<.,;:!?)])/g, '<a href="$1">$1</a>');
+  const lines = body.replace(/\r/g, "").split("\n").map((l) => `<div>${l.trim() ? linked(l) : "<br>"}</div>`).join("");
+  return `<div dir="ltr">${lines}<div><br></div><div class="gmail_signature" data-smartmail="gmail_signature">${signatureHtml}</div></div>`;
+}
 
 const EMAIL = /^[^\s@<>,;"]+@[^\s@<>,;"]+\.[^\s@<>,;"]+$/;
 
@@ -38,7 +59,17 @@ export function buildRaw(d: DraftInput, boundary = "batt-" + Math.random().toStr
     `Subject: ${encodeHeader(d.subject)}`,
     "MIME-Version: 1.0",
   ];
-  const text = ["Content-Type: text/plain; charset=UTF-8", "Content-Transfer-Encoding: base64", "", wrap76(Buffer.from(d.body.replace(/\r?\n/g, "\r\n"), "utf8").toString("base64"))];
+  const plain = ["Content-Type: text/plain; charset=UTF-8", "Content-Transfer-Encoding: base64", "", wrap76(Buffer.from(d.body.replace(/\r?\n/g, "\r\n"), "utf8").toString("base64"))];
+  // With a signature the wording goes as both plain text and HTML (the HTML carries the signature and its pictures).
+  const alt = boundary + "-alt";
+  const text = d.signatureHtml?.trim()
+    ? [
+        `Content-Type: multipart/alternative; boundary="${alt}"`, "",
+        "--" + alt, ...plain,
+        "--" + alt, "Content-Type: text/html; charset=UTF-8", "Content-Transfer-Encoding: base64", "", wrap76(Buffer.from(htmlBody(d.body, d.signatureHtml), "utf8").toString("base64")),
+        `--${alt}--`,
+      ]
+    : plain;
   let mime: string;
   if (d.attachments.length === 0) {
     mime = [...headers, ...text].join("\r\n");

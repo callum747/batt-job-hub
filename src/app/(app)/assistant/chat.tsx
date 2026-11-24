@@ -7,7 +7,7 @@ import remarkGfm from "remark-gfm";
 import { ArrowUp, Check, Loader2, Mic, Square, X } from "lucide-react";
 import { joinSpoken, useDictation } from "./dictate";
 
-type Item = { role: "user"; text: string } | { role: "assistant"; text: string } | { role: "tool"; label: string; ok: boolean | null; id?: string };
+type Item = { role: "user"; text: string; queued?: string } | { role: "assistant"; text: string } | { role: "tool"; label: string; ok: boolean | null; id?: string };
 
 const SUGGESTIONS = [
   "Price job 559: 8 double sockets and 12 downlights in the kitchen, 2 people, 1 van",
@@ -45,13 +45,42 @@ export function Chat({ chatId: startId, initial, prefill }: { chatId: string | n
     end.current?.scrollIntoView({ block: "end" });
   }, [items]);
 
-  async function send(text: string) {
+  // Messages sent while Claude is working: held here until he's read them. Any he never got to are sent when he finishes.
+  const unread = useRef(new Map<string, string>());
+
+  /** Sends a message into the task that's already running. He reads it between steps. */
+  async function sendMidTask(message: string) {
+    if (!chatId.current) return false;
+    const key = `local-${Date.now()}`;
+    setItems((xs) => [...xs, { role: "user", text: message, queued: key }]);
+    try {
+      const res = await fetch("/api/assistant/queue", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chatId: chatId.current, message }) });
+      const j = (await res.json().catch(() => null)) as { id?: string; error?: string } | null;
+      if (!res.ok || !j?.id) throw new Error(j?.error ?? "That didn't go through.");
+      unread.current.set(j.id, message);
+      setItems((xs) => xs.map((x) => (x.role === "user" && x.queued === key ? { ...x, queued: j.id } : x)));
+      return true;
+    } catch (e) {
+      setItems((xs) => xs.filter((x) => !(x.role === "user" && x.queued === key)));
+      setProblem(e instanceof Error ? e.message : String(e));
+      setInput(message);
+      return false;
+    }
+  }
+
+  async function send(text: string, opts: { shown?: boolean } = {}) {
     const message = text.trim();
-    if (!message || busy) return;
+    if (!message) return;
+    if (busy) {
+      setInput("");
+      await sendMidTask(message);
+      return;
+    }
     setBusy(true);
     setProblem("");
     setInput("");
-    setItems((xs) => [...xs, { role: "user", text: message }]);
+    if (!opts.shown) setItems((xs) => [...xs, { role: "user", text: message }]);
+    let leftOver = "";
     try {
       const res = await fetch("/api/assistant", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chatId: chatId.current, message }) });
       if (!res.ok || !res.body) {
@@ -73,6 +102,11 @@ export function Chat({ chatId: startId, initial, prefill }: { chatId: string | n
           if (ev.t === "chat" && ev.id && !chatId.current) {
             chatId.current = ev.id;
             window.history.replaceState(null, "", `/assistant?c=${ev.id}`);
+          } else if (ev.t === "took") {
+            // He's read these: they're part of the conversation now.
+            const ids = (ev as unknown as { ids: string[] }).ids ?? [];
+            for (const id of ids) unread.current.delete(id);
+            setItems((xs) => xs.map((x) => (x.role === "user" && x.queued && ids.includes(x.queued) ? { role: "user" as const, text: x.text } : x)));
           } else if (ev.t === "text") {
             setItems((xs) => {
               const last = xs.at(-1);
@@ -89,17 +123,25 @@ export function Chat({ chatId: startId, initial, prefill }: { chatId: string | n
           }
         }
       }
+      // Anything sent too late for him to read mid-task goes as the next message.
+      leftOver = [...unread.current.values()].join("\n\n");
+      unread.current.clear();
       // Reload the list of chats. Not after a problem: the reload would clear the message explaining it.
-      if (!failed) router.refresh();
+      if (!failed && !leftOver) router.refresh();
     } catch (e) {
       setProblem(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
       box.current?.focus();
     }
+    if (leftOver) {
+      setItems((xs) => xs.map((x) => (x.role === "user" && x.queued ? { role: "user" as const, text: x.text } : x)));
+      await send(leftOver, { shown: true });
+    }
   }
 
   const waiting = busy && items.at(-1)?.role === "user";
+  const working = busy && !waiting;
 
   return (
     <section className="flex min-h-[60dvh] flex-col rounded-2xl border border-line bg-bg shadow-card">
@@ -116,7 +158,10 @@ export function Chat({ chatId: startId, initial, prefill }: { chatId: string | n
         )}
         {items.map((it, i) =>
           it.role === "user" ? (
-            <div key={i} className="ml-auto max-w-[85%] whitespace-pre-wrap rounded-2xl bg-blue-soft px-4 py-3">{it.text}</div>
+            <div key={i} className="ml-auto max-w-[85%] whitespace-pre-wrap rounded-2xl bg-blue-soft px-4 py-3">
+              {it.text}
+              {it.queued && <span className="mt-1 block text-[13px] text-muted">Sent. He&apos;ll read it at his next step.</span>}
+            </div>
           ) : it.role === "assistant" ? (
             <div key={i} className="max-w-full"><Markdown text={it.text} /></div>
           ) : (
@@ -130,6 +175,11 @@ export function Chat({ chatId: startId, initial, prefill }: { chatId: string | n
         {waiting && (
           <p className="flex items-center gap-2 text-[14px] text-muted">
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Thinking
+          </p>
+        )}
+        {working && (
+          <p className="flex items-center gap-2 text-[14px] text-muted">
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Working. You can send another message; he&apos;ll read it at his next step.
           </p>
         )}
         {problem && <p className="rounded-xl border border-bad/30 bg-bad/10 px-4 py-3 text-[15px]">{problem}</p>}
@@ -176,8 +226,8 @@ export function Chat({ chatId: startId, initial, prefill }: { chatId: string | n
             {mic.listening ? <Square className="h-5 w-5" aria-hidden="true" /> : <Mic className="h-5 w-5" aria-hidden="true" />}
           </button>
         )}
-        <button type="submit" disabled={busy || !input.trim()} aria-label="Send" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue text-blue-ink disabled:opacity-50">
-          {busy ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" /> : <ArrowUp className="h-5 w-5" aria-hidden="true" />}
+        <button type="submit" disabled={!input.trim() || (busy && !chatId.current)} aria-label={busy ? "Send while Claude is working" : "Send"} title={busy ? "Send now: he'll read it at his next step" : "Send"} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue text-blue-ink disabled:opacity-50">
+          {busy && !input.trim() ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" /> : <ArrowUp className="h-5 w-5" aria-hidden="true" />}
         </button>
       </form>
     </section>

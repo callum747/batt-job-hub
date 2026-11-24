@@ -2,6 +2,10 @@
 
 Plain-English notes on what's new in the Batt Job Hub, newest first.
 
+## 24/11/2026: Message Claude while he's working, and signatures on drafts
+- **You can send another message while Claude API is still working.** He reads it at his next step and takes it into account, the same as a normal Claude chat. If he finishes before reading it, it goes as your next message automatically.
+- **Every draft email now has your Gmail signature under it.** Quote emails, invoice emails, chasers and anything Claude API drafts. It's the signature set in your own Gmail settings, logo and all. Where the wording used to end with your typed name and job title, that comes off so it isn't there twice.
+
 ## 23/11/2026: Count the drawings
 - **Each job's Quote & money tab has a "Count the drawings" card.** It lists the PDFs in the job's Drive folder (looking inside the subfolders of 02 - Drawings & Specs), with the electrical layouts ticked for you. Tick the layouts and the legend or spec, and press Count.
 - **The assistant takes the points off the drawings** room by room: it reads the legend first, counts each symbol, and matches each to your price list. It takes a few minutes; you can leave the page and the count is saved when it's done.

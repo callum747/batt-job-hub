@@ -1,14 +1,38 @@
 import "server-only";
 /** Gmail: drafts (never sending) and finding a job's threads. */
-import { buildRaw, senderName, type DraftInput } from "../email";
+import { buildRaw, senderName, withoutTypedName, type DraftInput } from "../email";
 import { GMAIL_NOT_CONNECTED, GoogleError, gmailConnected, gmailMailboxes, google, googleFetch } from "./client";
 
 const GMAIL = "/gmail/v1/users/me";
 
 /** Saves a draft in the person's own Gmail. Returns a link that opens it ready to check and send. */
+const signatures = new Map<string, { html: string; at: number }>();
+
+/**
+ * The person's own Gmail signature (the one set for their address in Gmail's settings), as HTML. A draft made
+ * through Google doesn't get it added the way one written in Gmail does, so it's put in here. Empty if they have none.
+ */
+export async function gmailSignature(email: string): Promise<string> {
+  const hit = signatures.get(email);
+  if (hit && Date.now() - hit.at < 10 * 60_000) return hit.html;
+  let html = "";
+  try {
+    const r = await google<{ sendAs?: { sendAsEmail: string; isPrimary?: boolean; isDefault?: boolean; signature?: string }[] }>(email, `${GMAIL}/settings/sendAs`);
+    const all = r.sendAs ?? [];
+    const mine = all.find((s) => s.sendAsEmail.toLowerCase() === email.toLowerCase()) ?? all.find((s) => s.isDefault) ?? all.find((s) => s.isPrimary);
+    html = mine?.signature ?? "";
+  } catch {
+    // No signature is better than no draft.
+    html = "";
+  }
+  signatures.set(email, { html, at: Date.now() });
+  return html;
+}
+
 export async function createDraft(email: string, d: Omit<DraftInput, "from">): Promise<{ draftId: string; messageId: string; url: string }> {
   if (!(await gmailConnected(email))) throw new GoogleError(GMAIL_NOT_CONNECTED, 401);
-  const raw = buildRaw({ ...d, from: email });
+  const signatureHtml = d.signatureHtml ?? (await gmailSignature(email));
+  const raw = buildRaw({ ...d, body: signatureHtml.trim() ? withoutTypedName(d.body) : d.body, from: email, signatureHtml });
   const r = await google<{ id: string; message: { id: string } }>(email, `${GMAIL}/drafts`, { method: "POST", body: { message: { raw } } });
   return { draftId: r.id, messageId: r.message.id, url: `https://mail.google.com/mail/?authuser=${encodeURIComponent(email)}#drafts?compose=${r.message.id}` };
 }

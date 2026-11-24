@@ -37,6 +37,8 @@ What you can do, so you never say you can't: read and search every mailbox, open
 
 When something a client reads comes out wrong (a reference, a paragraph break, a heading, a word), fix it in the document with edit_doc and save_pdf, and say it's done. Don't explain why the tool did it, and don't offer the user instructions.
 
+The user can send you a message while you are in the middle of a task. It arrives with your tool results, marked "[Sent by the user while you were working]". It is from the user and is the most recent thing they've said: act on it straight away. If it's a correction or an extra, fold it into what you're doing. If it says stop, stop and say where you got to. If it's a separate request, finish the step you're on, then do it. Don't make them repeat it.
+
 How to work:
 - Do the work first and ask afterwards. Look things up yourself: the job, its Drive folder, Settings, the price list. Only ask the user for something you can't find and that changes the result.
 - If you must ask, ask once, everything together, as a short numbered list of plain questions. No tables of things you don't know. Don't ask about anything the user has already told you in this conversation, and don't ask them to confirm what they just said.
@@ -126,7 +128,23 @@ export function dropThinking(messages: Msg[], from = 0): Msg[] {
   });
 }
 
+/** How a message the user sent while the assistant was mid-task is marked in the conversation. */
+const QUEUED = "[Sent by the user while you were working] ";
+
+/** Holds a message for the turn that's running. Null if the chat doesn't exist. */
+export async function queueMessage(chatId: string, email: string, text: string): Promise<string | null> {
+  if (!(await getChat(chatId, email))) return null;
+  const [row] = await sql<{ id: string }[]>`insert into assistant_queue (chat_id, email, text) values (${chatId}, ${email}, ${text}) returning id`;
+  return row.id;
+}
+
+async function takeQueued(chatId: string) {
+  return (await sql<{ id: string; text: string }[]>`
+    update assistant_queue set taken_at = now() where chat_id = ${chatId} and taken_at is null returning id, text, created_at`).map((r) => ({ id: r.id, text: r.text }));
+}
+
 export type AssistantEvent =
+  | { t: "took"; ids: string[] }
   | { t: "text"; d: string }
   | { t: "tool"; id: string; label: string }
   | { t: "tool_done"; id: string; ok: boolean }
@@ -224,6 +242,8 @@ export async function* runTurn(chatId: string, me: Me, userText: string): AsyncG
   }
   const client = anthropic();
   const turn = { userText, startedAt: new Date() };
+  // Anything left waiting from a turn that ended before it was read is dropped here: the screen sends it again itself.
+  await sql`update assistant_queue set taken_at = now() where chat_id = ${chatId} and taken_at is null`;
   const mode = (await googleSettings()).mode;
   const earlier = slim(repair(chat.messages));
   // The instructions or tools have changed since this chat was last used (an update): its old working-out no longer fits.
@@ -308,7 +328,16 @@ export async function* runTurn(chatId: string, me: Me, userText: string): AsyncG
         break;
       }
       const calls = message.content.filter((b): b is Anthropic.Beta.BetaToolUseBlock => b.type === "tool_use");
-      if (calls.length === 0) break;
+      if (calls.length === 0) {
+        // Finished, unless the user sent something while it was working: then that's answered before stopping.
+        const waiting = await takeQueued(chatId);
+        if (waiting.length === 0) break;
+        yield { t: "took", ids: waiting.map((w) => w.id) };
+        turn.userText = waiting.map((w) => w.text).join("\n");
+        messages.push({ role: "user", content: waiting.map((w) => ({ type: "text" as const, text: QUEUED + w.text })) });
+        await saveChat({ ...chat, messages });
+        continue;
+      }
       if (message.stop_reason === "max_tokens") {
         // A cut-off tool call can look complete, so don't run it.
         messages.push({ role: "user", content: calls.map((c) => ({ type: "tool_result" as const, tool_use_id: c.id, is_error: true, content: "Your reply was cut off before this call finished. Make it again, shorter." })) });
@@ -322,7 +351,13 @@ export async function* runTurn(chatId: string, me: Me, userText: string): AsyncG
         yield { t: "tool_done", id: c.id, ok: r.ok };
         results.push({ type: "tool_result", tool_use_id: c.id, content: r.blocks ?? r.content, ...(r.ok ? {} : { is_error: true }) });
       }
-      messages.push({ role: "user", content: results });
+      // Messages the user sent mid-task go in with the results, so the next step is taken with them in mind.
+      const waiting = await takeQueued(chatId);
+      if (waiting.length) {
+        yield { t: "took", ids: waiting.map((w) => w.id) };
+        turn.userText = [turn.userText, ...waiting.map((w) => w.text)].join("\n");
+      }
+      messages.push({ role: "user", content: [...results, ...waiting.map((w) => ({ type: "text" as const, text: QUEUED + w.text }))] });
       await saveChat({ ...chat, messages });
       if (step === MAX_STEPS - 1) yield { t: "error", message: "That took too many steps, so I stopped. Tell me what's left and I'll carry on." };
     }
@@ -350,8 +385,13 @@ export function toDisplay(messages: Msg[]): DisplayItem[] {
     if (m.role === "user") {
       if (typeof m.content === "string") out.push({ role: "user", text: m.content });
       else {
-        const said = m.content.filter((b) => b.type === "text" && !b.text.startsWith(CONTEXT)).map((b) => (b as { text: string }).text).join("\n");
-        if (said && !m.content.some((b) => b.type === "tool_result")) out.push({ role: "user", text: said });
+        // What the person typed: the message itself, or anything they sent while the assistant was mid-task.
+        const midTask = m.content.some((b) => b.type === "tool_result");
+        for (const b of m.content) {
+          if (b.type !== "text" || b.text.startsWith(CONTEXT)) continue;
+          if (b.text.startsWith(QUEUED)) out.push({ role: "user", text: b.text.slice(QUEUED.length) });
+          else if (!midTask) out.push({ role: "user", text: b.text });
+        }
       }
       continue;
     }

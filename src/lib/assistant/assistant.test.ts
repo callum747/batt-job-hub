@@ -292,6 +292,32 @@ d("the assistant", () => {
     expect(await run.getChat("00000000-0000-4000-8000-000000000000", me.email)).toBeNull();
   });
 
+  it("reads a message the user sends while it's working, and answers one that arrives just as it finishes", async () => {
+    const id = await run.createChat(me.email, "Open 559");
+    script.push([{ type: "tool_use", id: "tu_q", name: "get_job", input: { job: "559" } }]);
+    script.push([{ type: "text", text: "Done, with your extra in mind." }]);
+    script.push([{ type: "text", text: "And that last one too." }]);
+    const events: { t: string; ids?: string[] }[] = [];
+    let first = "";
+    let late = "";
+    for await (const ev of run.runTurn(id, me, "Open 559")) {
+      events.push(ev as never);
+      // While the tool is running, the user sends another message.
+      if (ev.t === "tool") first = (await run.queueMessage(id, me.email, "Also check the postcode"))!;
+      // And another just as the answer is being written.
+      if (ev.t === "text" && !late) late = (await run.queueMessage(id, me.email, "One more thing"))!;
+    }
+    expect(events.filter((e) => e.t === "took").map((e) => e.ids)).toEqual([[first], [late]]);
+    const sdk = (await import("@anthropic-ai/sdk")).default as unknown as { requests: { messages: { role: string; content: { type: string; text?: string }[] }[] }[] };
+    const second = sdk.requests.at(-2)!.messages.at(-1)!;
+    expect(second.content.map((b) => b.type)).toEqual(["tool_result", "text"]);
+    expect(second.content[1].text).toBe("[Sent by the user while you were working] Also check the postcode");
+    expect(run.toDisplay((await run.getChat(id, me.email))!.messages).filter((x) => x.role !== "tool").map((x) => (x as { text: string }).text)).toEqual([
+      "Open 559", "Also check the postcode", "Done, with your extra in mind.", "One more thing", "And that last one too.",
+    ]);
+    expect(await run.queueMessage("00000000-0000-4000-8000-000000000000", me.email, "x")).toBeNull();
+  });
+
   it("mends a conversation that was cut off mid tool call", async () => {
     const chatId = await run.createChat(me.email, "x");
     await sql`update assistant_chats set messages = ${sql.json([

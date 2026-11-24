@@ -35,6 +35,7 @@ d("Gmail", () => {
     const body = init?.body && typeof init.body === "string" ? JSON.parse(init.body) : null;
     calls.push({ method, path: u.pathname, who, query: u.searchParams, body });
     if (u.pathname === "/drive/v3/files/pdf1") return new Response("%PDF-1.7 quote", { status: 200 });
+    if (u.pathname === "/gmail/v1/users/me/settings/sendAs") return json({ sendAs: [{ sendAsEmail: "other@example.com", signature: "<i>wrong</i>" }, { sendAsEmail: "callum@example.com", isPrimary: true, signature: "<b>Batt sig</b>" }] });
     if (u.pathname === "/gmail/v1/users/me/drafts" && method === "POST") return json({ id: "d1", message: { id: "m1" } });
     if (u.pathname === "/gmail/v1/users/me/threads") return json({ threads: who === "callum" ? [{ id: "t1" }] : [{ id: "t2" }] });
     const t = u.pathname.match(/\/threads\/(t\d)$/)?.[1];
@@ -103,14 +104,18 @@ d("Gmail", () => {
 
   it("saves a draft with the PDF attached, and never sends", async () => {
     calls.length = 0;
-    const r = await qe.draftQuoteEmail(jobId, docId, { to: "john@client.com", cc: "", subject: "Quotation 559 – Ground floor rewire", body: "Hi John" }, { email: CALLUM, name: "Callum" });
+    const r = await qe.draftQuoteEmail(jobId, docId, { to: "john@client.com", cc: "", subject: "Quotation 559 – Ground floor rewire", body: "Hi John\n\nKind Regards,\nCallum Blacknell\nProject Manager, Batt Electrical" }, { email: CALLUM, name: "Callum" });
     expect(r).toMatchObject({ ok: true, url: "https://mail.google.com/mail/?authuser=callum%40example.com#drafts?compose=m1" });
     const draft = calls.find((c) => c.path.endsWith("/drafts"))!;
     expect(draft.who).toBe("callum");
     const mime = Buffer.from(String((draft.body!.message as { raw: string }).raw), "base64url").toString("utf8");
     expect(mime).toContain("To: john@client.com");
     expect(mime).toContain(Buffer.from("%PDF-1.7 quote").toString("base64"));
-    expect(calls.some((c) => c.path.includes("/send"))).toBe(false);
+    // His own Gmail signature goes under the wording, and the typed name comes off so it isn't there twice.
+    const html = Buffer.from(mime.split("Content-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n")[1].split("\r\n--")[0].replace(/\r\n/g, ""), "base64").toString("utf8");
+    expect(html).toContain('<div>Kind Regards,</div><div><br></div><div class="gmail_signature" data-smartmail="gmail_signature"><b>Batt sig</b></div>');
+    expect(html).not.toContain("Callum Blacknell");
+    expect(calls.some((c) => /\/send($|\?)/.test(c.path))).toBe(false);
     const [job] = await sql`select notes from jobs where id = ${jobId}`;
     expect(job.notes).toMatch(/Callum: quote email drafted in Gmail to john@client.com, not sent yet\.$/);
   });

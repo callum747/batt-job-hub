@@ -3,6 +3,28 @@ import { unescapeHtml, buildRaw, encodeHeader, findEmail, firstName, jobSearch, 
 
 const decode = (raw: string) => Buffer.from(raw, "base64url").toString("utf8");
 
+describe("a draft with the person's Gmail signature", () => {
+  const draft = { from: "office@battelectrical.com", to: "sam@example.com", cc: "", subject: "Quotation #557", body: "Hi Sam,\n\nSee https://example.com/q.\n\nKind Regards,", attachments: [] };
+  const read = (raw: string) => Buffer.from(raw, "base64url").toString("utf8");
+  const part = (mime: string, type: string) => Buffer.from(mime.split(`Content-Type: ${type}; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n`)[1].split("\r\n--")[0].replace(/\r\n/g, ""), "base64").toString("utf8");
+  it("goes as plain text and as HTML, with the signature under the wording", () => {
+    const mime = read(buildRaw({ ...draft, signatureHtml: '<b>Callum</b><img src="https://x/logo.png">' }, "B"));
+    expect(mime).toContain('Content-Type: multipart/alternative; boundary="B-alt"');
+    expect(part(mime, "text/plain")).toBe("Hi Sam,\r\n\r\nSee https://example.com/q.\r\n\r\nKind Regards,");
+    expect(part(mime, "text/html")).toBe('<div dir="ltr"><div>Hi Sam,</div><div><br></div><div>See <a href="https://example.com/q">https://example.com/q</a>.</div><div><br></div><div>Kind Regards,</div><div><br></div><div class="gmail_signature" data-smartmail="gmail_signature"><b>Callum</b><img src="https://x/logo.png"></div></div>');
+  });
+  it("keeps the attachment alongside, and stays plain when there's no signature", () => {
+    const withPdf = read(buildRaw({ ...draft, signatureHtml: "<b>Callum</b>", attachments: [{ name: "q.pdf", mimeType: "application/pdf", data: Buffer.from("PDF") }] }, "B"));
+    expect(withPdf).toContain('Content-Type: multipart/mixed; boundary="B"');
+    expect(withPdf).toContain('Content-Type: multipart/alternative; boundary="B-alt"');
+    expect(withPdf).toContain('filename="q.pdf"');
+    expect(read(buildRaw({ ...draft, signatureHtml: "  " }, "B"))).not.toContain("multipart");
+  });
+  it("never lets wording be read as HTML", () => {
+    expect(part(read(buildRaw({ ...draft, body: "2 < 3 & <b>bold</b>", signatureHtml: "S" }, "B")), "text/html")).toContain("<div>2 &lt; 3 &amp; &lt;b&gt;bold&lt;/b&gt;</div>");
+  });
+});
+
 describe("email", () => {
   it("reads addresses and refuses ones that aren't", () => {
     expect(parseAddresses("a@x.com, b@y.co.uk;c@z.org", "To")).toEqual(["a@x.com", "b@y.co.uk", "c@z.org"]);
