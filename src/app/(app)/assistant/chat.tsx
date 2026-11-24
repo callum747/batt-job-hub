@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowUp, Check, Loader2, X } from "lucide-react";
+import { ArrowUp, Check, Loader2, Mic, Square, X } from "lucide-react";
+import { joinSpoken, useDictation } from "./dictate";
 
 type Item = { role: "user"; text: string } | { role: "assistant"; text: string } | { role: "tool"; label: string; ok: boolean | null; id?: string };
 
@@ -37,6 +38,8 @@ export function Chat({ chatId: startId, initial, prefill }: { chatId: string | n
   const chatId = useRef(startId);
   const end = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLTextAreaElement>(null);
+  // Speaking instead of typing: each finished phrase is added to the box.
+  const mic = useDictation((spoken) => setInput((typed) => joinSpoken(typed, spoken)));
 
   useEffect(() => {
     end.current?.scrollIntoView({ block: "end" });
@@ -136,9 +139,15 @@ export function Chat({ chatId: startId, initial, prefill }: { chatId: string | n
         className="sticky bottom-16 flex items-end gap-2 border-t border-line bg-bg p-3 md:bottom-0 md:rounded-b-2xl"
         onSubmit={(e) => {
           e.preventDefault();
+          mic.stop();
           send(input);
         }}
       >
+        {(mic.listening || mic.problem) && (
+          <p role="status" className={`absolute inset-x-3 -top-10 truncate rounded-lg px-3 py-2 text-[14px] shadow-card ${mic.problem ? "border border-warn/30 bg-warn/10" : "bg-blue-soft"}`}>
+            {mic.problem || (mic.hearing ? mic.hearing : "Listening… speak, then press the square to stop or the arrow to send.")}
+          </p>
+        )}
         <label className="sr-only" htmlFor="ask">Message</label>
         <textarea
           id="ask"
@@ -152,9 +161,21 @@ export function Chat({ chatId: startId, initial, prefill }: { chatId: string | n
             }
           }}
           rows={Math.min(6, Math.max(1, input.split("\n").length))}
-          placeholder="Ask Claude, or tell it what to do"
+          placeholder={mic.supported ? "Ask Claude, or press the microphone and say it" : "Ask Claude, or tell it what to do"}
           className="min-h-12 flex-1 resize-none rounded-xl border border-line bg-bg px-4 py-3 text-[16px] outline-none placeholder:text-muted focus:border-blue"
         />
+        {mic.supported && (
+          <button
+            type="button"
+            onClick={() => (mic.listening ? mic.stop() : mic.start())}
+            aria-label={mic.listening ? "Stop listening" : "Speak instead of typing"}
+            aria-pressed={mic.listening}
+            title={mic.listening ? "Stop listening" : "Speak instead of typing"}
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border transition ${mic.listening ? "animate-pulse border-bad bg-bad/10 text-bad" : "border-line bg-bg hover:bg-surface"}`}
+          >
+            {mic.listening ? <Square className="h-5 w-5" aria-hidden="true" /> : <Mic className="h-5 w-5" aria-hidden="true" />}
+          </button>
+        )}
         <button type="submit" disabled={busy || !input.trim()} aria-label="Send" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue text-blue-ink disabled:opacity-50">
           {busy ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" /> : <ArrowUp className="h-5 w-5" aria-hidden="true" />}
         </button>

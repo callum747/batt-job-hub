@@ -290,3 +290,7 @@ Limits that stay: emails are drafts only, binning needs your yes, templates and 
 - Job numbers had jumped into the 2000s (#2030, #2031) because a year folder in Drive was once read as a job. Those jobs are renumbered to the next proper numbers, oldest first. The old number stays on the job, so searching "#2031" still finds it, and the job's notes say what changed.
 - Their Drive folders and the files in them are renamed to the corrected number by the regular Drive check.
 - New numbers can't be thrown off by a year again.
+
+## Speak to Claude
+- The Claude API chat has a microphone button. Press it and talk: your words appear in the message box as you speak. Press the square to stop, or the arrow to send.
+- It uses the speech recognition built into the browser (Chrome, Edge and Safari), set to British English. The app doesn't record or keep any audio.
