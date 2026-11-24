@@ -14,13 +14,13 @@ type Msg = Anthropic.Beta.BetaMessageParam;
 const MAX_STEPS = 30;
 
 
-const SYSTEM = `You are the job assistant inside Batt Job Hub, the job management app for Batt Electrical, an electrical contractor in Aylesbury, Buckinghamshire. You work for Batt's team (Cameron, the Managing Director, and Callum, the Project Manager). They are electricians, not developers.
+const SYSTEM = `You are Claude, the job assistant inside Batt Job Hub (the screen is called "Claude API"), the job management app for Batt Electrical, an electrical contractor in Aylesbury, Buckinghamshire. You work for Batt's team (Cameron, the Managing Director, and Callum, the Project Manager). They are electricians, not developers.
 
 What you do: search and read the emails in Batt's mailboxes; book visits in the diary and calendar; look up jobs, clients, the diary and each job's emails; look in each job's Google Drive folder and read the files in it (job_files, then read_file); find, move, rename and bin folders and files in Batt's Drive; go through the user's inbox and make jobs from enquiry emails (create_job, then link_email); create and update jobs; price jobs in Batt's pricing spreadsheet; make quote documents from Batt's templates; draft the covering email in Gmail; move jobs between stages when asked. Every job is known by a plain number, like #559. Each quote made for a job has its own reference: the job number, a slash, then which quote it is (#559/1 is the first quote, #559/2 the second). Use the tools; never claim you did something a tool didn't confirm.
 
 You have the Batt handbook below: who Batt are, their rates, how they price and quote, their clients and how they write. Treat it as your own memory of working with them. You also have a shared memory (remember, memory, forget): when Callum or Cam tell you a lasting rule, preference, correction or fact, save it with remember straight away and say in one line that it's saved for both of them.
 
-You don't carry anything over from one chat to the next by yourself. What carries over: the handbook, the shared memory, the list of this person's recent chats given at the start of a chat, and past_chats and read_chat for looking back. If the user refers to something from before, look it up; don't ask them to repeat it and don't say you can't remember. When you finish a piece of work and learned something lasting on the way (a client's preference, a correction, how they want something done), save it with remember without being asked.
+You don't carry anything over from one chat to the next by yourself. What carries over: the handbook, the shared memory, the list of this person's recent chats given at the start of a chat, and past_chats and read_chat for looking back. If the user refers to something from before, look it up; don't ask them to repeat it and don't say you can't remember. What one person teaches you has to hold for everyone. Whenever anyone tells you how to do something from now on, corrects the way you did something, or tells you a fact that will matter again (a client's terms, who to send things to, how a document should read, a rate), save it with remember there and then, written so it makes sense to someone who wasn't in this chat. It then applies in every chat on every account. Don't wait to be told "remember this", and don't save things that only matter to the one job (those go in the job's notes).
 
 Nothing is out of reach because one tool doesn't fit. You have two ways to price: price_job (the pricing spreadsheet, for installation work built up item by item) and price_lines (any lines at any agreed rates: day rates, call-outs, mileage, free items, labour only). If the user gives you a rate or a set of lines, price it with price_lines and make the quote; never tell them a tool "only charges" a different rate, and never send them off to do it on a screen when a tool of yours can do it. If you truly have no tool for something, say what's missing in one line and do everything around it that you can.
 
@@ -96,9 +96,10 @@ async function memoryLine() {
 async function recentLine(email: string, thisChat: string) {
   const rows = await sql<{ id: string; title: string; date: string; ended: string }[]>`
     select id, title, updated_at::date::text as date, last_reply as ended from assistant_chats
-    where email = ${email} and id <> ${thisChat} and jsonb_array_length(messages) > 0 order by updated_at desc limit 8`.catch(() => []);
+    where id <> ${thisChat} and jsonb_array_length(messages) > 0 order by updated_at desc limit 10`.catch(() => []);
+  void email;
   if (rows.length === 0) return "";
-  return `\nThis person's recent chats with you, newest first (each chat starts fresh; read_chat with the id gives the whole conversation):\n${rows
+  return `\nThe team's recent chats with you (Callum's, Cameron's and the office's), newest first (each chat starts fresh; read_chat with the id gives the whole conversation):\n${rows
     .map((r) => `- ${r.date} "${r.title}"${r.ended ? `, which ended: ${r.ended}` : ""} [${r.id}]`)
     .join("\n")}`;
 }
@@ -126,13 +127,18 @@ export type Chat = { id: string; email: string; title: string; job_id: string | 
 
 export async function getChat(id: string, email: string): Promise<Chat | null> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
-  const [c] = await sql<Chat[]>`select id, email, title, job_id, messages, updated_at::text, fingerprint from assistant_chats where id = ${id} and email = ${email}`;
+  const [c] = await sql<Chat[]>`select id, email, title, job_id, messages, updated_at::text, fingerprint from assistant_chats where id = ${id}`;
+  // Chats are shared by the team: anyone signed in can open and carry on any of them.
+  void email;
   return c ? { ...c } : null;
 }
 
+/** Everyone's chats, newest first, each with who started it. They live in the database, so a republish doesn't touch them. */
 export async function listChats(email: string) {
-  return (await sql<{ id: string; title: string; updated_at: string }[]>`
-    select id, title, updated_at::text from assistant_chats where email = ${email} order by updated_at desc limit 30`).map((r) => ({ ...r }));
+  return (await sql<{ id: string; title: string; updated_at: string; by: string; mine: boolean }[]>`
+    select c.id, c.title, c.updated_at::text, coalesce(p.short_name, split_part(c.email, '@', 1)) as by, lower(c.email) = lower(${email}) as mine
+    from assistant_chats c left join people p on lower(p.email) = lower(c.email)
+    where jsonb_array_length(c.messages) > 0 order by c.updated_at desc limit 60`).map((r) => ({ ...r }));
 }
 
 /** The end of the latest answer in a conversation, for telling a later chat what this one was about. */

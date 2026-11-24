@@ -517,14 +517,16 @@ const tools: Tool[] = [
     name: "past_chats",
     label: (i) => (i.about ? `Looking through earlier chats for "${i.about}"` : "Looking at earlier chats"),
     description:
-      "The user's earlier conversations with you: title, date and how each ended, newest first. Give about (a word or phrase, e.g. a client, site or job number) to find the chats that mention it. Each chat starts fresh, so use this whenever the user refers to something said or done before (\"like last time\", \"the one we priced yesterday\", \"as I told you\") instead of asking them to repeat it. Then read_chat for the detail.",
+      "Earlier conversations with you, from everyone at Batt: who it was with, title, date and how each ended, newest first. Give about (a word or phrase, e.g. a client, site or job number) to find the chats that mention it. Each chat starts fresh, so use this whenever the user refers to something said or done before (\"like last time\", \"the one we priced yesterday\", \"as I told you\") instead of asking them to repeat it. Then read_chat for the detail.",
     schema: z.object({ about: z.string().optional() }),
     run: async (i: { about?: string }, me) => {
       const like = i.about?.trim() ? `%${i.about.trim().replace(/[%_\\]/g, "\\$&")}%` : null;
-      const rows = await sql<{ id: string; title: string; date: string; ended: string }[]>`
-        select id, title, updated_at::date::text as date, last_reply as ended from assistant_chats
-        where email = ${me.email} and (${like}::text is null or title ilike ${like} or messages::text ilike ${like})
-        order by updated_at desc limit 20`;
+      void me;
+      const rows = await sql<{ id: string; with: string; title: string; date: string; ended: string }[]>`
+        select c.id, coalesce(p.short_name, split_part(c.email, '@', 1)) as with, c.title, c.updated_at::date::text as date, c.last_reply as ended
+        from assistant_chats c left join people p on lower(p.email) = lower(c.email)
+        where jsonb_array_length(c.messages) > 0 and (${like}::text is null or c.title ilike ${like} or c.messages::text ilike ${like})
+        order by c.updated_at desc limit 20`;
       return { chats: rows.map((r) => ({ ...r })) };
     },
   },
@@ -535,7 +537,8 @@ const tools: Tool[] = [
     schema: z.object({ id: z.string().uuid() }),
     run: async (i: { id: string }, me) => {
       const [c] = await sql<{ title: string; date: string; messages: { role: string; content: unknown }[] }[]>`
-        select title, updated_at::date::text as date, messages from assistant_chats where id = ${i.id} and email = ${me.email}`;
+        select title, updated_at::date::text as date, messages from assistant_chats where id = ${i.id}`;
+      void me;
       if (!c) return { ok: false, message: "There's no earlier chat with that id. Use past_chats to list them." };
       const lines: string[] = [];
       for (const m of c.messages) {

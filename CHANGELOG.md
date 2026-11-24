@@ -228,3 +228,9 @@ Plain-English notes on what's new in the Batt Job Hub, newest first.
 - Quotes are untouched: they still charge 45p a mile, which also covers wear and tear.
 - Until both figures are filled in, profit keeps using the quoted 45p a mile and says so on the job.
 - Fuel is now counted to the fraction of a penny per mile.
+
+## Claude API: shared chats and shared memory
+- "Ask" is now called "Claude API" in the menu and on its page.
+- Earlier chats are shared: everyone's chats show in the list on the right (with whose it is), and anyone can open one and carry it on. They are kept in the database, so a republish doesn't remove them.
+- Opening Claude API still takes you back to your own last chat.
+- Claude saves anything it's taught (a rule, a correction, a client's terms) to the shared memory straight away, so it applies on every account from then on.

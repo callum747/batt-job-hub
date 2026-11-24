@@ -227,7 +227,13 @@ d("the assistant", () => {
     expect(JSON.parse((await tools.runTool("past_chats", { about: "no such thing 100%" }, me)).content).chats).toEqual([]);
     const read = JSON.parse((await tools.runTool("read_chat", { id: first }, me)).content);
     expect(read.conversation).toBe("User: Price the Oaken Grove job\nYou: Priced Oaken Grove at £1,124.07 ex VAT.");
-    expect((await tools.runTool("read_chat", { id: first }, { email: "someone@else.com", name: "X" })).ok).toBe(false);
+    // Chats are shared by the team: the other person can read it, and it shows in their list under whose it is.
+    const other = { email: "cameron@battelectrical.com", name: "Cameron" };
+    expect((await tools.runTool("read_chat", { id: first }, other)).ok).toBe(true);
+    const theirs = (await run.listChats(other.email)).find((c) => c.id === first)!;
+    expect(theirs).toMatchObject({ mine: false, title: "Price the Oaken Grove job" });
+    expect((await run.listChats(me.email)).find((c) => c.id === first)!.mine).toBe(true);
+    expect((await run.getChat(first, other.email))!.email).toBe(me.email);
   });
 
   it("books a visit by name, and stops for a clash until told to go ahead", async () => {
@@ -264,7 +270,9 @@ d("the assistant", () => {
       { role: "assistant", text: "Job 559 is Brook House for Meterz." },
     ]);
     // Another person can't open it.
-    expect(await run.getChat(chatId, "cameron@battelectrical.com")).toBeNull();
+    // Shared by the team: the other person can open it. An id that isn't a chat gives nothing.
+    expect((await run.getChat(chatId, "cameron@battelectrical.com"))!.id).toBe(chatId);
+    expect(await run.getChat("00000000-0000-4000-8000-000000000000", me.email)).toBeNull();
   });
 
   it("mends a conversation that was cut off mid tool call", async () => {

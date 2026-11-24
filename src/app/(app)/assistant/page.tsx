@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/page";
 import { ukDate } from "@/lib/jobs-rules";
 import { Chat } from "./chat";
 
-export const metadata = { title: "Ask" };
+export const metadata = { title: "Claude API" };
 
 export default async function AssistantPage({ searchParams }: { searchParams: Promise<{ c?: string; job?: string; new?: string }> }) {
   const { c, job, new: fresh } = await searchParams;
@@ -15,13 +15,14 @@ export default async function AssistantPage({ searchParams }: { searchParams: Pr
   if (!me) return null;
   const [chats, chat] = await Promise.all([listChats(me.email), c ? getChat(c, me.email) : null]);
   // Coming back to Ask (or refreshing) carries on with the last conversation. "New chat" starts a clean one.
-  if (!c && !job && !fresh && chats.length > 0) redirect(`/assistant?c=${chats[0].id}`);
+  const mine = chats.find((x) => x.mine);
+  if (!c && !job && !fresh && mine) redirect(`/assistant?c=${mine.id}`);
   const ready = assistantConfigured();
 
   return (
     <>
       <PageHeader
-        title="Ask"
+        title="Claude API"
         intro="Tell it what you need: price a job, make the quote, find a job, check the diary."
         action={
           <Link href="/assistant?new=1" className="inline-flex h-12 items-center gap-2 rounded-xl border border-line bg-bg px-5 font-medium hover:bg-surface">
@@ -45,6 +46,7 @@ export default async function AssistantPage({ searchParams }: { searchParams: Pr
           {chats.length > 0 && (
             <aside>
               <h2 className="mb-2 text-[15px] font-semibold text-muted">Earlier chats</h2>
+              <p className="mb-2 text-[13px] text-muted">Everyone&apos;s chats are kept here and anyone can pick one up.</p>
               <ul className="space-y-1">
                 {chats.map((x) => (
                   <li key={x.id}>
@@ -53,7 +55,7 @@ export default async function AssistantPage({ searchParams }: { searchParams: Pr
                       className={`block rounded-xl px-3 py-2 text-[15px] hover:bg-surface ${x.id === chat?.id ? "bg-blue-soft" : ""}`}
                     >
                       <span className="line-clamp-2">{x.title || "Untitled"}</span>
-                      <span className="text-[13px] text-muted">{ukDate(x.updated_at.slice(0, 10))}</span>
+                      <span className="text-[13px] text-muted">{ukDate(x.updated_at.slice(0, 10))}{x.mine ? "" : ` · ${x.by}`}</span>
                     </Link>
                   </li>
                 ))}

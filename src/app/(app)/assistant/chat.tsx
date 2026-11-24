@@ -152,7 +152,7 @@ export function Chat({ chatId: startId, initial, prefill }: { chatId: string | n
             }
           }}
           rows={Math.min(6, Math.max(1, input.split("\n").length))}
-          placeholder="Ask or tell it what to do"
+          placeholder="Ask Claude, or tell it what to do"
           className="min-h-12 flex-1 resize-none rounded-xl border border-line bg-bg px-4 py-3 text-[16px] outline-none placeholder:text-muted focus:border-blue"
         />
         <button type="submit" disabled={busy || !input.trim()} aria-label="Send" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue text-blue-ink disabled:opacity-50">

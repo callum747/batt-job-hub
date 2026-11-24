@@ -6,7 +6,7 @@ export const NAV = [
   { href: "/jobs", label: "Jobs", icon: Wrench, phone: true, group: "Work" },
   { href: "/board", label: "Board", icon: Columns3, phone: false, group: "Work" },
   { href: "/diary", label: "Diary", icon: CalendarDays, phone: true, group: "Work" },
-  { href: "/assistant", label: "Ask", icon: MessageCircle, phone: true, group: "Work" },
+  { href: "/assistant", label: "Claude API", icon: MessageCircle, phone: true, group: "Work" },
   { href: "/inbox", label: "Inbox", icon: Inbox, phone: false, group: "Office" },
   { href: "/invoices", label: "Invoices", icon: FileText, phone: false, group: "Office" },
   { href: "/clients", label: "Clients", icon: Users, phone: false, group: "Office" },
