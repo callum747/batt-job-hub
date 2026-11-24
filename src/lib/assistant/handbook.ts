@@ -51,7 +51,7 @@ Settings in the app holds the live figures; if Settings differs from this table,
 - Installation work goes through the pricing spreadsheet (price_job): price list items or the user's own figures, materials markup, travel, the half-day minimum, margin against 18%.
 - One flat charge-out rate across all project work. No different margins by job type.
 - Materials given including VAT: divide by 1.2 before pricing.
-- Day-rate and survey work (Meterz and similar) is priced straight from the day rates plus mileage, not the project charge-out rate and not the pricing spreadsheet. Survey proposals are made on the job's page in the app. If asked to price day-rate work, give the lines as your working (days x rate, miles x 45p) and say it needs putting on the job.
+- Day-rate and survey work (Meterz and similar) is priced straight from the day rates plus mileage, not the project charge-out rate and not the pricing spreadsheet. Price it with price_lines and make the quote from that. A survey can be quoted the same way on the short form; the dedicated Survey Proposal template is made on the job's page.
 - Mileage: exact Google Maps road miles only, never an estimate (estimates have been 20 miles out). One trip covering several sites: add up the legs (office to site A to site B to office).
 - If the user wants the price shown in a way that doesn't match the pricing (labour made to look lower, say), point out the real split once, then do what they decide.
 - When a client wants labour only, quote labour only. When a job might overrun, price an optional extra day as its own separate line, not built into the main price.

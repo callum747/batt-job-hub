@@ -405,7 +405,7 @@ async function PricingCard({ job, lines, redBelow }: { job: Awaited<ReturnType<t
     }
   }
   const p = job.pricing;
-  const light = p ? pricingLight(p.result, redBelow) : "none";
+  const light = p && !(p.direct && !p.direct.marginKnown) ? pricingLight(p.result, redBelow) : "none";
   // The job's drawings (PDFs in its Drive folder) and the latest count of them.
   let drawings: DrawingFile[] = [];
   if (connected && job.drive_folder_id) {
@@ -420,7 +420,7 @@ async function PricingCard({ job, lines, redBelow }: { job: Awaited<ReturnType<t
   return (
     <>
       {p && (
-        <Card title="Priced quote" action={<SheetLink url={p.sheetUrl} />}>
+        <Card title="Priced quote" action={p.sheetUrl ? <SheetLink url={p.sheetUrl} /> : undefined}>
           <dl className="grid grid-cols-3 gap-3">
             <div className="rounded-xl bg-surface p-3">
               <dt className="text-[13px] text-muted">Ex VAT</dt>
@@ -434,8 +434,8 @@ async function PricingCard({ job, lines, redBelow }: { job: Awaited<ReturnType<t
               <dt className="flex items-center gap-1.5 text-[13px] text-muted">
                 Margin <LightDot light={light} className="h-2.5 w-2.5" />
               </dt>
-              <dd className="text-[20px] font-semibold tabular-nums">{p.result.netMargin}%</dd>
-              <dd className="text-[13px] text-muted">target {p.result.targetMargin}%</dd>
+              <dd className="text-[20px] font-semibold tabular-nums">{p.direct && !p.direct.marginKnown ? "–" : `${p.result.netMargin}%`}</dd>
+              <dd className="text-[13px] text-muted">{p.direct && !p.direct.marginKnown ? "costs not given" : `target ${p.result.targetMargin}%`}</dd>
             </div>
           </dl>
           <table className="mt-4 w-full text-left text-[15px]">
@@ -466,8 +466,11 @@ async function PricingCard({ job, lines, redBelow }: { job: Awaited<ReturnType<t
           </table>
           <p className="mt-3 text-[14px] text-muted">
             Priced by {p.by} on {ukDate(p.pricedAt.slice(0, 10))}
-            {p.revision > 1 ? `, revision ${p.revision}` : ""}. The sheet expects {gbp(p.result.netProfit)} net profit from {p.result.labourHours.toFixed(1)} labour hours.
-            {light !== "green" && " The margin is below target: check the sheet before quoting."}
+            {p.revision > 1 ? `, revision ${p.revision}` : ""}.{" "}
+            {p.direct
+              ? `Priced straight from the lines above (day rates, mileage and agreed figures), not the pricing spreadsheet.${p.direct.note ? ` ${p.direct.note}` : ""}`
+              : `The sheet expects ${gbp(p.result.netProfit)} net profit from ${p.result.labourHours.toFixed(1)} labour hours.`}
+            {!p.direct && light !== "green" && " The margin is below target: check the sheet before quoting."}
           </p>
         </Card>
       )}

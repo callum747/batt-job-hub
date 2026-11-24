@@ -43,8 +43,9 @@ export function defaultShortQuote(args: {
     g.items.push({ item: what, ref: qtyText(it.qty), works: `Supply and fit ${qtyText(it.qty)} × ${what.toLowerCase()}${finish ? ` (${finish})` : ""}` });
   }
   const investment: InvestmentLine[] = lines.map((l) => ({
-    section: l.kind === "item" ? l.detail || "Works" : l.kind === "prelims" ? "Travel and site costs" : "Minimum charge",
-    description: l.kind === "item" ? `${qtyText(l.qty)} × ${l.description}` : l.kind === "prelims" ? l.detail || "Travel and site costs" : "Half-day minimum charge",
+    section: l.kind === "item" || l.kind === "direct" ? l.detail || "Works" : l.kind === "prelims" ? "Travel and site costs" : "Minimum charge",
+    // A line priced directly (a day rate, a call-out) is shown exactly as it was written.
+    description: l.kind === "direct" ? l.description : l.kind === "item" ? `${qtyText(l.qty)} × ${l.description}` : l.kind === "prelims" ? l.detail || "Travel and site costs" : "Half-day minimum charge",
     amount: p2(l.amount),
   }));
   const subtotal = p2(args.subtotal);
@@ -136,6 +137,14 @@ export function defaultLongQuote(a: LongArgs): LongQuote {
     if (!s.names.includes(label)) s.names.push(label);
     s.amount = Math.round((s.amount + l.amount) * 100) / 100;
   });
+  // Lines priced directly keep their own headings and wording.
+  for (const l of a.lines.filter((x) => x.kind === "direct")) {
+    const section = l.detail || "Works";
+    let s = sections.find((x) => x.section === section);
+    if (!s) sections.push((s = { section, names: [], amount: 0 }));
+    s.names.push(l.description);
+    s.amount = Math.round((s.amount + l.amount) * 100) / 100;
+  }
   const minimum = a.lines.filter((l) => l.kind === "minimum").reduce((s, l) => s + l.amount, 0);
   if (minimum > 0) sections.push({ section: "Minimum charge", names: ["Half-day minimum charge"], amount: Math.round(minimum * 100) / 100 });
   const prelims = Math.round(a.lines.filter((l) => l.kind === "prelims").reduce((s, l) => s + l.amount, 0) * 100) / 100;

@@ -10,7 +10,7 @@ import { findJob, getSettings, jobDetail, jobDocuments, listVisits, searchEveryt
 import { JOB_TYPES, jobLabel, STAGES, todayUK, type Stage } from "../jobs-rules";
 import { audit, changeStage } from "../mutations";
 import { syncJobFolder } from "../google/drive";
-import { loadPriceList, priceJob } from "../google/pricing-run";
+import { loadPriceList, priceDirect, priceJob } from "../google/pricing-run";
 import { buildLongQuote, buildShortQuote } from "../google/quote-run";
 import { draftLongQuote, draftShortQuote, isPriced, loadClient, preparedByFor, productsFor, suggestLong } from "../quote-drafts";
 import { errorText } from "../google/client";
@@ -293,10 +293,47 @@ const tools: Tool[] = [
     },
   },
   {
+    name: "price_lines",
+    label: (i) => `Pricing job ${i.job} from the lines given`,
+    description:
+      "Price a job straight from lines you write, with no spreadsheet: quantity x rate for each line, added up. This is how Batt prices day-rate work (Meterz and similar at £380 and £160 a day), surveys, call-outs, labour-only jobs, an optional extra day, and anything the user gives as figures (\"one engineer for the day at £380, 131 miles, materials £56.68, Wagos free\"). Use it whenever the price is days x a day rate plus mileage plus agreed figures, or the user tells you the lines. Use price_job instead only for installation work priced item by item from the price list. Rates come from the handbook, Settings or the user; never invent one. A free item is rate 0. Travel is one line: kind travel, qty = miles, rate = the mileage rate, description in Batt's wording (\"131 miles round trip (65.5 miles each way) from our Aylesbury registered office, at 45p per mile\"). Also write the schedule of works for the quote: what is being done, by area. It numbers the job if needed and replaces the job's previous pricing. Then make_quote builds the quote from these lines exactly as written.",
+    schema: z.object({
+      job: jobRef,
+      lines: z
+        .array(
+          z.object({
+            kind: z.enum(["labour", "materials", "travel", "other"]),
+            section: z.string().min(1).describe('Heading on the quote\'s price table: "Labour", "Travel", "Materials".'),
+            description: z.string().min(1).describe('The line as the client reads it, e.g. "Installation engineer, 1 day at £380".'),
+            qty: z.number().positive().describe("Days, miles, or number of items."),
+            rate: z.number().nonnegative().describe("Price per unit ex VAT. 0 for free of charge."),
+            cost: z.number().nonnegative().optional().describe("What the whole line costs Batt ex VAT, if you know it (labour: days x that person's day cost in Settings; materials: the supplier cost). Only used for the margin; leave out if unknown."),
+            days: z.number().nonnegative().optional().describe("Labour lines: days of one person's work."),
+          }),
+        )
+        .min(1),
+      schedule: z
+        .array(z.object({ area: z.string().min(1), items: z.array(z.object({ item: z.string().min(1), ref: z.string().default(""), works: z.string().min(1) })).min(1) }))
+        .min(1)
+        .describe("The schedule of works for the quote: an area (a room, a site, or \"General\"), and for each item what it is, a short ref or quantity, and the works in a sentence."),
+      miles: z.number().nonnegative().default(0).describe("Round-trip miles, for the job's profit."),
+      people: z.number().int().min(1).default(1),
+      vans: z.number().int().min(0).default(1),
+      note: z.string().default("").describe("One line on how it was priced, for the job's record."),
+    }),
+    run: async (i: { job: string; lines: { kind: "labour" | "materials" | "travel" | "other"; section: string; description: string; qty: number; rate: number; cost?: number; days?: number }[]; schedule: { area: string; items: { item: string; ref: string; works: string }[] }[]; miles: number; people: number; vans: number; note: string }, me: Me) => {
+      const job = await mustFind(i.job);
+      const r = await priceDirect(job.id, { lines: i.lines, schedule: i.schedule, miles: i.miles, people: i.people, vans: i.vans, note: i.note }, me);
+      if (!r.ok) return r;
+      const after = await mustFind(r.number ? String(r.number) : job.id);
+      return { ...r, job: jobLabel(after), result: after.pricing?.result, margin_known: after.pricing?.direct?.marginKnown ?? false };
+    },
+  },
+  {
     name: "make_quote",
     label: (i) => `Making the ${i.template === "long" ? "long-form" : i.template === "short" ? "short-form" : ""} quote for job ${i.job}`.replace("  ", " "),
     description:
-      "Make the client quote from Batt's template, from the job's latest pricing: copies the template into the job's Drive folder, fills it, checks nothing was left unfilled, saves a PDF beside it. template: \"short\", \"long\", or \"auto\" (long for £2,000 and over, tenders and main contractors). Optional changes replace the drafted wording. Prices always come from the pricing; to change a price, price the job again.",
+      "Make the client quote from Batt's template, from the job's latest pricing (price_job or price_lines): copies the template into the job's Drive folder, fills it, checks nothing was left unfilled, saves a PDF beside it. template: \"short\", \"long\", or \"auto\" (long for £2,000 and over, tenders and main contractors). Optional changes replace the drafted wording. Prices always come from the pricing; to change a price, price the job again.",
     schema: z.object({
       job: jobRef,
       template: z.enum(["auto", "short", "long"]).default("auto"),
@@ -305,8 +342,9 @@ const tools: Tool[] = [
       exclusions: z.array(z.string()).optional(),
       assumptions: z.array(z.string()).optional(),
       payment_days: z.number().int().min(0).max(90).optional(),
+      deposit: z.boolean().optional().describe("Short form only: true for 20% deposit and 80% on completion, false for 100% on completion (day-rate clients, call-outs, anyone on no-deposit terms)."),
     }),
-    run: async (i: { job: string; template: "auto" | "short" | "long"; project?: string; summary?: string; exclusions?: string[]; assumptions?: string[]; payment_days?: number }, me: Me) => {
+    run: async (i: { job: string; template: "auto" | "short" | "long"; project?: string; summary?: string; exclusions?: string[]; assumptions?: string[]; payment_days?: number; deposit?: boolean }, me: Me) => {
       const job = await mustFind(i.job);
       if (!isPriced(job)) return { ok: false, message: "Price the job first. The quote is built from the pricing." };
       const preparedBy = await preparedByFor(me.email);
@@ -319,11 +357,12 @@ const tools: Tool[] = [
         ...(i.assumptions ? { assumptions: i.assumptions } : {}),
         ...(i.payment_days !== undefined ? { paymentDays: i.payment_days } : {}),
       };
+      const shortOnly = i.deposit !== undefined ? { deposit: i.deposit } : {};
       const short = draftShortQuote(job, lines, client, preparedBy);
       const long = i.template === "long" || (i.template === "auto" && suggestLong(short.subtotal, job.type, client?.type ?? ""));
       const r = long
         ? await buildLongQuote(job.id, { ...draftLongQuote(job, lines, client, preparedBy, await productsFor(me.email)), ...changes }, me)
-        : await buildShortQuote(job.id, { ...short, ...changes }, me);
+        : await buildShortQuote(job.id, { ...short, ...changes, ...shortOnly }, me);
       return { ...r, template: long ? "long form" : "short form", total_inc_vat: short.total };
     },
   },

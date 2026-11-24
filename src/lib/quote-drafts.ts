@@ -52,7 +52,9 @@ export function draftShortQuote(job: Priced, lines: LineRow[], client: ClientRow
     preparedBy,
     today: todayUK(),
   });
-  const d = (job.quote_draft as unknown as { template?: string } | null)?.template === "quoteShort" ? job.quote_draft : null;
+  // Priced straight from lines: the schedule of works is the one written with the pricing.
+  if (job.pricing.direct) fromPricing.schedule = job.pricing.direct.schedule;
+  const d = (job.quote_draft as unknown as { template?: string } | null)?.template === "quoteShort" && !job.pricing.direct ? job.quote_draft : null;
   return d
     ? { ...fromPricing, project: d.project, site: d.site, summary: d.summary, installation: d.installation, schedule: d.schedule, deposit: d.deposit, paymentDays: d.paymentDays, exclusions: d.exclusions, assumptions: d.assumptions }
     : fromPricing;
@@ -75,6 +77,10 @@ export function draftLongQuote(job: Priced, lines: LineRow[], client: ClientRow 
     sectionOf,
     clientType: client?.type ?? "",
   });
+  if (job.pricing.direct) {
+    const items = job.pricing.direct.schedule.flatMap((g) => g.items);
+    return { ...start, scope: items.map((i) => ({ item: i.item, qty: i.ref || "1" })), programme: job.pricing.direct.schedule.map((g) => ({ area: g.area, works: g.items.map((i) => i.works).join("; ") })) };
+  }
   const last = job.quote_draft as unknown as (LongQuote & { template?: string }) | null;
   if (last?.template !== "quoteLong") return start;
   return {

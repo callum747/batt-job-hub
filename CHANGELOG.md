@@ -210,3 +210,9 @@ Plain-English notes on what's new in the Batt Job Hub, newest first.
 - A new chat now starts knowing what your last few chats were about, and Ask can search and read your earlier chats instead of asking you to repeat things.
 - Ask saves lasting things it learns to the shared memory without being asked.
 - Chats, the shared memory and the handbook are all kept in the database or the app itself, so a republish doesn't remove them.
+
+## Pricing from lines: day rates, call-outs, labour only
+- A job can now be priced straight from lines at any agreed rate (a day at £380, exact miles at 45p, materials at a figure, an item free of charge), with no spreadsheet. This is how Batt prices day-rate, survey, call-out and labour-only work.
+- Ask does this himself and then makes the quote from those lines exactly as written. He no longer says he can only charge the project rate.
+- The quote can be set to no deposit (100% on completion) for day-rate clients and call-outs.
+- The job page shows these as "priced straight from the lines". The margin shows only when the costs were given.

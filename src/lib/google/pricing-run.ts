@@ -51,7 +51,53 @@ export async function quoteFolder(email: string, jobFolderId: string): Promise<s
   return subfolders.find((f) => f.name.startsWith("01"))?.id ?? jobFolderId;
 }
 
-export type SavedPricing = { input: PricingInput; result: PricingResult; sheetId: string; sheetUrl: string; pricedAt: string; by: string; revision: number };
+export type SavedPricing = {
+  input: PricingInput; result: PricingResult; sheetId: string; sheetUrl: string; pricedAt: string; by: string; revision: number;
+  /** Set when the job was priced straight from lines (day rates, call-outs, labour only) instead of the spreadsheet. */
+  direct?: import("../direct-pricing").DirectSaved;
+};
+
+/**
+ * Prices a job straight from lines, with no spreadsheet: day-rate, survey, call-out and labour-only work.
+ * Numbers the job and makes its folder the same way a spreadsheet pricing does.
+ */
+export async function priceDirect(jobId: string, input: import("../direct-pricing").DirectInput, me: { email: string; name: string }): Promise<PriceOutcome> {
+  const { checkDirect, directPricingInput, directQuoteLines, directResult } = await import("../direct-pricing");
+  try {
+    const problems = checkDirect(input);
+    if (problems.length) return { ok: false, message: "A few things need fixing before this can be priced.", problems };
+    let [job] = await sql<{ number: number | null; stage: string }[]>`select number, stage from jobs where id = ${jobId}`;
+    if (!job) return { ok: false, message: "That job doesn't exist." };
+    if (job.number === null) {
+      if (job.stage !== "Enquiry") return { ok: false, message: `Move the job to Draft quote first. It's at ${job.stage} with no number.` };
+      await changeStage(jobId, "Draft quote", me.email);
+    }
+    await syncJobFolder(jobId, me.email);
+    [job] = await sql`select number, stage from jobs where id = ${jobId}`;
+    const [s] = await sql<{ rates: { vatPct?: number } | null; margins: { green?: number } | null }[]>`
+      select (select value from settings where key = 'rates') as rates, (select value from settings where key = 'margins') as margins`;
+    const { result, marginKnown } = directResult(input, s?.rates?.vatPct ?? 20, s?.margins?.green ?? 18);
+    const lines = directQuoteLines(input);
+    const [{ n }] = await sql<{ n: number }[]>`select coalesce((pricing->>'revision')::int, 0) as n from jobs where id = ${jobId}`;
+    const saved: SavedPricing = {
+      input: directPricingInput(input), result, sheetId: "", sheetUrl: "", pricedAt: new Date().toISOString(), by: me.name, revision: n + 1,
+      direct: { schedule: input.schedule, marginKnown, note: input.note, lines: input.lines },
+    };
+    await sql.begin(async (tx) => {
+      await tx`update jobs set quote_value = ${result.sellExVat}, miles_round_trip = ${input.miles > 0 ? input.miles : null}::numeric, pricing = ${tx.json(saved as never)}, updated_at = now() where id = ${jobId}`;
+      await tx`delete from quote_lines where job_id = ${jobId}`;
+      for (const [i, l] of lines.entries()) {
+        await tx`insert into quote_lines (job_id, kind, description, detail, qty, rate, cost, amount, position)
+          values (${jobId}, ${l.kind}, ${l.description}, ${l.detail}, ${l.qty}, ${l.rate}, ${l.cost}, ${l.amount}, ${i})`;
+      }
+      await audit(tx, me.email, "priced from lines", "job", jobId, { sellExVat: result.sellExVat, lines: lines.length });
+    });
+    const gbp = (v: number) => `£${v.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return { ok: true, number: job.number, message: `Priced at ${gbp(result.sellExVat)} ex VAT (${gbp(result.sellIncVat)} inc VAT) from ${lines.length} line${lines.length === 1 ? "" : "s"}.` };
+  } catch (e) {
+    return { ok: false, message: errorText(e) };
+  }
+}
 export type PriceOutcome = { ok: boolean; message: string; problems?: string[]; number?: number | null };
 
 /**

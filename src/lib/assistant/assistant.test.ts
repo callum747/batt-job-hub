@@ -17,6 +17,7 @@ vi.mock("../google/pricing-run", () => ({
     ],
     fetchedAt: "",
   })),
+  priceDirect: vi.fn(async () => ({ ok: false, message: "Not in this test." })),
   priceJob: vi.fn(async () => ({ ok: false, message: "A few things need fixing before this can be priced.", problems: ["Item 1: not on the price list"] })),
 }));
 vi.mock("../google/quote-run", () => ({ buildShortQuote: vi.fn(), buildLongQuote: vi.fn() }));
