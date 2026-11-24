@@ -9,6 +9,7 @@ export const JOB_SUBFOLDERS = [
   "06 - Site Photos",
   "07 - Testing & Certificates",
   "08 - Handover & O&M",
+  "09 - Surveys",
 ] as const;
 
 const clean = (s: string) => s.replace(/[\\/]+/g, "-").replace(/\s+/g, " ").trim();

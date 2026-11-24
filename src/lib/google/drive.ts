@@ -103,6 +103,8 @@ export async function syncJobFolder(jobId: string, email: string): Promise<strin
       const file = await getFile(email, job.drive_folder_id);
       const parent = file.parents?.[0];
       const known = Object.values(folders);
+      // A folder that's ours to change gets any standard subfolder it's missing (older jobs have no 09 - Surveys).
+      if (parent && known.includes(parent)) await ensureSubfolders(email, job.drive_folder_id);
       if (parent === folders[area]) {
         message = "";
         await sql`update jobs set drive_folder_area = ${area} where id = ${jobId} and drive_folder_area = ''`;

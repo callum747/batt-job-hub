@@ -9,6 +9,7 @@ import { jobLabel, todayUK, ukDate } from "@/lib/jobs-rules";
 import { currentPerson } from "@/lib/auth";
 import { errorText, gmailConnected, googleConnected } from "@/lib/google/client";
 import { listJobFiles, type FolderListing } from "@/lib/google/drive";
+import { surveySummary, type SurveySummary } from "@/lib/google/survey-folder";
 import { ConnectGoogleButton } from "@/components/connect-google";
 import { secondaryBtn } from "@/components/ui";
 import { JobVisits } from "../job-visits";
@@ -263,14 +264,18 @@ function Row({ label, value, strong }: { label: string; value: React.ReactNode; 
   );
 }
 
-async function FilesTab({ job }: { job: { id: string; number: number | null; drive_folder_id: string; drive_folder_url: string; drive_error: string; links: { name: string; url: string }[] } }) {
+async function FilesTab({ job }: { job: { id: string; type: string; number: number | null; drive_folder_id: string; drive_folder_url: string; drive_error: string; links: { name: string; url: string }[] } }) {
   const me = await currentPerson();
   const connected = me ? await googleConnected(me.email) : false;
   let listing: FolderListing | null = null;
+  let survey: SurveySummary | null = null;
   let problem = "";
   if (connected && job.drive_folder_id) {
     try {
       listing = await listJobFiles(me!.email, job.drive_folder_id);
+      // Surveys sit in the job's own 09 - Surveys folder. Counted for survey jobs, and for any job that has something in it.
+      const nine = listing.find((f) => /^09\b/.test(f.name.trim()));
+      if (job.type === "Survey" || (nine && nine.files.length > 0)) survey = await surveySummary(me!.email, job.drive_folder_id);
     } catch (e) {
       problem = errorText(e);
     }
@@ -299,6 +304,37 @@ async function FilesTab({ job }: { job: { id: string; number: number | null; dri
         {job.number === null && <p className="text-muted">The folder is made when the job gets its number.</p>}
         {job.drive_error && <p className="rounded-xl border border-warn/30 bg-warn/10 px-4 py-3 text-[15px]">{job.drive_error}</p>}
         {problem && <p className="rounded-xl border border-warn/30 bg-warn/10 px-4 py-3 text-[15px]">Couldn&apos;t list the files. {problem}</p>}
+
+        {listing && job.type === "Survey" && !survey && (
+          <p className="rounded-xl bg-surface px-4 py-3 text-[15px]">This job&apos;s folder has no &quot;09 - Surveys&quot; folder yet. It&apos;s added the next time the job&apos;s stage changes, or make it in Drive.</p>
+        )}
+        {survey && (
+          <div className="rounded-xl border border-line bg-bg p-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="label flex-1">Surveys</p>
+              <a href={survey.url} target="_blank" rel="noreferrer" className={secondaryBtn}>
+                <FolderOpen className="h-5 w-5 text-blue" aria-hidden="true" /> Open 09 - Surveys
+              </a>
+            </div>
+            {survey.sites.length === 0 ? (
+              <p className="mt-2 text-[15px] text-muted">Nothing in it yet. Add a folder per site, then a folder per unit (&quot;Unit – Tenant&quot;), then Electric, Gas and Water.</p>
+            ) : (
+              <>
+                <p className="mt-2 text-[15px]">
+                  <b>{survey.sites.length}</b> site{survey.sites.length === 1 ? "" : "s"}, <b>{survey.units}</b> unit{survey.units === 1 ? "" : "s"}, <b>{survey.meters}</b> meter{survey.meters === 1 ? "" : "s"}, <b>{survey.photos}</b> photo{survey.photos === 1 ? "" : "s"}.
+                </p>
+                <ul className="mt-2 divide-y divide-line">
+                  {survey.sites.map((s) => (
+                    <li key={s.url} className="flex flex-wrap items-center gap-3 py-2 text-[15px]">
+                      <a href={s.url} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate font-medium underline-offset-4 hover:underline">{s.name}</a>
+                      <span className="text-[14px] text-muted">{s.units} unit{s.units === 1 ? "" : "s"} · {s.meters} meter{s.meters === 1 ? "" : "s"} · {s.photos} photo{s.photos === 1 ? "" : "s"}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+        )}
 
         {listing && (
           <>

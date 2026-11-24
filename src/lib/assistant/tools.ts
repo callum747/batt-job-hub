@@ -22,6 +22,7 @@ import { findEmail, jobSearch, unescapeHtml } from "../email";
 import { draftQuoteEmail, quoteEmailStart } from "../quote-email";
 import { listAllJobFiles, readJobFile, type FileContents } from "../google/job-files";
 import { driveBin, driveFind, driveMove, driveRename } from "../google/drive-actions";
+import { surveySummary } from "../google/survey-folder";
 
 export type Me = { email: string; name: string };
 /** What the person typed this turn, and when the turn began. */
@@ -414,6 +415,18 @@ const tools: Tool[] = [
       if (!job.drive_folder_id) return { ok: false, message: "This job has no Drive folder yet." };
       const r = await readJobFile(me.email, job.drive_folder_id, i.file_id);
       return new FileResult(r);
+    },
+  },
+  {
+    name: "survey_folder",
+    label: (i) => `Counting the survey folders for job ${i.job ?? ""}`,
+    description: "For a survey job: the link to its \"09 - Surveys\" folder inside the job folder, and a count of sites, units, meters and photos in it (a folder per site, a folder per unit named \"Unit – Tenant\", then Electric, Gas and Water folders with the photos). Use it for \"how many units have we done\", \"are the photos in\" and to give the survey link.",
+    schema: z.object({ job: jobRef }),
+    run: async (i: { job: string }, me) => {
+      const job = await mustFind(i.job);
+      if (!job.drive_folder_id) return { ok: false, message: "This job has no Drive folder yet." };
+      const s = await surveySummary(me.email, job.drive_folder_id);
+      return s ? { job: jobLabel(job), surveys_folder: s.url, sites: s.sites, units: s.units, meters: s.meters, photos: s.photos } : { ok: false, message: "This job's folder has no \"09 - Surveys\" folder yet. It's added the next time the job's stage changes." };
     },
   },
   {

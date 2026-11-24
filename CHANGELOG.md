@@ -200,3 +200,8 @@ Plain-English notes on what's new in the Batt Job Hub, newest first.
 - It can't touch the top-level folders, the four stage folders, the templates or the ledger, or the folder of a job that's in the app. In test mode it only works inside the test folders.
 
 - The handbook now includes the handovers from the Quotes and Tenders chats and the brand project: people, how Callum and Cam like to work, call-out pricing, client history (Meterz, Ace Pro, ep8), outreach, brand rules, Drive housekeeping and mistakes to avoid.
+
+## Surveys live in the job folder
+- Every job folder now has a ninth standard subfolder, "09 - Surveys". New job folders get all nine. An existing job's folder that the app looks after gets it added the next time the job's stage changes.
+- A survey job's Files tab shows a link to its 09 - Surveys folder and counts the sites, units, meters and photos in it. Ask can give the same link and counts.
+- The old separate top-level "03 - Surveys" folder is retired. The app never looked there; Ask is now told not to.

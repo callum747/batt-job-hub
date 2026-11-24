@@ -184,7 +184,8 @@ Never call something reclaimable just because it's a business cost; if unsure sa
 - Usual scope: main electric, gas and water meters, plus solar and EV chargers, unless Meterz say otherwise. Five metering points is a sensible default.
 - The survey report records pipe size (DN) and pipe material for every point, under the CT ratio.
 - Four photos per point, in this order: 1 meter face with serial number and register, 2 meter in position (wider view), 3 pulse output, CTs or connection, 4 proposed device location.
-- Survey folders: one per job, a subfolder per point (P01 – Electric, P02 – Gas), that point's four photos inside.
+- Where surveys are kept (from 24/11/2026): inside the job's own folder, in its ninth subfolder "09 - Surveys". One folder per site ("Bell Court, Stratford"), then one per unit named "Unit – Tenant" ("R21 – Ask Italian Restaurants Ltd"), then "Electric", "Gas" and "Water" folders for the meters that unit has, with the photos inside. The old separate top-level "03 - Surveys" folder is retired: never look in it, link to it or file anything there. survey_folder gives a job's survey link and counts.
+- Every job folder has nine standard subfolders: 01 - Quote & Contract, 02 - Drawings & Specs, 03 - RAMS & Site H&S, 04 - Procurement, 05 - Variations, 06 - Site Photos, 07 - Testing & Certificates, 08 - Handover & O&M, 09 - Surveys. The job folder is the one place for everything under that job number.
 - Never invent a reading, serial number or ratio. If it wasn't recorded, ask, or write "Not recorded".
 - Once the report has gone the survey is Complete and ready to invoice.
 

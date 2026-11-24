@@ -122,7 +122,7 @@ d("Drive and Calendar sync", () => {
     expect(folder.parents).toEqual([T.Live]);
     expect(files.filter((f) => f.parents[0] === folder.id).map((f) => f.name)).toEqual([
       "01 - Quote & Contract", "02 - Drawings & Specs", "03 - RAMS & Site H&S", "04 - Procurement",
-      "05 - Variations", "06 - Site Photos", "07 - Testing & Certificates", "08 - Handover & O&M",
+      "05 - Variations", "06 - Site Photos", "07 - Testing & Certificates", "08 - Handover & O&M", "09 - Surveys",
     ]);
     const [row] = await sql`select drive_folder_id, drive_folder_url, drive_error from jobs where id = ${jobId}`;
     expect(row.drive_folder_id).toBe(folder.id);
@@ -157,7 +157,7 @@ d("Drive and Calendar sync", () => {
     files.push({ id: "half1", name: "01 - Quote & Contract", mimeType: "application/vnd.google-apps.folder", parents: ["half"] });
     const [j] = await sql`insert into jobs (number, stage, site) values (558, 'Quoted', 'Half made') returning id`;
     expect(await drive.syncJobFolder(j.id, ME)).toBe("Drive folder linked in Live (test folder).");
-    expect(files.filter((f) => f.parents[0] === "half")).toHaveLength(8);
+    expect(files.filter((f) => f.parents[0] === "half")).toHaveLength(9);
     expect(files.filter((f) => f.name.startsWith("558 "))).toHaveLength(1);
   });
 
@@ -174,7 +174,7 @@ d("Drive and Calendar sync", () => {
     const sub = files.find((f) => f.parents[0] === folder.id && f.name.startsWith("01"))!;
     files.push({ id: "pdf1", name: "557 – Quote.pdf", mimeType: "application/pdf", parents: [sub.id] });
     const listing = await drive.listJobFiles(ME, folder.id);
-    expect(listing).toHaveLength(8);
+    expect(listing).toHaveLength(9);
     expect(listing[0].files.map((f) => f.name)).toEqual(["557 – Quote.pdf"]);
   });
 

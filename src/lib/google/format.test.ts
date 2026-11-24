@@ -23,8 +23,9 @@ describe("job folder", () => {
   it("copes with no client and slashes", () => {
     expect(jobFolderName({ number: 558, client: null, site: "Unit 4/5 The Yard" })).toBe("#558 – Unit 4-5 The Yard");
   });
-  it("has the eight standard subfolders", () => {
-    expect(JOB_SUBFOLDERS).toHaveLength(8);
+  it("has the nine standard subfolders", () => {
+    expect(JOB_SUBFOLDERS).toHaveLength(9);
+    expect(JOB_SUBFOLDERS[8]).toBe("09 - Surveys");
     expect(JOB_SUBFOLDERS[0]).toBe("01 - Quote & Contract");
     expect(JOB_SUBFOLDERS[7]).toBe("08 - Handover & O&M");
   });
