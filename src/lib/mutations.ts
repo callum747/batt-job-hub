@@ -51,6 +51,8 @@ export async function changeStage(jobId: string, stage: Stage, actor: string) {
     let number = job.number;
     if (needsNumber(stage, number)) number = await allocateNumber(tx, jobId);
     await tx`update jobs set stage = ${stage}, updated_at = now() where id = ${jobId}`;
+    // The day a job becomes Quoted is the day its quote went, unless a date is already there. Chasing counts from it.
+    if (stage === "Quoted") await tx`update jobs set quoted_at = coalesce(quoted_at, (now() at time zone 'Europe/London')::date) where id = ${jobId}`;
     await audit(tx, actor, "stage", "job", jobId, { from: job.stage, to: stage, number });
     return { number, numberBefore: job.number, from: job.stage };
   });

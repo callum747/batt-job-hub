@@ -24,6 +24,10 @@ import { draftQuoteEmail, quoteEmailStart } from "../quote-email";
 import { listAllJobFiles, readJobFile, type FileContents } from "../google/job-files";
 import { driveBin, driveFind, driveMove, driveRename } from "../google/drive-actions";
 import { surveySummary } from "../google/survey-folder";
+import { draftQuoteChaser, markQuoteChased, quoteReminders, stuckReminders } from "../reminders-run";
+import { chaserStart, draftChaser, readLedger } from "../google/ledger-run";
+import { dueForChase } from "../ledger";
+import { listJobs } from "../data";
 import { APP_NOTE } from "./client";
 
 export type Me = { email: string; name: string };
@@ -582,6 +586,55 @@ const tools: Tool[] = [
       if (done.length === 0) return { ok: false, message: "There's no active note with that id. Use memory to list them." };
       await audit(sql, me.email, "assistant memory switched off", "memory", i.id);
       return { switched_off: true };
+    },
+  },
+  {
+    name: "reminders",
+    label: () => "Checking what needs chasing",
+    description: "Everything that needs chasing today: quotes sent with no answer that are due a chase (a week after they went, then weekly), invoices the ledger says are due or overdue, and jobs that have stalled in a stage (enquiries not quoted, drafts not sent, work finished and not invoiced, bookings with no visit). Use it for \"what needs chasing\", \"what's outstanding\", \"what should I do today\".",
+    schema: z.object({}),
+    run: async (_i: Record<string, never>, me: Me) => {
+      const jobs = await listJobs();
+      const [quotes, stuck] = await Promise.all([quoteReminders(jobs), stuckReminders(jobs)]);
+      let invoices: unknown = [];
+      try {
+        const today = todayUK();
+        invoices = (await readLedger(me.email)).invoices.filter((i) => dueForChase(i, today)).map((i) => ({ invoice: i.number, client: i.client, amount: i.payable ?? i.gross, due: i.dueDate, days_overdue: i.daysOverdue, last_chased: i.lastChased }));
+      } catch (e) {
+        invoices = { problem: `Couldn't read the invoice ledger: ${errorText(e)}` };
+      }
+      return {
+        quotes_to_chase: quotes.map((q) => ({ job: q.label, client: q.client, site: q.site, quote_ex_vat: q.value, sent: q.quotedAt, days_since_sent: q.daysSinceSent, chased: q.chases, last_chased: q.lastChased })),
+        invoices_to_chase: invoices,
+        needs_a_nudge: stuck.map((s) => ({ job: s.label, client: s.client, stage: s.stage, why: s.why })),
+      };
+    },
+  },
+  {
+    name: "chase_quote",
+    label: (i) => `Drafting a chaser for the quote on job ${i.job ?? ""}`,
+    description: "Chase a quote that's had no answer: saves a chaser email in the user's Gmail drafts to the client with the quote PDF attached again, and notes it on the job so the next chase is a week on. The wording steps up each time (did it arrive; still wanted; last note). Never sent: the user checks it and presses Send. If the user chased by phone instead, pass by_phone true and nothing is drafted.",
+    schema: z.object({ job: jobRef, by_phone: z.boolean().default(false) }),
+    run: async (i: { job: string; by_phone: boolean }, me: Me) => {
+      const job = await mustFind(i.job);
+      if (i.by_phone) {
+        await markQuoteChased(job.id, me, "by phone or in person");
+        return { noted: true, next_chase: "in a week" };
+      }
+      return draftQuoteChaser(job.id, me);
+    },
+  },
+  {
+    name: "chase_invoice",
+    label: (i) => `Drafting a chaser for invoice ${i.invoice ?? ""}`,
+    description: "Chase an unpaid invoice: saves the chaser in the user's Gmail drafts with the invoice attached, worded for how overdue it is (the late fee in the Terms & Conditions is mentioned, never added), and fills Last Chased on the ledger. Never sent. Takes the invoice number, e.g. INV-547.",
+    schema: z.object({ invoice: z.string().min(3) }),
+    run: async (i: { invoice: string }, me: Me) => {
+      const number = i.invoice.trim().toUpperCase();
+      const e = await chaserStart(me.email, number);
+      if (!e.to) return { ok: false, message: `There's no email address for ${number}'s client on the ledger or the client's record.` };
+      const r = await draftChaser(me, number, { to: e.to, cc: e.cc, subject: e.subject, body: e.body });
+      return { drafted: true, to: e.to, reminder: e.stage, attached: r.attached, link: r.url, note: "Saved in Gmail drafts, not sent." };
     },
   },
   {

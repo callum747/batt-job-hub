@@ -234,3 +234,10 @@ Plain-English notes on what's new in the Batt Job Hub, newest first.
 - Earlier chats are shared: everyone's chats show in the list on the right (with whose it is), and anyone can open one and carry it on. They are kept in the database, so a republish doesn't remove them.
 - Opening Claude API still takes you back to your own last chat.
 - Claude saves anything it's taught (a rule, a correction, a client's terms) to the shared memory straight away, so it applies on every account from then on.
+
+## Chasing
+- Today now shows "Quotes to chase": every quote sent with no answer that is due a chase (a week after it went, then weekly). Each has a "Draft chaser" button, which saves the email in your Gmail drafts with the quote attached again, and an "I've chased it" button for when you rang them. Either one notes it on the job and sets the next chase a week on.
+- The chaser wording steps up: first "did it reach you", then "are you still looking to go ahead", then a last note offering to close it off. After three with no answer it suggests marking the job Lost.
+- Today also shows "Invoices to chase" from the ledger, and "Needs a nudge" for jobs that have stalled: enquiries not quoted, drafts not sent, bookings with no visit, work finished and not invoiced.
+- A job gets its quote-sent date the day it's moved to Quoted. Chasing counts from that date.
+- Claude can list everything that needs chasing and draft the quote and invoice chasers.

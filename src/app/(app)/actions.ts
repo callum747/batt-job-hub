@@ -1,5 +1,6 @@
 "use server";
 
+import { draftQuoteChaser, markQuoteChased } from "@/lib/reminders-run";
 import { fuelPerMile } from "@/lib/money";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -618,6 +619,22 @@ export async function invoiceDraftEmail(invoiceId: string, e: { to: string; cc: 
   const r = await draftInvoiceEmail(str(invoiceId), { to: str(e.to), cc: str(e.cc), subject: str(e.subject), body: str(e.body) }, me);
   refreshJobs();
   return r;
+}
+
+// ---------- Chasing quotes ----------
+
+export async function chaseQuote(jobId: string) {
+  const me = await who();
+  const r = await draftQuoteChaser(String(jobId), me);
+  refreshJobs();
+  return r;
+}
+
+export async function quoteChasedByHand(jobId: string) {
+  const me = await who();
+  await markQuoteChased(String(jobId), me, "by phone or in person");
+  refreshJobs();
+  return { ok: true, message: "Noted. The next chase is in a week." };
 }
 
 // ---------- The Invoices page (the ledger) ----------

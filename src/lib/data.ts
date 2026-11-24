@@ -45,6 +45,9 @@ export type JobRow = {
   received: string | null;
   deadline: string | null;
   quoted_at: string | null;
+  /** When the quote was last chased, and how many times so far. */
+  quote_chased_at: string | null;
+  quote_chases: number;
   outcome_at: string | null;
   outcome_reason: string;
   start_date: string | null;
