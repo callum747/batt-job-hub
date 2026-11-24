@@ -82,6 +82,33 @@ export function parseLedger(values: string[][]): LedgerInvoice[] {
 }
 
 export const isOpen = (i: LedgerInvoice) => i.status === "Sent" || i.status === "Overdue";
+
+/**
+ * The home page's money numbers, all before VAT like the quote figures beside them.
+ * Sent: every invoice that's gone out, paid or not. Unpaid: the ones still waiting to be paid.
+ * Work on: what the jobs in hand are worth, less whatever has already been invoiced on them and paid
+ * (a deposit that's in the bank isn't work still to come).
+ */
+export function homeTotals(invoices: LedgerInvoice[], onJobs: { number: number | null; value: number }[]) {
+  const net = (list: LedgerInvoice[]) => Math.round(list.reduce((s, i) => s + (i.net ?? 0), 0) * 100) / 100;
+  const sent = invoices.filter((i) => isOpen(i) || i.status === "Paid");
+  const unpaid = invoices.filter(isOpen);
+  const paid = invoices.filter((i) => i.status === "Paid");
+  let workOn = 0;
+  let paidOnWork = 0;
+  for (const j of onJobs) {
+    const had = Math.min(j.value, Math.max(0, j.number === null ? 0 : net(paid.filter((i) => i.jobNumber === j.number))));
+    paidOnWork += had;
+    workOn += j.value - had;
+  }
+  return {
+    sent: { total: net(sent), count: sent.length },
+    unpaid: { total: net(unpaid), count: unpaid.length, overdue: unpaid.filter((i) => i.status === "Overdue").length },
+    workOn: Math.round(workOn * 100) / 100,
+    paidOnWork: Math.round(paidOnWork * 100) / 100,
+  };
+}
+
 export const dueForChase = (i: LedgerInvoice, today: string) => isOpen(i) && i.nextChase !== null && i.nextChase <= today;
 
 /** Which chaser: 1 on the due date, 2 at a week overdue, 3 every week after. */

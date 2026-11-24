@@ -9,7 +9,7 @@ import { expiryText } from "@/lib/training";
 import { currentPerson } from "@/lib/auth";
 import { googleConnected } from "@/lib/google/client";
 import { readLedger } from "@/lib/google/ledger-run";
-import { dueForChase } from "@/lib/ledger";
+import { dueForChase, homeTotals } from "@/lib/ledger";
 import { CalendarDays } from "lucide-react";
 import { EmptyState, PageHeader } from "@/components/page";
 import { Card, LightDot, PeopleChips, Stat, jobHref } from "@/components/ui";
@@ -42,10 +42,19 @@ export default async function TodayPage() {
   return (
     <>
       <PageHeader title="Today" intro={longDate()} />
-      <div className="grid grid-cols-3 gap-2 md:gap-4">
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-4">
         <Stat label="Live quotes" value={gbp(sum(quotes), { whole: true })} sub={`${quotes.length} job${quotes.length === 1 ? "" : "s"}`} href="/jobs?show=quotes" />
-        <Stat label="Work on" value={gbp(sum(on), { whole: true })} sub={`${on.length} job${on.length === 1 ? "" : "s"}`} href="/jobs?show=on" />
-        <Stat label="Unpaid invoices" value={gbp(sum(invoiced), { whole: true })} sub={`${invoiced.length} job${invoiced.length === 1 ? "" : "s"}`} href="/jobs?show=invoiced" />
+        <Suspense
+          fallback={
+            <>
+              <Stat label="Work on" value={gbp(sum(on), { whole: true })} sub={plural(on.length, "job")} href="/jobs?show=on" />
+              <Stat label="Invoices sent" value="…" sub="Reading the ledger" href="/invoices" />
+              <Stat label="Unpaid invoices" value={gbp(sum(invoiced), { whole: true })} sub={plural(invoiced.length, "job")} href="/invoices" />
+            </>
+          }
+        >
+          <MoneyStats on={on.map((j) => ({ number: j.number, value: j.money.income }))} unpaidGuess={sum(invoiced)} unpaidJobs={invoiced.length} />
+        </Suspense>
       </div>
 
       <div className="mt-4 grid grid-cols-1 items-start gap-4 md:mt-6 md:gap-6 lg:grid-cols-2">
@@ -141,6 +150,38 @@ export default async function TodayPage() {
           )}
         </div>
       </div>
+    </>
+  );
+}
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+/**
+ * Work on, invoices sent and unpaid invoices, from the invoice ledger. If the ledger can't be read, work on and
+ * unpaid fall back to the app's own job figures.
+ */
+async function MoneyStats({ on, unpaidGuess, unpaidJobs }: { on: { number: number | null; value: number }[]; unpaidGuess: number; unpaidJobs: number }) {
+  const me = await currentPerson();
+  let t: ReturnType<typeof homeTotals> | null = null;
+  try {
+    if (me && me.email !== "preview@localhost" && (await googleConnected(me.email))) t = homeTotals((await readLedger(me.email)).invoices, on);
+  } catch {
+    t = null;
+  }
+  const worth = on.reduce((s, j) => s + j.value, 0);
+  if (!t)
+    return (
+      <>
+        <Stat label="Work on" value={gbp(worth, { whole: true })} sub={plural(on.length, "job")} href="/jobs?show=on" />
+        <Stat label="Invoices sent" value="–" sub="Couldn't read the ledger" href="/invoices" />
+        <Stat label="Unpaid invoices" value={gbp(unpaidGuess, { whole: true })} sub={plural(unpaidJobs, "job")} href="/invoices" />
+      </>
+    );
+  return (
+    <>
+      <Stat label="Work on" value={gbp(t.workOn, { whole: true })} sub={t.paidOnWork > 0 ? `${plural(on.length, "job")}, ${gbp(t.paidOnWork, { whole: true })} already paid` : plural(on.length, "job")} href="/jobs?show=on" />
+      <Stat label="Invoices sent" value={gbp(t.sent.total, { whole: true })} sub={plural(t.sent.count, "invoice")} href="/invoices" />
+      <Stat label="Unpaid invoices" value={gbp(t.unpaid.total, { whole: true })} sub={t.unpaid.overdue ? `${plural(t.unpaid.count, "invoice")}, ${t.unpaid.overdue} overdue` : plural(t.unpaid.count, "invoice")} href="/invoices" />
     </>
   );
 }

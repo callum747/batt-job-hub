@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chaseStage, chaserEmail, driveId, dueForChase, parseLedger } from "./ledger";
+import { chaseStage, chaserEmail, driveId, dueForChase, homeTotals, parseLedger, type LedgerInvoice } from "./ledger";
 
 // INV-545 exactly as the real ledger shows it.
 const row545 = ["INV-545", "12/11/2026", "12/11/2026", "Meterz", "operations@meterz.co.uk", "Q-549", "Unit 2, Hastings Fitness, Bodmin Retail Park, PL31 2GA", "Survey", "Standard 20%", "£506.80", "£101.36", "£608.16", "", "", "£608.16", "30", "12/12/2026", "12/11/2026", "", "Sent", "0", "", "", "12/12/2026", "31/12/2026", "VAT", "https://drive.google.com/file/d/1VpGNMhVav_Su3Aml6L040wcv46Rf1GDQ/view", "1 survey day…"];
@@ -42,6 +42,21 @@ describe("the ledger", () => {
 });
 
 import { cisPayment, parseCisReceived, parseSubcontractors, statementMissing, statementRequest, taxMonthEnding, taxMonthLabel } from "./ledger";
+
+describe("the home page totals", () => {
+  const inv = (number: string, status: string, net: number, jobNumber: number | null) => ({ number, status, net, jobNumber }) as LedgerInvoice;
+  const invoices = [inv("INV-1", "Paid", 1000, 559), inv("INV-2", "Sent", 400, 559), inv("INV-3", "Overdue", 250, 560), inv("INV-4", "Draft", 999, 561), inv("INV-5", "Paid", 9000, 562)];
+  it("counts what's been sent and what's still unpaid, leaving drafts out", () => {
+    const t = homeTotals(invoices, []);
+    expect(t.sent).toEqual({ total: 10650, count: 4 });
+    expect(t.unpaid).toEqual({ total: 650, count: 2, overdue: 1 });
+  });
+  it("takes paid invoices off the work in hand, but never below nothing, and leaves unpaid ones on", () => {
+    const t = homeTotals(invoices, [{ number: 559, value: 5000 }, { number: 560, value: 800 }, { number: 562, value: 6000 }]);
+    expect(t.workOn).toBe(4000 + 800 + 0);
+    expect(t.paidOnWork).toBe(1000 + 6000);
+  });
+});
 
 describe("CIS", () => {
   it("works out the tax month: the 6th to the 5th", () => {

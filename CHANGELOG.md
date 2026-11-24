@@ -4,6 +4,8 @@ Plain-English notes on what's new in the Batt Job Hub, newest first.
 
 ## 24/11/2026: Message Claude while he's working, and signatures on drafts
 - **You can send another message while Claude API is still working.** He reads it at his next step and takes it into account, the same as a normal Claude chat. If he finishes before reading it, it goes as your next message automatically.
+- **The home page has four numbers now:** Live quotes, Work on, Invoices sent and Unpaid invoices. Sent is everything invoiced so far; Unpaid is what's still waiting to be paid. Both come from the Invoices tab of the master sheet, before VAT.
+- **Work on no longer counts money already paid.** If a deposit or stage invoice on a job in hand has been paid, it comes off that job's figure.
 - **Every draft email now has your Gmail signature under it.** Quote emails, invoice emails, chasers and anything Claude API drafts. It's the signature set in your own Gmail settings, logo and all. Where the wording used to end with your typed name and job title, that comes off so it isn't there twice.
 
 ## 23/11/2026: Count the drawings
