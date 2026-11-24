@@ -2,6 +2,10 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { ChaseButtons } from "./chase-buttons";
 import { quoteReminders, stuckReminders } from "@/lib/reminders-run";
+import { vehiclesDue } from "@/lib/vehicles-run";
+import { dueText } from "@/lib/vehicles";
+import { trainingDue } from "@/lib/training-run";
+import { expiryText } from "@/lib/training";
 import { currentPerson } from "@/lib/auth";
 import { googleConnected } from "@/lib/google/client";
 import { readLedger } from "@/lib/google/ledger-run";
@@ -30,7 +34,7 @@ export default async function TodayPage() {
   const quotes = jobs.filter((j) => j.stage === "Draft quote" || j.stage === "Quoted");
   const on = jobs.filter((j) => ["Booked", "In progress", "Complete"].includes(j.stage));
   const invoiced = jobs.filter((j) => j.stage === "Invoiced");
-  const [toChase, stuck] = await Promise.all([quoteReminders(jobs, today), stuckReminders(jobs, today)]);
+  const [toChase, stuck, vans, cards] = await Promise.all([quoteReminders(jobs, today), stuckReminders(jobs, today), vehiclesDue(today), trainingDue(today)]);
   const sum = (list: typeof jobs) => list.reduce((s, j) => s + j.money.income, 0);
   const todays = visits.filter((v) => v.date === today);
   const coming = visits.filter((v) => v.date > today);
@@ -78,6 +82,28 @@ export default async function TodayPage() {
           <Suspense fallback={null}>
             <InvoicesToChase />
           </Suspense>
+          {(vans.length > 0 || cards.length > 0) && (
+            <Card title="Vans and cards due">
+              <ul className="divide-y divide-line">
+                {vans.map((d) => (
+                  <li key={`${d.vehicle}-${d.what}`}>
+                    <Link href="/vehicles" className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 text-[15px] hover:bg-surface">
+                      <span className="min-w-0 flex-1 truncate">{d.vehicle} <span className="text-muted">{d.registration}</span></span>
+                      <span className={`shrink-0 text-[14px] ${d.state === "overdue" ? "font-semibold text-bad" : "font-medium"}`}>{dueText(d)}</span>
+                    </Link>
+                  </li>
+                ))}
+                {cards.map((q) => (
+                  <li key={q.id}>
+                    <Link href="/training" className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 text-[15px] hover:bg-surface">
+                      <span className="min-w-0 flex-1 truncate">{q.person}</span>
+                      <span className={`shrink-0 text-[14px] ${q.expires! < today ? "font-semibold text-bad" : "font-medium"}`}>{expiryText(q, today)}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
           {stuck.length > 0 && (
             <Card title="Needs a nudge">
               <ul className="divide-y divide-line">

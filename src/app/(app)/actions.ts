@@ -1,5 +1,7 @@
 "use server";
 
+import { ensureVehicleFolder, saveVehicle } from "@/lib/vehicles-run";
+import { saveQualification } from "@/lib/training-run";
 import { draftQuoteChaser, markQuoteChased } from "@/lib/reminders-run";
 import { fuelPerMile } from "@/lib/money";
 import { revalidatePath } from "next/cache";
@@ -619,6 +621,52 @@ export async function invoiceDraftEmail(invoiceId: string, e: { to: string; cc: 
   const r = await draftInvoiceEmail(str(invoiceId), { to: str(e.to), cc: str(e.cc), subject: str(e.subject), body: str(e.body) }, me);
   refreshJobs();
   return r;
+}
+
+// ---------- Vehicles and training ----------
+
+export async function vehicleSave(id: string | null, f: FormData) {
+  const me = await who();
+  try {
+    const driver = text(f, "driver_id");
+    await saveVehicle(id, {
+      name: text(f, "name"), registration: text(f, "registration"), make_model: text(f, "make_model"), driver_id: driver || null,
+      mot_due: dateOrNull(f, "mot_due"), tax_due: dateOrNull(f, "tax_due"), insurance_due: dateOrNull(f, "insurance_due"), service_due: dateOrNull(f, "service_due"),
+      mpg: numberOrNull(f, "mpg"), finance: text(f, "finance"), notes: text(f, "notes"), active: f.get("gone") !== "on",
+    }, me.email);
+    revalidatePath("/vehicles");
+    revalidatePath("/");
+    return { ok: true, message: id ? "Saved." : "Vehicle added." };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function vehicleFolder(id: string) {
+  const me = await who();
+  try {
+    const message = await ensureVehicleFolder(String(id), me.email);
+    revalidatePath("/vehicles");
+    return { ok: true, message };
+  } catch (e) {
+    return { ok: false, message: errorText(e) };
+  }
+}
+
+export async function qualificationSave(id: string | null, f: FormData) {
+  const me = await who();
+  try {
+    await saveQualification(id, {
+      ...(id ? {} : { person_id: text(f, "person_id") }),
+      name: text(f, "name"), number: text(f, "number"), issued: dateOrNull(f, "issued"), expires: dateOrNull(f, "expires"),
+      file_url: text(f, "file_url"), notes: text(f, "notes"), active: f.get("gone") !== "on",
+    }, me.email);
+    revalidatePath("/training");
+    revalidatePath("/");
+    return { ok: true, message: id ? "Saved." : "Added." };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 // ---------- Chasing quotes ----------

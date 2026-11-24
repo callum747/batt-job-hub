@@ -28,6 +28,10 @@ import { chaserStart, draftChaser, readLedger } from "../google/ledger-run";
 import { dueForChase } from "../ledger";
 import { listJobs } from "../data";
 import { APP_NOTE } from "./client";
+import { ensureVehicleFolder, listVehicles, saveVehicle, vehiclesDue } from "../vehicles-run";
+import { dueItems, dueText } from "../vehicles";
+import { listQualifications, saveQualification, trainingDue } from "../training-run";
+import { expiryText, qualState } from "../training";
 import { attachmentToDrive, docEdit, docToPdf, draftEmail, driveCopy, driveMakeFolder, sheetWrite, threadAttachments } from "../google/workspace";
 import { removeVisitEvent } from "../google/calendar";
 import { invoiceStart } from "../invoice-start";
@@ -818,6 +822,78 @@ const tools: Tool[] = [
     },
   },
   {
+    name: "vehicles",
+    label: () => "Looking at the vehicles",
+    description: "Batt's vans and other vehicles: registration, make and model, who drives each, when the MOT, road tax, insurance and service are due (with what's overdue or due within 30 days), miles per gallon, finance details, notes and the link to each one's folder in Drive (inside 06 - Vehicles & Equipment › 01 - Vehicles).",
+    schema: z.object({}),
+    run: async () => {
+      const today = todayUK();
+      return { vehicles: (await listVehicles(true)).map((v) => ({ ...v, due: dueItems(v, today).map((d) => ({ what: d.what, on: d.on, state: d.state, in_words: dueText(d) })) })) };
+    },
+  },
+  {
+    name: "save_vehicle",
+    label: (i) => (i.vehicle_id ? "Updating a vehicle" : `Adding the vehicle ${i.name ?? ""}`),
+    description: "Add a vehicle, or change one (give its vehicle_id from vehicles): name, registration, make and model, driver (a person's name), the dates the MOT, road tax, insurance and next service are due, real miles per gallon, finance or lease details, notes. Only send what's changing. Dates and figures must come from the user or a document (a V5, an MOT certificate, an insurance schedule); never guess one.",
+    schema: z.object({
+      vehicle_id: z.string().uuid().optional(), name: z.string().min(1).optional(), registration: z.string().optional(), make_model: z.string().optional(),
+      driver: z.string().optional().describe("The person's name as in Settings, or empty for nobody."),
+      mot_due: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(), tax_due: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+      insurance_due: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(), service_due: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+      mpg: z.number().min(5).max(150).nullable().optional(), finance: z.string().optional(), notes: z.string().optional(), no_longer_ours: z.boolean().optional(),
+      make_drive_folder: z.boolean().default(false).describe("True to give it its own folder in Drive's Vehicles folder."),
+    }),
+    run: async (i: { vehicle_id?: string; name?: string; registration?: string; make_model?: string; driver?: string; mot_due?: string | null; tax_due?: string | null; insurance_due?: string | null; service_due?: string | null; mpg?: number | null; finance?: string; notes?: string; no_longer_ours?: boolean; make_drive_folder: boolean }, me: Me) => {
+      let driver_id: string | null | undefined;
+      if (i.driver !== undefined) {
+        if (!i.driver.trim()) driver_id = null;
+        else {
+          const [p] = await sql<{ id: string }[]>`select id from people where lower(short_name) = lower(${i.driver.trim()}) or lower(full_name) = lower(${i.driver.trim()}) limit 1`;
+          if (!p) return { ok: false, message: `There's nobody called "${i.driver}" on the People list in Settings.` };
+          driver_id = p.id;
+        }
+      }
+      const id = await saveVehicle(i.vehicle_id ?? null, {
+        name: i.name, registration: i.registration, make_model: i.make_model, driver_id, mot_due: i.mot_due, tax_due: i.tax_due, insurance_due: i.insurance_due, service_due: i.service_due,
+        mpg: i.mpg, finance: i.finance, notes: i.notes, ...(i.no_longer_ours !== undefined ? { active: !i.no_longer_ours } : {}),
+      }, me.email);
+      const folder = i.make_drive_folder ? await ensureVehicleFolder(id, me.email) : undefined;
+      return { saved: true, vehicle_id: id, ...(folder ? { folder } : {}) };
+    },
+  },
+  {
+    name: "training",
+    label: () => "Looking at the training matrix",
+    description: "The training matrix: every person's qualifications and cards (ECS card, 18th Edition, 2391, AM2, IPAF, first aid, asbestos awareness and so on) with card numbers, when each was gained and when it runs out, what has expired or runs out within 60 days, and the link to each certificate. Use it for \"who holds what\", \"what's running out\", and for the qualifications to put in a tender or RAMS.",
+    schema: z.object({}),
+    run: async () => {
+      const today = todayUK();
+      const all = await listQualifications(true);
+      return { qualifications: all.map((q) => ({ ...q, state: q.active ? qualState(q, today) : "no longer held", in_words: q.active ? expiryText(q, today) : undefined })) };
+    },
+  },
+  {
+    name: "save_qualification",
+    label: (i) => (i.qualification_id ? "Updating a qualification" : `Adding a qualification for ${i.person ?? ""}`),
+    description: "Add a qualification or card to a person, or change one (give its qualification_id from training): the name of it, the card or certificate number, the date gained, the date it runs out (null if it never does), a Drive link to the certificate, notes. Only what the user tells you or a certificate shows; never guess a date or a number.",
+    schema: z.object({
+      qualification_id: z.string().uuid().optional(), person: z.string().optional().describe("The person's name, needed when adding."), name: z.string().min(1).optional(), number: z.string().optional(),
+      issued: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(), expires: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+      file_link: z.string().optional(), notes: z.string().optional(), no_longer_held: z.boolean().optional(),
+    }),
+    run: async (i: { qualification_id?: string; person?: string; name?: string; number?: string; issued?: string | null; expires?: string | null; file_link?: string; notes?: string; no_longer_held?: boolean }, me: Me) => {
+      let person_id: string | undefined;
+      if (!i.qualification_id) {
+        const who = (i.person ?? "").trim();
+        const [p] = await sql<{ id: string }[]>`select id from people where lower(short_name) = lower(${who}) or lower(full_name) = lower(${who}) limit 1`;
+        if (!p) return { ok: false, message: `There's nobody called "${who}" on the People list in Settings.` };
+        person_id = p.id;
+      }
+      const id = await saveQualification(i.qualification_id ?? null, { person_id, name: i.name, number: i.number, issued: i.issued, expires: i.expires, file_url: i.file_link, notes: i.notes, ...(i.no_longer_held !== undefined ? { active: !i.no_longer_held } : {}) }, me.email);
+      return { saved: true, qualification_id: id };
+    },
+  },
+  {
     name: "reminders",
     label: () => "Checking what needs chasing",
     description: "Everything that needs chasing today: quotes sent with no answer that are due a chase (a week after they went, then weekly), invoices the ledger says are due or overdue, and jobs that have stalled in a stage (enquiries not quoted, drafts not sent, work finished and not invoiced, bookings with no visit). Use it for \"what needs chasing\", \"what's outstanding\", \"what should I do today\".",
@@ -836,6 +912,8 @@ const tools: Tool[] = [
         quotes_to_chase: quotes.map((q) => ({ job: q.label, client: q.client, site: q.site, quote_ex_vat: q.value, sent: q.quotedAt, days_since_sent: q.daysSinceSent, chased: q.chases, last_chased: q.lastChased })),
         invoices_to_chase: invoices,
         needs_a_nudge: stuck.map((s) => ({ job: s.label, client: s.client, stage: s.stage, why: s.why })),
+        vehicles_due: (await vehiclesDue()).map((d) => ({ vehicle: d.vehicle, registration: d.registration, due: dueText(d), on: d.on })),
+        cards_running_out: (await trainingDue()).map((q) => ({ person: q.person, what: expiryText(q, todayUK()), on: q.expires })),
       };
     },
   },

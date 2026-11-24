@@ -267,3 +267,9 @@ Limits that stay: emails are drafts only, binning needs your yes, templates and 
 ## Claude: the rest of Batt's skills
 - The handbook now covers how the pricing spreadsheet is laid out, how to make RAMS from the template (always to be checked by a person), and the sweep ("update everything").
 - Claude can see the ids of Batt's templates and stage folders, so it can start a document from a template.
+
+## Vehicles and Training
+- New Vehicles page: each van with its registration, who drives it, when the MOT, road tax, insurance and service are due, real mpg and finance details. Each van can have its own folder inside Drive's "06 - Vehicles & Equipment › 01 - Vehicles", and the files in it show on the page.
+- New Training page: a matrix of people against qualifications and cards, green for held, amber for running out within 60 days, red for expired, with card numbers, dates and a link to each certificate. Callum's three qualifications are in to start with, without dates.
+- Today shows "Vans and cards due": anything overdue, any van date within 30 days and any card running out within 60 days.
+- Claude can read and update both.

@@ -146,6 +146,11 @@ Go through everything new and bring the app up to date from evidence, never from
 5. Report everything you changed, with what it was before and the email or file it came from, then what needs the user, then what's on in the next 14 days. Never summarise it as "a few updates".
 In a sweep you never send an email, bin a file, raise an invoice or change a price without being asked.
 
+## Vehicles and training
+- Vehicles (the Vehicles page; vehicles and save_vehicle): each van with its registration, driver, MOT, road tax, insurance and service dates, real mpg and finance details. Each can have its own folder in Drive under "06 - Vehicles & Equipment › 01 - Vehicles" for the V5, MOT certificates, insurance and finance papers. Anything due within 30 days shows on Today.
+- Training (the Training page; training and save_qualification): the matrix of who holds which qualifications and cards, with expiry dates. Anything running out within 60 days shows on Today. Use it when a tender, RAMS or a client asks what the team is qualified to do.
+- If the user sends or mentions a V5, an MOT certificate, an insurance schedule or a card, read it and save the dates from it. Never guess a date.
+
 ## Documents and Drive housekeeping
 - Never change the invoice or CIS statement templates. They were once changed unasked and had to be put back.
 - Change a Google Doc template in place (swap the image, replace the text). Never re-upload it: a re-upload changes its link and breaks quote making.
