@@ -51,7 +51,7 @@ export async function docEdit(me: { email: string }, fileId: string, changes: { 
   return { name: item.name, link: link(item), changes: done, ...(missed.length ? { not_found: missed.map((m) => m.find), note: "Text marked not found wasn't in the document exactly as given (check capitals, spaces and line breaks). Read the Doc and try again with the exact wording." } : {}) };
 }
 
-async function uploadFile(email: string, name: string, mimeType: string, folderId: string, bytes: Uint8Array) {
+export async function uploadFile(email: string, name: string, mimeType: string, folderId: string, bytes: Uint8Array) {
   const boundary = `batt${Date.now()}`;
   const meta = JSON.stringify({ name, parents: [folderId], mimeType });
   const body = Buffer.concat([

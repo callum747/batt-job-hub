@@ -1,9 +1,10 @@
-import { Check, GraduationCap } from "lucide-react";
+import Link from "next/link";
+import { Check, ChevronRight, GraduationCap } from "lucide-react";
 import { EmptyState, PageHeader } from "@/components/page";
 import { Card } from "@/components/ui";
 import { getPeople } from "@/lib/data";
 import { todayUK, ukDate } from "@/lib/jobs-rules";
-import { buildMatrix, expiryText, qualState } from "@/lib/training";
+import { buildMatrix, qualState } from "@/lib/training";
 import { listQualifications } from "@/lib/training-run";
 import { QualificationForm } from "./forms";
 
@@ -37,7 +38,9 @@ export default async function TrainingPage() {
               <tbody>
                 {m.rows.map((r) => (
                   <tr key={r.personId}>
-                    <th className="sticky left-0 border-t border-line bg-bg px-3 py-2.5 text-left font-semibold">{r.person}</th>
+                    <th className="sticky left-0 border-t border-line bg-bg px-3 py-2.5 text-left font-semibold">
+                      <Link href={`/training/${r.personId}`} className="underline underline-offset-4 hover:text-blue-deep">{r.person}</Link>
+                    </th>
                     {r.cells.map((c, i) => (
                       <td key={i} className={`border-t border-line px-3 py-2.5 align-top ${cell[c.state]}`}>
                         {c.q ? (
@@ -62,38 +65,24 @@ export default async function TrainingPage() {
         </Card>
       )}
 
-      {staff.map((p) => {
-        const mine = quals.filter((q) => q.person_id === p.id);
-        if (mine.length === 0) return null;
-        return (
-          <Card key={p.id} title={p.short_name}>
-            <ul className="divide-y divide-line">
-              {mine.map((q) => {
-                const state = q.active ? qualState(q, today) : "held";
-                return (
-                  <li key={q.id} className="py-3">
-                    <details>
-                      <summary className="flex cursor-pointer flex-wrap items-center gap-x-3 gap-y-1 text-[15px]">
-                        <span className={`font-semibold ${q.active ? "" : "text-muted line-through"}`}>{q.name}</span>
-                        {q.number && <span className="text-muted">{q.number}</span>}
-                        <span className={`ml-auto text-[14px] ${state === "expired" ? "font-semibold text-bad" : state === "soon" ? "font-semibold" : "text-muted"}`}>
-                          {q.active ? (q.expires ? expiryText({ name: "", expires: q.expires }, today).trim().replace(/^r/, "R") : "No expiry") : "No longer held"}
-                        </span>
-                        {q.file_url && (
-                          <a href={q.file_url} target="_blank" rel="noreferrer" className="text-[14px] underline underline-offset-4">Certificate</a>
-                        )}
-                      </summary>
-                      <div className="mt-4">
-                        <QualificationForm qual={q} people={staff} names={names} />
-                      </div>
-                    </details>
-                  </li>
-                );
-              })}
-            </ul>
-          </Card>
-        );
-      })}
+      <Card title="People">
+        <p className="mb-2 text-[14px] text-muted">Open someone to see their cards and qualifications, change them, or add a certificate.</p>
+        <ul className="divide-y divide-line">
+          {staff.map((p) => {
+            const mine = quals.filter((q) => q.person_id === p.id && q.active);
+            const flagged = mine.filter((q) => qualState(q, today) !== "held").length;
+            return (
+              <li key={p.id}>
+                <Link href={`/training/${p.id}`} className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-3 text-[15px] hover:bg-surface">
+                  <span className="min-w-0 flex-1 font-semibold">{p.short_name}</span>
+                  <span className="text-[14px] text-muted">{mine.length} held{flagged ? ` · ${flagged} need${flagged === 1 ? "s" : ""} attention` : ""}</span>
+                  <ChevronRight className="h-4 w-4 text-muted" aria-hidden="true" />
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </Card>
 
       <Card title="Add a qualification or card">
         <QualificationForm qual={null} people={staff} names={names} />

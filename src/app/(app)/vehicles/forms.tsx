@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { FolderPlus } from "lucide-react";
 import { Field, inputCls, primaryBtn, secondaryBtn, textareaCls } from "@/components/ui";
 import type { Vehicle } from "@/lib/vehicles";
-import { vehicleFolder, vehicleSave } from "../actions";
+import { vehicleDocUpload, vehicleFolder, vehicleLogAdd, vehicleSave } from "../actions";
 
 type Person = { id: string; short_name: string };
 
@@ -89,5 +89,84 @@ export function VehicleFolderButton({ id }: { id: string }) {
       </button>
       {msg && <span className="text-[14px] text-muted">{msg}</span>}
     </span>
+  );
+}
+
+const KINDS = ["MOT", "Service", "Insurance", "Road tax", "Repair", "Tyres", "Other"] as const;
+const NEXT: Record<string, string> = { MOT: "Next MOT due", Service: "Next service due", Insurance: "Insurance runs to", "Road tax": "Road tax runs to" };
+
+/** Log an MOT, a service, an insurance renewal or anything else done to the van, with its paperwork. */
+export function VehicleLogForm({ vehicleId, today }: { vehicleId: string; today: string }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [kind, setKind] = useState<string>("MOT");
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        const form = e.currentTarget;
+        const f = new FormData(form);
+        start(async () => {
+          const r = await vehicleLogAdd(vehicleId, f);
+          setMsg({ ok: r.ok, text: r.message });
+          if (r.ok) {
+            form.reset();
+            setKind("MOT");
+            router.refresh();
+          }
+        });
+      }}
+      className="space-y-4"
+    >
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Field label="What was it">
+          <select name="kind" value={kind} onChange={(e) => setKind(e.target.value)} className={inputCls}>
+            {KINDS.map((k) => (
+              <option key={k}>{k}</option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Date done"><input type="date" name="date" required defaultValue={today} className={inputCls} /></Field>
+        {NEXT[kind] && <Field label={NEXT[kind]} hint="Moves the reminder on to this date."><input type="date" name="next_due" className={inputCls} /></Field>}
+        <Field label="Mileage"><input name="mileage" inputMode="numeric" className={inputCls} placeholder="84210" /></Field>
+        <Field label="Cost (£ ex VAT)"><input name="cost" inputMode="decimal" className={inputCls} /></Field>
+        <Field label="Certificate, invoice or policy" hint="A PDF or photo. It's saved in the van's Drive folder."><input type="file" name="file" accept="application/pdf,image/*" className="block w-full text-[15px] file:mr-3 file:rounded-lg file:border file:border-line-strong file:bg-bg file:px-3 file:py-2" /></Field>
+      </div>
+      <Field label="Notes"><input name="notes" className={inputCls} placeholder="Passed, two advisories on rear tyres" /></Field>
+      <div className="flex flex-wrap items-center gap-3">
+        <button type="submit" disabled={pending} className={primaryBtn}>{pending ? "Saving…" : "Add to the log"}</button>
+        {msg && <p role="status" className={`rounded-lg px-3 py-2 text-[14px] ${msg.ok ? "bg-blue-soft" : "border border-warn/30 bg-warn/10"}`}>{msg.text}</p>}
+      </div>
+    </form>
+  );
+}
+
+/** Any other document for the van: the V5, the finance agreement, a breakdown policy. */
+export function VehicleDocForm({ vehicleId }: { vehicleId: string }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        const form = e.currentTarget;
+        const f = new FormData(form);
+        start(async () => {
+          const r = await vehicleDocUpload(vehicleId, f);
+          setMsg({ ok: r.ok, text: r.message });
+          if (r.ok) {
+            form.reset();
+            router.refresh();
+          }
+        });
+      }}
+      className="flex flex-wrap items-center gap-3"
+    >
+      <input type="file" name="file" required className="block text-[15px] file:mr-3 file:rounded-lg file:border file:border-line-strong file:bg-bg file:px-3 file:py-2" />
+      <button type="submit" disabled={pending} className={secondaryBtn}>{pending ? "Saving…" : "Save to its folder"}</button>
+      {msg && <p role="status" className={`rounded-lg px-3 py-2 text-[14px] ${msg.ok ? "bg-blue-soft" : "border border-warn/30 bg-warn/10"}`}>{msg.text}</p>}
+    </form>
   );
 }

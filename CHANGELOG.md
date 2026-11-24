@@ -273,3 +273,9 @@ Limits that stay: emails are drafts only, binning needs your yes, templates and 
 - New Training page: a matrix of people against qualifications and cards, green for held, amber for running out within 60 days, red for expired, with card numbers, dates and a link to each certificate. Callum's three qualifications are in to start with, without dates.
 - Today shows "Vans and cards due": anything overdue, any van date within 30 days and any card running out within 60 days.
 - Claude can read and update both.
+
+## Van log, employee pages, and Claude pulling wholesaler invoices
+- Each van now has its own page. Log every MOT, service, insurance renewal, road tax, repair and set of tyres, with the date, mileage, cost and the certificate or invoice. Putting in the next due date moves the reminder on. The page shows "last MOT", "last service" and so on.
+- A van's documents: upload anything (V5, insurance, finance agreement) straight from the page into its Drive folder, and see everything in that folder.
+- Training: click a person on the matrix to see their cards and qualifications on their own page, change them, and upload the card or certificate. It's saved in their folder inside "08 - Staff & Employees › 02 - Qualifications & Cards".
+- Claude can check the info@ mailbox for wholesaler invoices on request, put them on their jobs, and deal with the ones left waiting. He can also add to a van's log.

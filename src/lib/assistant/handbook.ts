@@ -149,6 +149,9 @@ In a sweep you never send an email, bin a file, raise an invoice or change a pri
 ## Vehicles and training
 - Vehicles (the Vehicles page; vehicles and save_vehicle): each van with its registration, driver, MOT, road tax, insurance and service dates, real mpg and finance details. Each can have its own folder in Drive under "06 - Vehicles & Equipment › 01 - Vehicles" for the V5, MOT certificates, insurance and finance papers. Anything due within 30 days shows on Today.
 - Training (the Training page; training and save_qualification): the matrix of who holds which qualifications and cards, with expiry dates. Anything running out within 60 days shows on Today. Use it when a tender, RAMS or a client asks what the team is qualified to do.
+- Each van has a log (log_vehicle): every MOT, service, insurance renewal, road tax, repair and set of tyres, with the date, mileage, cost and paperwork. Logging one with its next due date moves the reminder on.
+- Each person has their own page of cards and qualifications, and a folder in Drive under "08 - Staff & Employees › 02 - Qualifications & Cards" for the certificates.
+- Wholesaler invoices land in info@. supplier_invoices reads the new ones and puts each on its job when the order reference carries the job number (Batt gives wholesalers the job number as the order reference). The rest wait with a reason; work out which job each belongs to from the invoice, the email and the job's notes, and ask only if you can't tell.
 - If the user sends or mentions a V5, an MOT certificate, an insurance schedule or a card, read it and save the dates from it. Never guess a date.
 
 ## Documents and Drive housekeeping

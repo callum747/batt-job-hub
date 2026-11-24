@@ -35,6 +35,27 @@ export function dueText(d: Due): string {
   return `${d.what} due in ${d.days} day${d.days === 1 ? "" : "s"}`;
 }
 
+export const EVENT_KINDS = ["MOT", "Service", "Insurance", "Road tax", "Repair", "Tyres", "Other"] as const;
+export type EventKind = (typeof EVENT_KINDS)[number];
+export type VehicleEvent = { id: string; vehicle_id: string; kind: string; date: string; mileage: number | null; cost: number | null; notes: string; file_url: string; file_name: string; created_by: string };
+
+/** Which "due" date on the vehicle an entry in the log moves on, if any. */
+export const DUE_FOR_KIND: Partial<Record<EventKind, "mot_due" | "service_due" | "insurance_due" | "tax_due">> = { MOT: "mot_due", Service: "service_due", Insurance: "insurance_due", "Road tax": "tax_due" };
+
+/** The newest entry of each kind: "last MOT", "last service". */
+export function lastOfEach(events: VehicleEvent[]): VehicleEvent[] {
+  const seen = new Map<string, VehicleEvent>();
+  for (const e of [...events].sort((a, b) => b.date.localeCompare(a.date))) if (!seen.has(e.kind)) seen.set(e.kind, e);
+  return [...seen.values()];
+}
+
+/** A file name for something saved from the log: "2026-11-20 MOT – certificate.pdf". */
+export function eventFileName(kind: string, date: string, original: string) {
+  const ext = original.match(/\.[A-Za-z0-9]{2,5}$/)?.[0] ?? "";
+  const stem = original.replace(/\.[A-Za-z0-9]{2,5}$/, "").replace(/[\\/]+/g, "-").trim();
+  return `${date} ${kind}${stem ? ` – ${stem}` : ""}${ext}`;
+}
+
 /** The folder a vehicle gets in Drive: its registration, then its name. */
 export function vehicleFolderName(v: { registration: string; name: string }) {
   const reg = v.registration.replace(/\s+/g, " ").trim().toUpperCase();

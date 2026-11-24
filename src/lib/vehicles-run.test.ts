@@ -11,6 +11,9 @@ vi.mock("./google/drive", () => ({
   createFolder: vi.fn(async (_e: string, name: string, parent: string) => (made.push({ name, parent }), { id: `f${made.length - 1}`, name, webViewLink: `https://drive/f${made.length - 1}` })),
 }));
 
+const uploads: { name: string; folder: string }[] = [];
+vi.mock("./google/workspace", () => ({ uploadFile: vi.fn(async (_e: string, name: string, _m: string, folder: string) => (uploads.push({ name, folder }), { id: `u${uploads.length}`, url: `https://drive/u${uploads.length}` })) }));
+
 const url = process.env.TEST_DATABASE_URL;
 const d = url ? describe : describe.skip;
 
@@ -48,6 +51,25 @@ d("vehicles and training", () => {
     expect(await v.listVehicles()).toEqual([]);
     expect(await v.vehiclesDue("2026-11-24")).toEqual([]);
     await expect(v.saveVehicle(null, { registration: "X" }, "tester")).rejects.toThrow("Give the vehicle a name");
+  });
+
+  it("logs an MOT with its certificate in the van's folder and moves the reminder on, and saves a card into the person's folder", async () => {
+    const id = await v.saveVehicle(null, { name: "Cam's van", registration: "CD34 EFG", mot_due: "2026-12-01" }, "tester");
+    const me = { email: "office@battelectrical.com", name: "Office" };
+    await v.addVehicleEvent(id, { kind: "MOT", date: "2026-11-20", mileage: 84210, cost: 45, notes: "Passed", nextDue: "2027-11-30" }, { name: "cert.pdf", type: "application/pdf", data: new Uint8Array([1]) }, me);
+    await v.addVehicleEvent(id, { kind: "Service", date: "2026-10-01", mileage: 82000, cost: null, notes: "", nextDue: null }, null, me);
+    const log = await v.vehicleEvents(id);
+    expect(log.map((e) => [e.kind, e.date, e.mileage, e.file_name, e.file_url])).toEqual([["MOT", "2026-11-20", 84210, "2026-11-20 MOT – cert.pdf", "https://drive/u1"], ["Service", "2026-10-01", 82000, "", ""]]);
+    expect((await v.getVehicle(id))!).toMatchObject({ mot_due: "2027-11-30", drive_folder_id: expect.stringMatching(/^f/) });
+    expect(uploads[0].name).toBe("2026-11-20 MOT – cert.pdf");
+    await expect(v.addVehicleEvent(id, { kind: "MOT", date: "", mileage: null, cost: null, notes: "", nextDue: null }, null, me)).rejects.toThrow("date it was done");
+
+    const [q] = await t.listQualifications();
+    expect(await t.saveCertificate(q.id, { name: "photo.JPG", type: "image/jpeg", data: new Uint8Array([1]) }, me.email)).toBe("https://drive/u2");
+    expect(uploads[1].name).toBe(`${q.name}.JPG`);
+    expect(made.at(-1)).toMatchObject({ name: "Callum Blacknell", parent: "1kClfBOidk3lTwFVXY_n13vej05N7Q79P" });
+    expect((await t.listQualifications()).find((x) => x.id === q.id)!.file_url).toBe("https://drive/u2");
+    await t.saveQualification(q.id, { file_url: "" }, "tester");
   });
 
   it("starts with Callum's three qualifications, and flags a card that's running out", async () => {

@@ -3,7 +3,8 @@ import "server-only";
 import { sql } from "./db";
 import { audit } from "./mutations";
 import { todayUK } from "./jobs-rules";
-import { dueItems, vehicleFolderName, type Due, type Vehicle } from "./vehicles";
+import { DUE_FOR_KIND, dueItems, eventFileName, vehicleFolderName, type Due, type EventKind, type Vehicle, type VehicleEvent } from "./vehicles";
+import { uploadFile } from "./google/workspace";
 import { createFolder, listChildren, type DriveFile } from "./google/drive";
 
 export async function listVehicles(includeInactive = false): Promise<Vehicle[]> {
@@ -54,6 +55,50 @@ export async function ensureVehicleFolder(id: string, email: string): Promise<st
 
 export async function vehicleFiles(email: string, folderId: string): Promise<DriveFile[]> {
   return (await listChildren(email, [folderId])).filter((f) => !f.mimeType.endsWith(".folder"));
+}
+
+export async function getVehicle(id: string): Promise<Vehicle | null> {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+  return (await listVehicles(true)).find((v) => v.id === id) ?? null;
+}
+
+export async function vehicleEvents(vehicleId: string): Promise<VehicleEvent[]> {
+  return (await sql<VehicleEvent[]>`
+    select id, vehicle_id, kind, date, mileage, cost, notes, file_url, file_name, created_by from vehicle_events where vehicle_id = ${vehicleId} order by date desc, created_at desc`).map((r) => ({ ...r }));
+}
+
+export type Upload = { name: string; type: string; data: Uint8Array };
+
+/** Saves a document into the vehicle's own Drive folder, making the folder first if it has none. */
+export async function saveVehicleDocument(vehicleId: string, file: Upload, email: string, name?: string) {
+  await ensureVehicleFolder(vehicleId, email);
+  const [v] = await sql<{ drive_folder_id: string }[]>`select drive_folder_id from vehicles where id = ${vehicleId}`;
+  const saved = await uploadFile(email, name ?? file.name, file.type || "application/octet-stream", v.drive_folder_id, file.data);
+  await audit(sql, email, "vehicle document saved", "vehicle", vehicleId, { name: name ?? file.name });
+  return saved;
+}
+
+export type EventInput = { kind: EventKind; date: string; mileage: number | null; cost: number | null; notes: string; nextDue: string | null };
+
+/**
+ * Adds an entry to a vehicle's log (an MOT, a service, an insurance renewal) with its paperwork if there is any.
+ * If the next due date is given, the vehicle's own due date for that kind moves on to it.
+ */
+export async function addVehicleEvent(vehicleId: string, e: EventInput, file: Upload | null, me: { email: string; name: string }): Promise<string> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(e.date)) throw new Error("Put in the date it was done.");
+  let fileUrl = "";
+  let fileName = "";
+  if (file && file.data.length > 0) {
+    fileName = eventFileName(e.kind, e.date, file.name);
+    fileUrl = (await saveVehicleDocument(vehicleId, file, me.email, fileName)).url;
+  }
+  const [row] = await sql<{ id: string }[]>`
+    insert into vehicle_events (vehicle_id, kind, date, mileage, cost, notes, file_url, file_name, created_by)
+    values (${vehicleId}, ${e.kind}, ${e.date}, ${e.mileage}, ${e.cost}, ${e.notes.trim()}, ${fileUrl}, ${fileName}, ${me.name}) returning id`;
+  const due = DUE_FOR_KIND[e.kind];
+  if (due && e.nextDue) await sql`update vehicles set ${sql({ [due]: e.nextDue })}, updated_at = now() where id = ${vehicleId}`;
+  await audit(sql, me.email, "vehicle log entry", "vehicle", vehicleId, { kind: e.kind, date: e.date, nextDue: e.nextDue });
+  return row.id;
 }
 
 export type VehicleDue = Due & { vehicle: string; registration: string };

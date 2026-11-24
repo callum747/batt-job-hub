@@ -28,8 +28,9 @@ import { chaserStart, draftChaser, readLedger } from "../google/ledger-run";
 import { dueForChase } from "../ledger";
 import { listJobs } from "../data";
 import { APP_NOTE } from "./client";
-import { ensureVehicleFolder, listVehicles, saveVehicle, vehiclesDue } from "../vehicles-run";
-import { dueItems, dueText } from "../vehicles";
+import { addVehicleEvent, ensureVehicleFolder, listVehicles, saveVehicle, vehicleEvents, vehiclesDue } from "../vehicles-run";
+import { dueItems, dueText, EVENT_KINDS, lastOfEach } from "../vehicles";
+import { fileInvoice, ignoreInvoice, queuedInvoices, recentlyFiled, scanInvoices } from "../supplier-invoices";
 import { listQualifications, saveQualification, trainingDue } from "../training-run";
 import { expiryText, qualState } from "../training";
 import { attachmentToDrive, docEdit, docToPdf, draftEmail, driveCopy, driveMakeFolder, sheetWrite, threadAttachments } from "../google/workspace";
@@ -828,7 +829,16 @@ const tools: Tool[] = [
     schema: z.object({}),
     run: async () => {
       const today = todayUK();
-      return { vehicles: (await listVehicles(true)).map((v) => ({ ...v, due: dueItems(v, today).map((d) => ({ what: d.what, on: d.on, state: d.state, in_words: dueText(d) })) })) };
+      const all = await listVehicles(true);
+      const logs = await Promise.all(all.map((v) => vehicleEvents(v.id)));
+      return {
+        vehicles: all.map((v, n) => ({
+          ...v, vehicle_id: v.id,
+          due: dueItems(v, today).map((d) => ({ what: d.what, on: d.on, state: d.state, in_words: dueText(d) })),
+          last: lastOfEach(logs[n]).map((e) => ({ what: e.kind, on: e.date, mileage: e.mileage, cost: e.cost, notes: e.notes, paperwork: e.file_url || null })),
+          log_entries: logs[n].length,
+        })),
+      };
     },
   },
   {
@@ -891,6 +901,54 @@ const tools: Tool[] = [
       }
       const id = await saveQualification(i.qualification_id ?? null, { person_id, name: i.name, number: i.number, issued: i.issued, expires: i.expires, file_url: i.file_link, notes: i.notes, ...(i.no_longer_held !== undefined ? { active: !i.no_longer_held } : {}) }, me.email);
       return { saved: true, qualification_id: id };
+    },
+  },
+  {
+    name: "supplier_invoices",
+    label: (i) => (i.check_now ? "Checking the info mailbox for wholesaler invoices" : "Looking at the wholesaler invoices"),
+    description:
+      "Wholesaler and supplier invoices that arrive in the info@ mailbox (CEF and others). With check_now true it reads any new ones now: each PDF is read, and an invoice whose order reference carries a job number is put on that job as a cost automatically. Returns what was filed, and the ones waiting for a person (no job number on them, totals that don't add up, not made out to Batt) with the reason for each. Use it for \"pull the invoices\", \"update the jobs with the CEF invoices\", \"what have we spent on 557\".",
+    schema: z.object({ check_now: z.boolean().default(true) }),
+    run: async (i: { check_now: boolean }, me: Me) => {
+      const scan = i.check_now ? await scanInvoices({ force: true, actor: me.email }) : null;
+      const [waiting, filed] = await Promise.all([queuedInvoices(), recentlyFiled()]);
+      return {
+        ...(scan ? { check: { ran: scan.ran, message: scan.message, put_on_jobs: scan.filed, waiting_for_a_person: scan.queued, ignored: scan.ignored } } : {}),
+        waiting: waiting.map((w) => ({ id: w.id, supplier: w.supplier || w.email_from, invoice: w.invoice_number, date: w.invoice_date, credit_note: w.credit_note, net: w.net, vat: w.vat, gross: w.gross, order_reference: w.order_reference, why_waiting: w.reason, email_subject: w.email_subject, attachment: w.attachment, mailbox: w.mailbox, thread_or_message_id: w.message_id })),
+        recently_put_on_jobs: filed.map((f) => ({ supplier: f.supplier, invoice: f.invoice_number, net: f.net, job: f.job_number ? `#${f.job_number}` : null, by: f.decided_by })),
+      };
+    },
+  },
+  {
+    name: "file_supplier_invoice",
+    label: (i) => (i.not_a_job_cost ? "Marking a wholesaler invoice as not a job cost" : `Putting a wholesaler invoice on job ${i.job ?? ""}`),
+    description: "Deal with a wholesaler invoice that's waiting (id from supplier_invoices): put it on a job as a cost at its net amount, or mark it as not a job cost (stock, tools, overheads). Only put it on a job when you're sure which job it's for: the user said so, or the invoice or its email plainly shows it. If you can't tell, ask.",
+    schema: z.object({ id: z.string().uuid(), job: z.string().optional(), net: z.number().optional().describe("The amount before VAT. Leave out to use the invoice's own net."), not_a_job_cost: z.boolean().default(false) }),
+    run: async (i: { id: string; job?: string; net?: number; not_a_job_cost: boolean }, me: Me) => {
+      if (i.not_a_job_cost) {
+        await ignoreInvoice(i.id, me);
+        return { done: true, marked: "not a job cost" };
+      }
+      if (!i.job) return { ok: false, message: "Say which job it's for, or set not_a_job_cost." };
+      const inv = (await queuedInvoices()).find((q) => q.id === i.id);
+      if (!inv) return { ok: false, message: "That invoice isn't waiting any more. Use supplier_invoices to see the list." };
+      const net = i.net ?? inv.net;
+      if (net === null || net === undefined) return { ok: false, message: "The invoice's net amount couldn't be read. Open the attachment (read_attachment) and give the net." };
+      const job = await fileInvoice(i.id, i.job, net, me);
+      return { done: true, job: jobLabel(job), cost_added: inv.credit_note ? -Math.abs(net) : net };
+    },
+  },
+  {
+    name: "log_vehicle",
+    label: (i) => `Adding ${i.kind ?? "an entry"} to a vehicle's log`,
+    description: "Add an entry to a vehicle's log: an MOT, a service, an insurance renewal, road tax, a repair, tyres. Give the date it was done and, for an MOT, service, insurance or road tax, the next date it's due, which moves the reminder on. Mileage and cost if known. To attach its paperwork, file the document into the van's Drive folder (file_attachment, or the user uploads it on the van's page). Dates and figures only from the user or a document.",
+    schema: z.object({
+      vehicle_id: z.string().uuid().describe("From vehicles."), kind: z.enum(EVENT_KINDS as unknown as [string, ...string[]]), date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      next_due: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().default(null), mileage: z.number().int().nonnegative().nullable().default(null), cost: z.number().nonnegative().nullable().default(null), notes: z.string().default(""),
+    }),
+    run: async (i: { vehicle_id: string; kind: string; date: string; next_due: string | null; mileage: number | null; cost: number | null; notes: string }, me: Me) => {
+      const id = await addVehicleEvent(i.vehicle_id, { kind: i.kind as never, date: i.date, mileage: i.mileage, cost: i.cost, notes: i.notes, nextDue: i.next_due }, null, me);
+      return { saved: true, id, ...(i.next_due ? { reminder_moved_to: i.next_due } : {}) };
     },
   },
   {

@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Field, inputCls, primaryBtn, secondaryBtn } from "@/components/ui";
 import type { Qualification } from "@/lib/training";
-import { qualificationSave } from "../actions";
+import { certificateUpload, qualificationSave } from "../actions";
 
 type Person = { id: string; short_name: string };
 
@@ -65,6 +65,35 @@ export function QualificationForm({ qual, people, names }: { qual: Qualification
         <button type="submit" disabled={pending} className={q ? secondaryBtn : primaryBtn}>{pending ? "Saving…" : q ? "Save" : "Add"}</button>
         {msg && <p role="status" className={`rounded-lg px-3 py-2 text-[14px] ${msg.ok ? "bg-blue-soft" : "border border-warn/30 bg-warn/10"}`}>{msg.text}</p>}
       </div>
+    </form>
+  );
+}
+
+/** Save a photo of the card or the certificate into the person's folder in Drive, linked to this qualification. */
+export function CertificateForm({ qualId, has }: { qualId: string; has: boolean }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        const form = e.currentTarget;
+        const f = new FormData(form);
+        start(async () => {
+          const r = await certificateUpload(qualId, f);
+          setMsg({ ok: r.ok, text: r.message });
+          if (r.ok) {
+            form.reset();
+            router.refresh();
+          }
+        });
+      }}
+      className="flex flex-wrap items-center gap-3"
+    >
+      <input type="file" name="file" required accept="application/pdf,image/*" className="block text-[15px] file:mr-3 file:rounded-lg file:border file:border-line-strong file:bg-bg file:px-3 file:py-2" />
+      <button type="submit" disabled={pending} className={secondaryBtn}>{pending ? "Saving…" : has ? "Replace the certificate" : "Save the certificate"}</button>
+      {msg && <p role="status" className={`rounded-lg px-3 py-2 text-[14px] ${msg.ok ? "bg-blue-soft" : "border border-warn/30 bg-warn/10"}`}>{msg.text}</p>}
     </form>
   );
 }

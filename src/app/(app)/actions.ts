@@ -1,7 +1,8 @@
 "use server";
 
-import { ensureVehicleFolder, saveVehicle } from "@/lib/vehicles-run";
-import { saveQualification } from "@/lib/training-run";
+import { addVehicleEvent, ensureVehicleFolder, saveVehicle, saveVehicleDocument } from "@/lib/vehicles-run";
+import { EVENT_KINDS, type EventKind } from "@/lib/vehicles";
+import { saveCertificate, saveQualification } from "@/lib/training-run";
 import { draftQuoteChaser, markQuoteChased } from "@/lib/reminders-run";
 import { fuelPerMile } from "@/lib/money";
 import { revalidatePath } from "next/cache";
@@ -648,6 +649,60 @@ export async function vehicleFolder(id: string) {
     const message = await ensureVehicleFolder(String(id), me.email);
     revalidatePath("/vehicles");
     return { ok: true, message };
+  } catch (e) {
+    return { ok: false, message: errorText(e) };
+  }
+}
+
+async function upload(f: FormData, key = "file") {
+  const file = f.get(key);
+  if (!(file instanceof File) || file.size === 0) return null;
+  if (file.size > 15 * 1024 * 1024) throw new Error("That file is over 15 MB. Save a smaller copy and try again.");
+  return { name: file.name, type: file.type, data: new Uint8Array(await file.arrayBuffer()) };
+}
+
+/** An entry in a vehicle's log (MOT, service, insurance and so on), with its paperwork saved to the van's Drive folder. */
+export async function vehicleLogAdd(vehicleId: string, f: FormData) {
+  const me = await who();
+  try {
+    const kind = text(f, "kind");
+    if (!(EVENT_KINDS as readonly string[]).includes(kind)) return { ok: false, message: "Choose what it was." };
+    const date = dateOrNull(f, "date");
+    if (!date) return { ok: false, message: "Put in the date it was done." };
+    const mileage = numberOrNull(f, "mileage");
+    await addVehicleEvent(String(vehicleId), { kind: kind as EventKind, date, mileage: mileage === null ? null : Math.round(mileage), cost: numberOrNull(f, "cost"), notes: text(f, "notes"), nextDue: dateOrNull(f, "next_due") }, await upload(f), me);
+    revalidatePath(`/vehicles/${vehicleId}`);
+    revalidatePath("/vehicles");
+    revalidatePath("/");
+    return { ok: true, message: "Added to the log." };
+  } catch (e) {
+    return { ok: false, message: errorText(e) };
+  }
+}
+
+/** Any other document for a vehicle (the V5, the finance agreement), saved to its Drive folder. */
+export async function vehicleDocUpload(vehicleId: string, f: FormData) {
+  const me = await who();
+  try {
+    const file = await upload(f);
+    if (!file) return { ok: false, message: "Choose a file first." };
+    await saveVehicleDocument(String(vehicleId), file, me.email);
+    revalidatePath(`/vehicles/${vehicleId}`);
+    return { ok: true, message: "Saved to the van's folder in Drive." };
+  } catch (e) {
+    return { ok: false, message: errorText(e) };
+  }
+}
+
+/** A card photo or certificate for a qualification, saved to the person's folder in Drive. */
+export async function certificateUpload(qualId: string, f: FormData) {
+  const me = await who();
+  try {
+    const file = await upload(f);
+    if (!file) return { ok: false, message: "Choose a file first." };
+    await saveCertificate(String(qualId), file, me.email);
+    revalidatePath("/training", "layout");
+    return { ok: true, message: "Saved to their folder in Drive." };
   } catch (e) {
     return { ok: false, message: errorText(e) };
   }
