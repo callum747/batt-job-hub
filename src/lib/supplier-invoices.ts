@@ -32,6 +32,7 @@ const Reading = z.object({
   vat: z.number().nullable(),
   gross: z.number().nullable().describe("Total including VAT."),
   order_reference: z.string().describe("The customer's order number or reference exactly as printed (Batt writes the job number here)."),
+  delivery_address: z.string().describe("The delivery address, site address or \"deliver to\" as printed, in full with its postcode. Empty if the goods were collected, or only the customer's own invoice address is shown."),
   job_numbers: z.array(z.number().int()).describe("Any 3 or 4 digit numbers in the order reference or job/site reference fields that look like Batt job numbers. Never from prices, quantities, product codes or the invoice number."),
 });
 
@@ -66,6 +67,12 @@ async function jobNumbers() {
     for (const a of r.also) m.set(a, r.number);
   }
   return m;
+}
+
+/** Every job's address, for matching an invoice by where it was delivered. */
+async function jobSites() {
+  return (await sql<{ number: number; site: string; postcode: string; stage: string }[]>`
+    select number, site, postcode, stage from jobs where number is not null and merged_into is null`).map((j) => ({ number: j.number, site: j.site, postcode: j.postcode, open: !["Paid", "Lost", "Closed"].includes(j.stage) }));
 }
 
 async function addCost(jobId: string, row: { supplier: string; invoice_number: string; credit_note: boolean; amount: number; date: string | null; mailbox: string; messageId: string }) {
@@ -103,6 +110,7 @@ export async function scanInvoices(opts: { force?: boolean; actor?: string } = {
     const ids = await invoiceMessageIds(box);
     const seen = new Set((await sql<{ message_id: string }[]>`select distinct message_id from supplier_invoices where mailbox = ${box} and message_id = any(${ids})`).map((r) => r.message_id));
     const jobs = await jobNumbers();
+    const sites = await jobSites();
     for (const id of ids.filter((x) => !seen.has(x)).slice(0, 15)) {
       const mail = await invoiceMail(box, id);
       for (const pdf of mail.pdfs) {
@@ -122,13 +130,14 @@ export async function scanInvoices(opts: { force?: boolean; actor?: string } = {
         const [dup] = reading.invoice_number
           ? await sql`select 1 from supplier_invoices where status = 'filed' and lower(supplier) = lower(${reading.supplier}) and invoice_number = ${reading.invoice_number} limit 1`
           : [];
-        const d = decide(reading, jobs, Boolean(dup));
+        const d = decide(reading, jobs, Boolean(dup), sites);
+        const suggested = d.status === "check" && d.suggest?.length === 1 ? await findJob(String(d.suggest[0])) : null;
         const job = d.jobNumber !== null ? await findJob(String(d.jobNumber)) : null;
         const row = {
           ...base,
           supplier: reading.supplier, invoice_number: reading.invoice_number, invoice_date: reading.invoice_date || null, credit_note: reading.is_credit_note,
           net: reading.net, vat: reading.vat, gross: reading.gross, order_reference: reading.order_reference,
-          job_numbers: [...new Set(reading.job_numbers)], job_id: job?.id ?? null, status: d.status, reason: d.reason,
+          job_numbers: [...new Set([...reading.job_numbers, ...(d.status === "check" ? (d.suggest ?? []) : [])])], job_id: job?.id ?? suggested?.id ?? null, status: d.status, reason: d.reason,
         };
         const [saved] = await sql<{ id: string }[]>`insert into supplier_invoices ${sql(row)} on conflict do nothing returning id`;
         if (!saved) continue;
@@ -151,12 +160,15 @@ export async function scanInvoices(opts: { force?: boolean; actor?: string } = {
 export type QueuedInvoice = {
   id: string; supplier: string; invoice_number: string; invoice_date: string | null; credit_note: boolean; net: number | null; vat: number | null; gross: number | null;
   order_reference: string; reason: string; email_subject: string; email_from: string; received: string | null; mailbox: string; message_id: string; attachment: string;
+  /** The job the address points at, when there's one likely match. A person confirms it. */
+  suggested_job: number | null;
 };
 
 export async function queuedInvoices(): Promise<QueuedInvoice[]> {
   return (await sql<QueuedInvoice[]>`
-    select id, supplier, invoice_number, invoice_date, credit_note, net, vat, gross, order_reference, reason, email_subject, email_from, received, mailbox, message_id, attachment
-    from supplier_invoices where status = 'check' order by created_at desc limit 50`).map((r) => ({ ...r }));
+    select s.id, s.supplier, s.invoice_number, s.invoice_date, s.credit_note, s.net, s.vat, s.gross, s.order_reference, s.reason, s.email_subject, s.email_from, s.received, s.mailbox, s.message_id, s.attachment,
+      j.number as suggested_job
+    from supplier_invoices s left join jobs j on j.id = s.job_id where s.status = 'check' order by s.created_at desc limit 50`).map((r) => ({ ...r }));
 }
 
 export async function recentlyFiled() {

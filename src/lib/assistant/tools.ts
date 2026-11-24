@@ -914,7 +914,7 @@ const tools: Tool[] = [
       const [waiting, filed] = await Promise.all([queuedInvoices(), recentlyFiled()]);
       return {
         ...(scan ? { check: { ran: scan.ran, message: scan.message, put_on_jobs: scan.filed, waiting_for_a_person: scan.queued, ignored: scan.ignored } } : {}),
-        waiting: waiting.map((w) => ({ id: w.id, supplier: w.supplier || w.email_from, invoice: w.invoice_number, date: w.invoice_date, credit_note: w.credit_note, net: w.net, vat: w.vat, gross: w.gross, order_reference: w.order_reference, why_waiting: w.reason, email_subject: w.email_subject, attachment: w.attachment, mailbox: w.mailbox, thread_or_message_id: w.message_id })),
+        waiting: waiting.map((w) => ({ id: w.id, supplier: w.supplier || w.email_from, invoice: w.invoice_number, date: w.invoice_date, credit_note: w.credit_note, net: w.net, vat: w.vat, gross: w.gross, order_reference: w.order_reference, suggested_job: w.suggested_job ? `#${w.suggested_job}` : null, why_waiting: w.reason, email_subject: w.email_subject, attachment: w.attachment, mailbox: w.mailbox, thread_or_message_id: w.message_id })),
         recently_put_on_jobs: filed.map((f) => ({ supplier: f.supplier, invoice: f.invoice_number, net: f.net, job: f.job_number ? `#${f.job_number}` : null, by: f.decided_by })),
       };
     },

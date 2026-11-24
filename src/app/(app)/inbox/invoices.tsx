@@ -36,7 +36,8 @@ export function CheckNow() {
 }
 
 function Row({ inv, onDone }: { inv: QueuedInvoice; onDone: (msg: string) => void }) {
-  const [job, setJob] = useState("");
+  // If the delivery address points at one job, it's filled in ready to confirm.
+  const [job, setJob] = useState(inv.suggested_job ? String(inv.suggested_job) : "");
   const [net, setNet] = useState(inv.net === null ? "" : String(Math.abs(inv.net)));
   const [problem, setProblem] = useState("");
   const [pending, run] = useTransition();

@@ -279,3 +279,8 @@ Limits that stay: emails are drafts only, binning needs your yes, templates and 
 - A van's documents: upload anything (V5, insurance, finance agreement) straight from the page into its Drive folder, and see everything in that folder.
 - Training: click a person on the matrix to see their cards and qualifications on their own page, change them, and upload the card or certificate. It's saved in their folder inside "08 - Staff & Employees › 02 - Qualifications & Cards".
 - Claude can check the info@ mailbox for wholesaler invoices on request, put them on their jobs, and deal with the ones left waiting. He can also add to a van's log.
+
+## Wholesaler invoices matched by address
+- An invoice with no job number on it is now matched to a job by where it was delivered. The same postcode, or the same house number and street, puts it on the job. Only a street or place name matching ("Oaken Grove") makes it a suggestion: the job number is filled in ready in the Inbox for you to confirm, and Claude is told the suggestion too.
+- If two jobs share an address, the one that's still open is used. Deliveries to Batt's own office are never matched.
+- A job number on the invoice still comes first.

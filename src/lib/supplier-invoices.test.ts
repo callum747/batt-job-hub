@@ -118,7 +118,7 @@ d("supplier invoices", () => {
     const [cn] = await sql`select c.amount, j.number from costs c join jobs j on j.id = c.job_id where c.description = 'CEF credit note CN1'`;
     expect(cn).toMatchObject({ amount: -30, number: 557 });
     const q = await si.queuedInvoices();
-    expect(q.map((x) => [x.invoice_number, x.reason])).toEqual([["9002", 'No job number found in the order reference "Van stock".']]);
+    expect(q.map((x) => [x.invoice_number, x.reason])).toEqual([["9002", 'No job number found in the order reference "Van stock", and the address doesn\'t match a job.']]);
   });
 
   it("lets a person put a queued invoice on a job, or mark it not a job cost", async () => {
