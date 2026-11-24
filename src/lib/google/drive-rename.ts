@@ -8,7 +8,7 @@ import { sql } from "../db";
 import { audit } from "../mutations";
 import { google, googleSettings } from "./client";
 import { listChildren } from "./drive";
-import { hashedName, hashedPlainNumber, parseJobFolderName } from "./format";
+import { hashedName, hashedPlainNumber, parseJobFolderName, plainQuoteName } from "./format";
 
 type F = { id: string; name: string };
 
@@ -25,12 +25,36 @@ async function searchQ(email: string): Promise<F[]> {
   return out;
 }
 
+/**
+ * Quotes the app made while they were numbered #557/1, #557/2: the Doc and its PDF are renamed to the plain job
+ * number, in Drive and on the job. Names only. Runs with the Drive check and costs nothing once there are none left.
+ */
+export async function dropQuoteVersions(email: string): Promise<number> {
+  const rows = await sql<{ id: string; name: string; doc_id: string; pdf_file_id: string }[]>`
+    select id, name, doc_id, pdf_file_id from documents where name ~ '#[0-9]{3,4}/[0-9]' limit 60`;
+  let done = 0;
+  for (const r of rows) {
+    const to = plainQuoteName(r.name);
+    if (!to) continue;
+    for (const [fileId, name] of [[r.doc_id, to], [r.pdf_file_id, `${to}.pdf`]] as const) {
+      if (!fileId) continue;
+      // A file already renamed, binned or removed by hand is fine: the job's own record is still put right.
+      await google(email, `/drive/v3/files/${encodeURIComponent(fileId)}`, { method: "PATCH", query: { supportsAllDrives: true, fields: "id" }, body: { name } }).catch(() => null);
+    }
+    await sql`update documents set name = ${to} where id = ${r.id}`;
+    done++;
+  }
+  if (done) await audit(sql, email, "quote versions taken off names", "drive", "", { documents: done });
+  return done;
+}
+
 export async function renameToHash(email: string): Promise<{ renamed: number; failed: string[]; left: number }> {
   const plan = new Map<string, { from: string; to: string }>();
   for (const f of await searchQ(email)) {
     const to = hashedName(f.name);
-    if (to) plan.set(f.id, { from: f.name, to });
+    if (to) plan.set(f.id, { from: f.name, to: plainQuoteName(to) ?? to });
   }
+  await dropQuoteVersions(email);
   // Job folders named with a plain number, in the real stage folders or one level down (year folders), and the files in them.
   const live = (await googleSettings()).live.folders;
   const top = await listChildren(email, Object.values(live), true);

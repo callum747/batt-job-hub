@@ -126,7 +126,7 @@ export async function buildDocument<Q extends { number: number; total: number; r
     const folder = await quoteFolder(me.email, job.drive_folder_id);
     if (!folder) return { ok: false, message: "This job's Drive folder is a real one and the app is in test mode, so nothing was saved to it." };
 
-    // Each quote for a job gets the next number after the slash: #557/1, #557/2, #557/3.
+    // The client always sees the plain job number. The revision is only counted inside the app.
     const [{ n }] = await sql<{ n: number }[]>`select coalesce(max(revision), 0)::int as n from documents where job_id = ${jobId} and kind = 'quote'`;
     const revision = n + 1;
     const ref = quoteRef(job.number, revision);

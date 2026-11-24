@@ -16,7 +16,7 @@ export type Person = { name: string; title: string; email: string };
 
 export type ShortQuote = {
   number: number;
-  /** The quote's own reference, e.g. #557/2. Set when the document is made. */
+  /** The reference the client sees: the plain job number, #557. Set when the document is made. */
   ref?: string;
   client: string;
   project: string; // short name for the job, e.g. "Kitchen sockets and new radial circuit"

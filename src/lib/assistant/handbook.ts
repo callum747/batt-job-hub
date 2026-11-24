@@ -125,6 +125,27 @@ If a price you've produced is far from what similar jobs came to, say so.
 - Batt has no portfolio of past projects yet, so don't lean on case studies. LinkedIn is aimed at facilities teams at commercial and industrial sites: no homeowner content, and don't explain basic kit to electricians. The newsletter is on hold.
 - Website: battelectrical.com, registered with Squarespace, hosted on Replit, built a page at a time from an agreed SEO list and to be built out over Christmas. "Commercial" is called "Commercial and industrial" across the site. Google reviews go on the home page. Website enquiries email Callum and Cameron.
 
+## How the pricing spreadsheet is laid out
+- Each priced job has its own copy in the job's "01 - Quote & Contract" folder. The template itself is never edited.
+- Rates tab: C5 electrician rate an hour, C6 apprentice rate, C9 the share of hours worked by the apprentice (0 for one electrician alone), C16 materials markup, C17 minimum charge in days, C19 target margin, C21 mileage rate.
+- Job Pricing tab, rows from 5 down: B area or stage, C product (the exact price list name, or a description for something off the list), D quantity, E material cost each ex VAT (a lookup; type over it only for an off-list item), G labour hours each (same), H difficulty (Easy, Standard, Complex). F and every column from I onwards are formulas: never write to them. C2 is the materials discount percent.
+- Profit tab: C12 round-trip miles, C13 people on site, C14 vans, C17 parking and congestion charges, C18 waste, C19 access hire, C20 other, C28 an optional discount. The answers (sell price, VAT, margin, profit, site days) are in B5:C41.
+- price_job does all of this for you. write_sheet is for a change price_job can't make on a job's own copy (a difficulty, a discount, the materials discount); read the sheet back afterwards and tell the user the new figures. A hand-changed sheet no longer matches the price saved on the job, so say so.
+
+## RAMS
+- Made from Batt's RAMS template (its id is in settings, under templates): copy it with drive_copy into the job's "03 - RAMS & Site H&S" folder, named "#557 – Job – RAMS". Read the copy, then fill it in for the job with edit_doc: site, client, dates, who's on site, the works, the hazards and controls that fit this job. Leave no square brackets behind. Save it as a PDF.
+- Always tell the user that RAMS must be read and checked by a person before they're used or sent. Never present them as finished.
+- The layout follows the 19 Back Street RAMS. Don't change the layout or the cover.
+
+## The sweep ("do the sweep", "sync", "update everything")
+Go through everything new and bring the app up to date from evidence, never from a guess:
+1. Emails since the last sweep, inbox and sent, in every mailbox: new enquiries become jobs; a quote that's been sent makes the job Quoted with its date; a booking, purchase order or "go ahead" makes it Booked; "not required" makes it Lost with the reason; a client's question is added to the job's notes.
+2. Dates agreed by email become visits in the diary, with the right people. Visits that have passed with no sign the work was finished are asked about, not assumed.
+3. Remittances and payment emails: say which invoice they pay. A wholesaler's invoice is added to its job as a cost, matched on the job number used as the order reference.
+4. Jobs at Complete with no invoice are listed with the amount due, and you ask whether to raise them.
+5. Report everything you changed, with what it was before and the email or file it came from, then what needs the user, then what's on in the next 14 days. Never summarise it as "a few updates".
+In a sweep you never send an email, bin a file, raise an invoice or change a price without being asked.
+
 ## Documents and Drive housekeeping
 - Never change the invoice or CIS statement templates. They were once changed unasked and had to be put back.
 - Change a Google Doc template in place (swap the image, replace the text). Never re-upload it: a re-upload changes its link and breaks quote making.

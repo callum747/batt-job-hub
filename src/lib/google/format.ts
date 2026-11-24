@@ -113,6 +113,15 @@ export function hashedName(name: string): string | null {
   return next === name ? null : next;
 }
 
+/**
+ * A name with the old quote version taken off the job number: "#557/3 – Oaken Grove – Quote" → "#557 – Oaken Grove – Quote".
+ * Clients only ever see the plain job number (Cameron and Callum, 24/11/2026). Null when there's nothing to change.
+ */
+export function plainQuoteName(name: string): string | null {
+  const next = name.replace(/#(\d{3,4})\/\d{1,2}(?!\d)/g, "#$1");
+  return next === name ? null : next;
+}
+
 /** A name that starts with a plain job number ("558 – David Marshall") gets its #. Null if it doesn't. */
 export function hashedPlainNumber(name: string, number: number): string | null {
   return new RegExp(`^${number}(\\s*[–—-]\\s|$)`).test(name.trim()) ? `#${name.trim()}` : null;

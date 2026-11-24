@@ -17,7 +17,7 @@ export type RoomPoints = { room: string; points: Partial<Record<PointColumn, num
 
 export type LongQuote = {
   number: number;
-  /** The quote's own reference, e.g. #557/2. Set when the document is made. */
+  /** The reference the client sees: the plain job number, #557. Set when the document is made. */
   ref?: string;
   client: string;
   project: string;

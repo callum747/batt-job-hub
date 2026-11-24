@@ -13,7 +13,7 @@ import { syncJobFolder } from "../google/drive";
 import { loadPriceList, priceDirect, priceJob } from "../google/pricing-run";
 import { buildLongQuote, buildShortQuote } from "../google/quote-run";
 import { draftLongQuote, draftShortQuote, isPriced, loadClient, preparedByFor, productsFor, suggestLong } from "../quote-drafts";
-import { errorText, gmailMailboxes } from "../google/client";
+import { errorText, gmailMailboxes, googleSettings } from "../google/client";
 import { syncVisit } from "../google/calendar";
 import { jobAddress, roundTripMiles } from "../google/miles";
 import { jobThreads, threadText } from "../google/gmail";
@@ -942,11 +942,16 @@ const tools: Tool[] = [
   {
     name: "settings",
     label: () => "Reading the rates and margins",
-    description: "Batt's rates (day rates, survey day, mileage, markup, VAT), margin targets and people with day costs, from Settings.",
+    description: "Batt's rates (day rates, survey day, mileage, markup, VAT), margin targets, people with day costs, the fuel cost, the ids of Batt's templates (pricing, quotes, survey proposal, RAMS, invoice) and of the stage folders in Drive.",
     schema: z.object({}),
     run: async () => {
       const [s, people] = await Promise.all([getSettings(), sql<{ short_name: string; full_name: string; role: string; day_cost: number; email: string }[]>`select short_name, full_name, role, day_cost, email from people where active order by position`]);
-      return { ...s, people: people.map((p) => ({ ...p })), note: "rates.perMile is what quotes charge per mile. costPerMile is what a mile costs Batt in fuel, used only for job profit; fuel.perMile is null until the vans' mpg and the fuel price are set (set_fuel_cost)." };
+      const [t] = await sql<{ value: Record<string, string> }[]>`select value from settings where key = 'templates'`;
+      const g = await googleSettings().catch(() => null);
+      return { ...s, people: people.map((p) => ({ ...p })),
+        templates: { note: "Google file ids of Batt's templates. Never edit these; copy one with drive_copy and change the copy.", ...(t?.value ?? {}) },
+        drive: g ? { mode: g.mode, stage_folders: g[g.mode].folders } : null,
+        note: "rates.perMile is what quotes charge per mile. costPerMile is what a mile costs Batt in fuel, used only for job profit; fuel.perMile is null until the vans' mpg and the fuel price are set (set_fuel_cost)." };
     },
   },
   {

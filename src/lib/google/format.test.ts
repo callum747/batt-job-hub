@@ -49,6 +49,16 @@ describe("reading a folder made by hand", () => {
   });
 });
 
+describe("taking the version off a quote's name", () => {
+  it("leaves the plain job number and nothing else changed", async () => {
+    const { plainQuoteName } = await import("./format");
+    expect(plainQuoteName("#557/3 – Oaken Grove – Quote")).toBe("#557 – Oaken Grove – Quote");
+    expect(plainQuoteName("#557/12 – Oaken Grove – Quote.pdf")).toBe("#557 – Oaken Grove – Quote.pdf");
+    expect(plainQuoteName("#557 – Oaken Grove – Quote")).toBeNull();
+    expect(plainQuoteName("Unit 4/5 The Yard")).toBeNull();
+  });
+});
+
 describe("renaming Q- to #", () => {
   it("changes every Q- job reference in a name, wherever it sits", () => {
     expect(hashedName("Q-552 – Meterz – CBRE The Works, Croydon")).toBe("#552 – Meterz – CBRE The Works, Croydon");

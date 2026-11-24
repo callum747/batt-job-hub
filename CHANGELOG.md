@@ -259,3 +259,11 @@ New things Claude can do:
 - Raise standard VAT invoices and see what's due to be invoiced.
 - Look things up on the web.
 Limits that stay: emails are drafts only, binning needs your yes, templates and the ledger can't be changed by hand, CIS invoices are raised on the job's Invoices tab.
+
+## The "/1" quote numbering is gone everywhere
+- Quotes the app made as #557/1, #557/2 and so on are renamed to plain #557 in Drive (the Doc and its PDF) and on the job. It happens by itself with the regular Drive check, a batch at a time, until none are left. Names only: nothing inside a document changes.
+- The "Rename Q- to # in Drive" button in Settings does the same for anything else it finds.
+
+## Claude: the rest of Batt's skills
+- The handbook now covers how the pricing spreadsheet is laid out, how to make RAMS from the template (always to be checked by a person), and the sweep ("update everything").
+- Claude can see the ids of Batt's templates and stage folders, so it can start a document from a template.

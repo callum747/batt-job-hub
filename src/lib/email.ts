@@ -71,7 +71,7 @@ export function firstName(contact: string): string | null {
 export type QuoteEmailArgs = {
   kind: "quote" | "survey";
   number: number;
-  /** The quote's own reference, e.g. #557/2. */
+  /** The reference the client sees: the plain job number, #557. */
   ref?: string;
   project: string;
   site: string;
