@@ -6,6 +6,9 @@ export const MODEL = "claude-opus-5-5";
 /** The model Ask talks with: Opus, unless ASSISTANT_MODEL in Replit Secrets names another. */
 export const ASK_MODEL = process.env.ASSISTANT_MODEL?.trim() || MODEL;
 
+/** How a line the app adds to a message starts, so it can be told apart from what the person typed. */
+export const APP_NOTE = "[From the app, not the user] ";
+
 export const assistantConfigured = () => Boolean(process.env.ANTHROPIC_API_KEY);
 
 /** The Anthropic client. A key made outside a workspace needs to say which workspace to use. */

@@ -205,3 +205,8 @@ Plain-English notes on what's new in the Batt Job Hub, newest first.
 - Every job folder now has a ninth standard subfolder, "09 - Surveys". New job folders get all nine. An existing job's folder that the app looks after gets it added the next time the job's stage changes.
 - A survey job's Files tab shows a link to its 09 - Surveys folder and counts the sites, units, meters and photos in it. Ask can give the same link and counts.
 - The old separate top-level "03 - Surveys" folder is retired. The app never looked there; Ask is now told not to.
+
+## Ask remembers across chats
+- A new chat now starts knowing what your last few chats were about, and Ask can search and read your earlier chats instead of asking you to repeat things.
+- Ask saves lasting things it learns to the shared memory without being asked.
+- Chats, the shared memory and the handbook are all kept in the database or the app itself, so a republish doesn't remove them.

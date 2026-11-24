@@ -6,7 +6,7 @@ import { todayUK } from "../jobs-rules";
 import { googleSettings } from "../google/client";
 import { memoryNotes, runTool, toolDefinitions, toolLabel, type Me } from "./tools";
 import { HANDBOOK } from "./handbook";
-import { anthropic, explainAiError, ASK_MODEL, MODEL } from "./client";
+import { anthropic, APP_NOTE, explainAiError, ASK_MODEL, MODEL } from "./client";
 export { assistantConfigured } from "./client";
 
 type Msg = Anthropic.Beta.BetaMessageParam;
@@ -19,6 +19,8 @@ const SYSTEM = `You are the job assistant inside Batt Job Hub, the job managemen
 What you do: look up jobs, clients, the diary and each job's emails; look in each job's Google Drive folder and read the files in it (job_files, then read_file); find, move, rename and bin folders and files in Batt's Drive; go through the user's inbox and make jobs from enquiry emails (create_job, then link_email); create and update jobs; price jobs in Batt's pricing spreadsheet; make quote documents from Batt's templates; draft the covering email in Gmail; move jobs between stages when asked. Every job is known by a plain number, like #559. Each quote made for a job has its own reference: the job number, a slash, then which quote it is (#559/1 is the first quote, #559/2 the second). Use the tools; never claim you did something a tool didn't confirm.
 
 You have the Batt handbook below: who Batt are, their rates, how they price and quote, their clients and how they write. Treat it as your own memory of working with them. You also have a shared memory (remember, memory, forget): when Callum or Cam tell you a lasting rule, preference, correction or fact, save it with remember straight away and say in one line that it's saved for both of them.
+
+You don't carry anything over from one chat to the next by yourself. What carries over: the handbook, the shared memory, the list of this person's recent chats given at the start of a chat, and past_chats and read_chat for looking back. If the user refers to something from before, look it up; don't ask them to repeat it and don't say you can't remember. When you finish a piece of work and learned something lasting on the way (a client's preference, a correction, how they want something done), save it with remember without being asked.
 
 How to work:
 - Do the work first and ask afterwards. Look things up yourself: the job, its Drive folder, Settings, the price list. Only ask the user for something you can't find and that changes the result.
@@ -64,7 +66,7 @@ const systemBlocks: Anthropic.Beta.BetaTextBlockParam[] = [
   { type: "text", text: HANDBOOK, cache_control: { type: "ephemeral" } },
 ];
 
-const CONTEXT = "[From the app, not the user] ";
+const CONTEXT = APP_NOTE;
 const contextLine = (mode: string) =>
   `${CONTEXT}Today is ${todayUK()}. Google mode: ${mode}. ${mode === "test" ? "Documents and folders go in the clearly named test folders; nothing in the real Drive is touched." : "Live: documents go in the real job folders."}`;
 
@@ -73,6 +75,17 @@ async function memoryLine() {
   const notes = await memoryNotes().catch(() => []);
   if (notes.length === 0) return "";
   return `\nSaved to memory by Callum and Cam (lasting rules and facts; where one differs from the handbook, the note wins as it's more recent):\n${notes.map((n) => `- ${n.note} (${n.by || "saved"}, ${n.saved})`).join("\n")}`;
+}
+
+/** What the person's last few chats were about, given at the start of a new one. */
+async function recentLine(email: string, thisChat: string) {
+  const rows = await sql<{ id: string; title: string; date: string; ended: string }[]>`
+    select id, title, updated_at::date::text as date, last_reply as ended from assistant_chats
+    where email = ${email} and id <> ${thisChat} and jsonb_array_length(messages) > 0 order by updated_at desc limit 8`.catch(() => []);
+  if (rows.length === 0) return "";
+  return `\nThis person's recent chats with you, newest first (each chat starts fresh; read_chat with the id gives the whole conversation):\n${rows
+    .map((r) => `- ${r.date} "${r.title}"${r.ended ? `, which ended: ${r.ended}` : ""} [${r.id}]`)
+    .join("\n")}`;
 }
 
 /** Changes whenever the instructions or the tools change. A chat last run under a different one has its old working-out dropped. */
@@ -107,9 +120,20 @@ export async function listChats(email: string) {
     select id, title, updated_at::text from assistant_chats where email = ${email} order by updated_at desc limit 30`).map((r) => ({ ...r }));
 }
 
+/** The end of the latest answer in a conversation, for telling a later chat what this one was about. */
+function lastReply(messages: Msg[]): string {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m.role !== "assistant") continue;
+    const text = typeof m.content === "string" ? m.content : m.content.filter((b) => b.type === "text").map((b) => (b as { text: string }).text).join(" ");
+    if (text.trim()) return text.replace(/\s+/g, " ").trim().slice(0, 400);
+  }
+  return "";
+}
+
 async function saveChat(chat: { id: string | null; email: string; title: string; messages: Msg[] }) {
   if (chat.id) {
-    await sql`update assistant_chats set messages = ${sql.json(chat.messages as never)}, fingerprint = ${FINGERPRINT}, updated_at = now() where id = ${chat.id} and email = ${chat.email}`;
+    await sql`update assistant_chats set messages = ${sql.json(chat.messages as never)}, fingerprint = ${FINGERPRINT}, last_reply = ${lastReply(chat.messages)}, updated_at = now() where id = ${chat.id} and email = ${chat.email}`;
     return chat.id;
   }
   const [row] = await sql<{ id: string }[]>`
@@ -174,7 +198,7 @@ export async function* runTurn(chatId: string, me: Me, userText: string): AsyncG
   // The instructions or tools have changed since this chat was last used (an update): its old working-out no longer fits.
   const messages: Msg[] = [
     ...(chat.fingerprint === FINGERPRINT ? earlier : dropThinking(earlier)),
-    { role: "user", content: [{ type: "text", text: userText }, { type: "text", text: contextLine(mode) + (chat.messages.length === 0 ? await memoryLine() : "") }] },
+    { role: "user", content: [{ type: "text", text: userText }, { type: "text", text: contextLine(mode) + (chat.messages.length === 0 ? (await memoryLine()) + (await recentLine(me.email, chat.id)) : "") }] },
   ];
   let mended = false;
   await saveChat({ ...chat, messages });

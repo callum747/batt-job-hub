@@ -207,6 +207,27 @@ d("the assistant", () => {
     expect(run.toDisplay((await run.getChat(id, me.email))!.messages).map((x) => (x as { text: string }).text)).toEqual(["Hi", "Hello.", "Again", "Yes."]);
   });
 
+  it("starts a new chat knowing the recent ones, and can find and read an earlier chat", async () => {
+    const first = await run.createChat(me.email, "Price the Oaken Grove job");
+    script.push([{ type: "text", text: "Priced Oaken Grove at £1,124.07 ex VAT." }]);
+    for await (const ev of run.runTurn(first, me, "Price the Oaken Grove job")) void ev;
+
+    const next = await run.createChat(me.email, "What did we price yesterday?");
+    script.push([{ type: "text", text: "Oaken Grove." }]);
+    for await (const ev of run.runTurn(next, me, "What did we price yesterday?")) void ev;
+    const sdk = (await import("@anthropic-ai/sdk")).default as unknown as { requests: { messages: { content: { text?: string }[] }[] }[] };
+    const told = sdk.requests.at(-1)!.messages[0].content[1].text!;
+    expect(told).toContain("recent chats with you");
+    expect(told).toContain(`"Price the Oaken Grove job", which ended: Priced Oaken Grove at £1,124.07 ex VAT. [${first}]`);
+
+    const found = JSON.parse((await tools.runTool("past_chats", { about: "oaken grove" }, me)).content);
+    expect(found.chats.map((c: { id: string }) => c.id)).toContain(first);
+    expect(JSON.parse((await tools.runTool("past_chats", { about: "no such thing 100%" }, me)).content).chats).toEqual([]);
+    const read = JSON.parse((await tools.runTool("read_chat", { id: first }, me)).content);
+    expect(read.conversation).toBe("User: Price the Oaken Grove job\nYou: Priced Oaken Grove at £1,124.07 ex VAT.");
+    expect((await tools.runTool("read_chat", { id: first }, { email: "someone@else.com", name: "X" })).ok).toBe(false);
+  });
+
   it("runs a turn: calls a tool, answers, and saves the conversation", async () => {
     script.push([{ type: "text", text: "Looking it up. " }, { type: "tool_use", id: "tu_1", name: "get_job", input: { job: "559" } }]);
     script.push([{ type: "text", text: "Job 559 is Brook House for Meterz." }]);
