@@ -22,6 +22,7 @@ vi.mock("../google/pricing-run", () => ({
 }));
 vi.mock("../google/quote-run", () => ({ buildShortQuote: vi.fn(), buildLongQuote: vi.fn() }));
 vi.mock("../google/gmail", () => ({ jobThreads: vi.fn(async () => ({ threads: [], problems: [] })), createDraft: vi.fn(), driveFileBytes: vi.fn(), threadText: vi.fn(), inboxThreads: vi.fn(async () => []) }));
+vi.mock("../google/calendar", () => ({ syncVisit: vi.fn(async () => "Added to the calendar (test calendar).") }));
 vi.mock("../google/drive-actions", () => ({ driveFind: vi.fn(async () => []), driveMove: vi.fn(), driveRename: vi.fn(), driveBin: vi.fn() }));
 vi.mock("../google/job-files", () => ({
   listAllJobFiles: vi.fn(async () => ({ files: [{ id: "file-pdf-1", name: "Quote.pdf", folder: "01 - Quote", kind: "PDF", sizeKb: 200, modified: "2026-11-20", link: "https://drive/p", mimeType: "application/pdf" }], more: false })),
@@ -227,6 +228,18 @@ d("the assistant", () => {
     const read = JSON.parse((await tools.runTool("read_chat", { id: first }, me)).content);
     expect(read.conversation).toBe("User: Price the Oaken Grove job\nYou: Priced Oaken Grove at £1,124.07 ex VAT.");
     expect((await tools.runTool("read_chat", { id: first }, { email: "someone@else.com", name: "X" })).ok).toBe(false);
+  });
+
+  it("books a visit by name, and stops for a clash until told to go ahead", async () => {
+    const people = await sql`select short_name from people where active order by position`;
+    const who = people[0].short_name as string;
+    const first = JSON.parse((await tools.runTool("book_visit", { job: "559", date: "2026-12-04", start: "09:00", people: [who.toLowerCase()], work: "Fit meter enclosures" }, me)).content);
+    expect(first).toMatchObject({ booked: true, job: "#559", date: "2026-12-04", people: [who], calendar: "Added to the calendar (test calendar)." });
+    const clash = JSON.parse((await tools.runTool("book_visit", { job: "558", date: "2026-12-04", people: [who], work: "Survey" }, me)).content);
+    expect(clash).toMatchObject({ booked: false, clashes: [{ who, work: "Fit meter enclosures", job: "#559", start: "09:00" }] });
+    expect(JSON.parse((await tools.runTool("book_visit", { job: "558", date: "2026-12-04", people: [who], work: "Survey", even_if_clash: true }, me)).content).booked).toBe(true);
+    expect((await sql`select count(*)::int as n from visits where date = '2026-12-04'`)[0].n).toBe(2);
+    expect(JSON.parse((await tools.runTool("book_visit", { job: "558", date: "2026-12-05", people: ["Nobody"], work: "Survey" }, me)).content).message).toMatch(/nobody called "Nobody"/);
   });
 
   it("runs a turn: calls a tool, answers, and saves the conversation", async () => {

@@ -3,8 +3,11 @@ import Anthropic from "@anthropic-ai/sdk";
 
 /** The model for the background jobs: reading emails, supplier invoices and drawings. */
 export const MODEL = "claude-opus-5-5";
-/** The model Ask talks with: Opus, unless ASSISTANT_MODEL in Replit Secrets names another. */
-export const ASK_MODEL = process.env.ASSISTANT_MODEL?.trim() || MODEL;
+/**
+ * The model Ask talks with: the most capable one, as Callum asked on 24/11/2026. If the account can't use it,
+ * Ask carries on with MODEL. ASSISTANT_MODEL in Replit Secrets overrides it (set it to claude-opus-5-5 to halve the cost).
+ */
+export const ASK_MODEL = process.env.ASSISTANT_MODEL?.trim() || "claude-fable-5-2";
 
 /** How a line the app adds to a message starts, so it can be told apart from what the person typed. */
 export const APP_NOTE = "[From the app, not the user] ";

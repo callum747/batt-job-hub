@@ -216,3 +216,9 @@ Plain-English notes on what's new in the Batt Job Hub, newest first.
 - Ask does this himself and then makes the quote from those lines exactly as written. He no longer says he can only charge the project rate.
 - The quote can be set to no deposit (100% on completion) for day-rate clients and call-outs.
 - The job page shows these as "priced straight from the lines". The margin shows only when the costs were given.
+
+## Ask: stronger model, email search, visit booking, and thinking a job through
+- Ask now runs on Claude Fable 5.2, the most capable model (about twice the cost per message of Opus 5.5). If the account can't use it, he carries on with Opus. ASSISTANT_MODEL in Replit Secrets changes it back.
+- Ask can search all of Batt's connected mailboxes like Gmail's search box and read any thread, so he works from what the client actually sent.
+- Ask can book visits in the diary and the company calendar, checking for clashes first.
+- He's told to check the user's message against the client's email, raise things nobody mentioned (Congestion Charge, parking, access), do a whole request end to end, and ask everything in one go.
