@@ -2,7 +2,7 @@ import { PageHeader } from "@/components/page";
 import { Card } from "@/components/ui";
 import { getPeople, getSettings } from "@/lib/data";
 import { gbp } from "@/lib/money";
-import { MarginsForm, PersonForm } from "./forms";
+import { FuelForm, MarginsForm, PersonForm } from "./forms";
 import { GoogleSettings } from "./google";
 import { currentPerson } from "@/lib/auth";
 import { previewMode } from "@/lib/config";
@@ -32,6 +32,12 @@ export default async function SettingsPage() {
       </Card>
       <Card title="Profit light">
         <MarginsForm green={settings.margins.green} red={settings.margins.red} />
+      </Card>
+      <Card title="Fuel cost for job profit">
+        <p className="mb-4 text-[15px] text-muted">
+          Quotes charge {Math.round(r.perMile * 100)}p a mile, which also covers wear and tear. For a job&apos;s profit only the fuel counts, so put in what the vans really do to the gallon and what fuel costs. It never changes a quote.
+        </p>
+        <FuelForm mpg={settings.fuel.mpg} pencePerLitre={settings.fuel.pencePerLitre} quoted={r.perMile} />
       </Card>
       <Card title="Charge-out rates">
         <dl className="grid gap-3 text-[15px] sm:grid-cols-2">

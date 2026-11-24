@@ -166,10 +166,13 @@ export default async function JobPage({ params, searchParams }: { params: Promis
                   label={(() => {
                     const miles = job.pricing?.input.miles || job.miles_round_trip;
                     const vans = job.pricing ? Math.max(1, Number(job.pricing.input.vans) || 1) : 1;
-                    if (!miles) return "Fuel and travel (miles not set yet)";
-                    if (job.type === "Survey") return `Fuel and travel (${miles} miles for the whole survey trip × ${gbp(settings.rates.perMile)}, as quoted)`;
-                    const perDay = Math.round(miles * vans * settings.rates.perMile * 100) / 100;
-                    return `Fuel and travel (${gbp(perDay)} a day: ${miles} miles${vans > 1 ? ` × ${vans} vans` : ""} × ${gbp(settings.rates.perMile)}, as quoted; × ${m.visitDays} day${m.visitDays === 1 ? "" : "s"} on site)`;
+                    if (!miles) return "Fuel (miles not set yet)";
+                    const real = settings.fuel.perMile !== null;
+                    const rate = `${(Math.round(settings.costPerMile * 1000) / 10).toFixed(1)}p a mile`;
+                    const why = real ? `${rate}, the vans' real fuel cost from Settings` : `${rate}, the quoted mileage rate; add the vans' mpg and fuel price in Settings for the real fuel cost`;
+                    if (job.type === "Survey") return `Fuel (${miles} miles for the whole survey trip × ${why})`;
+                    const perDay = Math.round(miles * vans * settings.costPerMile * 100) / 100;
+                    return `Fuel (${gbp(perDay)} a day: ${miles} miles${vans > 1 ? ` × ${vans} vans` : ""} × ${why}; × ${m.visitDays} day${m.visitDays === 1 ? "" : "s"} on site)`;
                   })()}
                   value={gbp(m.travel)}
                 />

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayFraction, gbp, jobMoney, marginLight, type MoneyInput } from "./money";
+import { dayFraction, gbp, jobMoney, marginLight, type MoneyInput, fuelPerMile } from "./money";
 
 const base: MoneyInput = {
   quoteValue: 0,
@@ -11,6 +11,19 @@ const base: MoneyInput = {
   costs: [],
   today: "2026-11-22",
 };
+
+describe("the real fuel cost of a mile", () => {
+  it("is the litre price times the litres in a gallon, over the miles per gallon", () => {
+    expect(Math.round(fuelPerMile(35, 145)! * 10000) / 100).toBe(18.83);
+    expect(fuelPerMile(null, 145)).toBeNull();
+    expect(fuelPerMile(35, 0)).toBeNull();
+  });
+  it("is counted to the fraction of a penny in a job's profit, not rounded to a whole penny a mile", () => {
+    const day = [{ date: "2026-11-20", start: null, end: null, dayCosts: [] }];
+    const m = jobMoney({ quoteValue: 500, approvedVariations: [], invoicedNet: null, visits: day, milesRoundTrip: 131, perMile: fuelPerMile(35, 145)!, costs: [], today: "2026-11-24" });
+    expect(m.travel).toBe(24.67); // 131 miles × 18.83p
+  });
+});
 
 describe("dayFraction", () => {
   it("counts an all-day visit as one day", () => expect(dayFraction(null, null)).toBe(1));

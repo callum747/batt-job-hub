@@ -6,10 +6,24 @@
  *  - income: net invoiced once invoiced, otherwise quote + approved extras
  *  - labour: every visit up to and including today × each person on it × their day cost;
  *            a timed visit counts as hours ÷ 8 of a day (never more than a full day)
- *  - fuel and travel: as the quote worked it out per day (round-trip miles × vans × per-mile rate), × separate visit days
+ *  - fuel: round-trip miles × vans × what a mile costs in fuel, × separate visit days. The cost per mile is the real
+ *            fuel cost from Settings (the vans' mpg and the price of fuel) once that's filled in; until then the quoted
+ *            mileage rate is used, which overstates it because that rate also covers wear and tear.
  */
 
 export const HOURS_PER_DAY = 8;
+
+/** Litres in a UK gallon. */
+export const LITRES_PER_GALLON = 4.54609;
+
+/**
+ * What a mile costs in fuel, in pounds: the price of a litre, times the litres in a gallon, divided by the miles
+ * a gallon takes the van. Null until both figures are known. 35 mpg at 145p a litre is about 18.8p a mile.
+ */
+export function fuelPerMile(mpg: number | null | undefined, pencePerLitre: number | null | undefined): number | null {
+  if (!mpg || !pencePerLitre || !(mpg > 0) || !(pencePerLitre > 0)) return null;
+  return (pencePerLitre * LITRES_PER_GALLON) / mpg / 100;
+}
 
 export type MoneyVisit = {
   date: string; // YYYY-MM-DD
@@ -76,7 +90,7 @@ export function jobMoney(input: MoneyInput): MoneyResult {
   }, 0);
 
   const visitDays = new Set(pastVisits.map((v) => v.date)).size;
-  const travelP = input.milesRoundTrip ? Math.round(input.milesRoundTrip * (input.vans ?? 1) * toPence(input.perMile) * (input.milesForWholeTrip ? Math.min(1, visitDays) : visitDays)) : 0;
+  const travelP = input.milesRoundTrip ? Math.round(input.milesRoundTrip * (input.vans ?? 1) * input.perMile * 100 * (input.milesForWholeTrip ? Math.min(1, visitDays) : visitDays)) : 0;
 
   const otherP = input.costs.reduce((s, c) => s + toPence(c), 0);
   const spentP = labourP + travelP + otherP;

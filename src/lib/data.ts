@@ -1,6 +1,6 @@
 import "server-only";
 import { sql } from "./db";
-import { jobMoney, marginLight, type Light, type MoneyResult } from "./money";
+import { fuelPerMile, jobMoney, marginLight, type Light, type MoneyResult } from "./money";
 import { parseJobNumber, todayUK, type Stage } from "./jobs-rules";
 
 export type Margins = { green: number; red: number };
@@ -96,12 +96,20 @@ export type ClientRow = {
   notes: string;
 };
 
+export type Fuel = { mpg: number | null; pencePerLitre: number | null; /** £ a mile in fuel, or null until both are set. */ perMile: number | null };
+
 export async function getSettings() {
   const rows = await sql<{ key: string; value: unknown }[]>`select key, value from settings`;
   const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  const f = (map.fuel ?? {}) as { mpg?: number | null; pencePerLitre?: number | null };
+  const fuel: Fuel = { mpg: f.mpg ?? null, pencePerLitre: f.pencePerLitre ?? null, perMile: fuelPerMile(f.mpg, f.pencePerLitre) };
+  const rates = map.rates as Rates;
   return {
     margins: { green: 18, red: 5, ...(map.margins as Partial<Margins>) } as Margins,
-    rates: map.rates as Rates,
+    rates,
+    fuel,
+    /** What a mile costs Batt for job profit: the real fuel cost if it's been set, otherwise the quoted mileage rate. */
+    costPerMile: fuel.perMile ?? rates?.perMile ?? 0.45,
   };
 }
 
@@ -183,7 +191,7 @@ async function withMoney(jobs: JobRow[]): Promise<JobWithMoney[]> {
       milesRoundTrip: j.pricing?.input.miles || j.miles_round_trip,
       vans: j.pricing ? Math.max(1, Number(j.pricing.input.vans) || 1) : 1,
       milesForWholeTrip: j.type === "Survey",
-      perMile: settings.rates?.perMile ?? 0.45,
+      perMile: settings.costPerMile,
       costs: (cByJob.get(j.id) ?? []).map((c) => c.amount),
       today,
     });

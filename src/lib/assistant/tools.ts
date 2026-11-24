@@ -661,7 +661,19 @@ const tools: Tool[] = [
     schema: z.object({}),
     run: async () => {
       const [s, people] = await Promise.all([getSettings(), sql<{ short_name: string; full_name: string; role: string; day_cost: number; email: string }[]>`select short_name, full_name, role, day_cost, email from people where active order by position`]);
-      return { ...s, people: people.map((p) => ({ ...p })) };
+      return { ...s, people: people.map((p) => ({ ...p })), note: "rates.perMile is what quotes charge per mile. costPerMile is what a mile costs Batt in fuel, used only for job profit; fuel.perMile is null until the vans' mpg and the fuel price are set (set_fuel_cost)." };
+    },
+  },
+  {
+    name: "set_fuel_cost",
+    label: () => "Saving the vans' fuel cost",
+    description: "Save the vans' real miles per gallon and the price of fuel in pence a litre. The app works out the fuel cost per mile from them and uses it for every job's profit. It never changes what quotes charge (45p a mile, which also covers wear and tear). Both figures must come from the user; never estimate them.",
+    schema: z.object({ mpg: z.number().min(10).max(100), pence_per_litre: z.number().min(50).max(400) }),
+    run: async (i: { mpg: number; pence_per_litre: number }, me: Me) => {
+      await sql`insert into settings (key, value) values ('fuel', ${sql.json({ mpg: i.mpg, pencePerLitre: i.pence_per_litre })}) on conflict (key) do update set value = excluded.value, updated_at = now()`;
+      await audit(sql, me.email, "edited (assistant)", "settings", "fuel", { mpg: i.mpg, pencePerLitre: i.pence_per_litre });
+      const s = await getSettings();
+      return { saved: true, pence_per_mile: Math.round((s.fuel.perMile ?? 0) * 1000) / 10 };
     },
   },
 ];

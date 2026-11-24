@@ -222,3 +222,9 @@ Plain-English notes on what's new in the Batt Job Hub, newest first.
 - Ask can search all of Batt's connected mailboxes like Gmail's search box and read any thread, so he works from what the client actually sent.
 - Ask can book visits in the diary and the company calendar, checking for clashes first.
 - He's told to check the user's message against the client's email, raise things nobody mentioned (Congestion Charge, parking, access), do a whole request end to end, and ask everything in one go.
+
+## Real fuel cost in job profit
+- Settings has a new "Fuel cost for job profit" box: the vans' real miles per gallon and the price of fuel in pence a litre. The app works out the fuel cost per mile and uses it for every job's profit.
+- Quotes are untouched: they still charge 45p a mile, which also covers wear and tear.
+- Until both figures are filled in, profit keeps using the quoted 45p a mile and says so on the job.
+- Fuel is now counted to the fraction of a penny per mile.

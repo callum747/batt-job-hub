@@ -1,5 +1,6 @@
 "use server";
 
+import { fuelPerMile } from "@/lib/money";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { currentPerson } from "@/lib/auth";
@@ -211,6 +212,20 @@ export async function savePerson(personId: string, f: FormData) {
   await audit(sql, me.email, "edited", "person", personId);
   refreshJobs();
   return { ok: true, message: "Saved." };
+}
+
+/** The vans' miles per gallon and the price of fuel, which give the real fuel cost per mile used for job profit. */
+export async function saveFuel(f: FormData) {
+  const me = await who();
+  const mpg = Number(String(f.get("mpg") ?? "").trim());
+  const pencePerLitre = Number(String(f.get("pencePerLitre") ?? "").trim());
+  if (!(mpg >= 10 && mpg <= 100)) return { ok: false, message: "Miles per gallon should be between 10 and 100." };
+  if (!(pencePerLitre >= 50 && pencePerLitre <= 400)) return { ok: false, message: "The fuel price should be in pence a litre, between 50 and 400." };
+  await sql`insert into settings (key, value) values ('fuel', ${sql.json({ mpg, pencePerLitre })}) on conflict (key) do update set value = excluded.value, updated_at = now()`;
+  await audit(sql, me.email, "edited", "settings", "fuel", { mpg, pencePerLitre });
+  refreshJobs();
+  const perMile = fuelPerMile(mpg, pencePerLitre)!;
+  return { ok: true, message: `Saved. Fuel now counts as ${(perMile * 100).toFixed(1)}p a mile in every job's profit.` };
 }
 
 export async function saveMargins(f: FormData) {
