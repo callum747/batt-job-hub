@@ -61,8 +61,8 @@ d("chasing quotes", () => {
     const out = await r.draftQuoteChaser(jobId, ME);
     expect(out).toMatchObject({ ok: true, url: "https://mail/draft" });
     expect(out.message).toBe("Chaser 1 saved in your Gmail drafts to sam@example.com, with the quote attached. Check it and press Send. The next chase is in a week.");
-    expect(drafts[0]).toMatchObject({ to: "sam@example.com", subject: "Re: Quotation #601/1 – Garage lighting", attachments: [{ name: "#601-1 – 4 Test Lane – Quote.pdf" }] });
-    expect(drafts[0].body).toMatch(/^Hi Sam,\n\nDid our quotation #601\/1 for Garage lighting at 4 Test Lane reach you safely\?/);
+    expect(drafts[0]).toMatchObject({ to: "sam@example.com", subject: "Re: Quotation #601 – Garage lighting", attachments: [{ name: "#601-1 – 4 Test Lane – Quote.pdf" }] });
+    expect(drafts[0].body).toMatch(/^Hi Sam,\n\nDid our quotation #601 for Garage lighting at 4 Test Lane reach you safely\?/);
     const [j] = await sql`select quote_chases, quote_chased_at = current_date as today, notes from jobs where id = ${jobId}`;
     expect(j).toMatchObject({ quote_chases: 1, today: true });
     expect(j.notes).toMatch(/quote chased \(chaser 1 drafted in Gmail to sam@example.com, not sent yet\)\.$/);

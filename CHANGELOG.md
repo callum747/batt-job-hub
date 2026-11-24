@@ -241,3 +241,21 @@ Plain-English notes on what's new in the Batt Job Hub, newest first.
 - Today also shows "Invoices to chase" from the ledger, and "Needs a nudge" for jobs that have stalled: enquiries not quoted, drafts not sent, bookings with no visit, work finished and not invoiced.
 - A job gets its quote-sent date the day it's moved to Quoted. Chasing counts from that date.
 - Claude can list everything that needs chasing and draft the quote and invoice chasers.
+
+## Claude: the full toolset, and quotes fixed
+Quotes (Cameron, 24/11/2026):
+- A quote always shows the plain job number (#557). No /1, /2 or version number anywhere a client can see.
+- Making a quote again replaces the old one: the earlier Doc and PDF go to Drive's bin, unless it's a second option the client chooses between.
+- Each stage in the summary is kept as its own paragraph.
+- The schedule heading reads "Schedule of Works" instead of "Room-by-room schedule".
+
+New things Claude can do:
+- Change the wording inside a Google Doc, and save any Doc as a PDF (updating the existing PDF so its link stays the same).
+- Open email attachments (a wholesaler's quote, drawings, a remittance) and file them into a job's folder.
+- Draft any email in Gmail with files from Drive attached, with or without an address in To.
+- Make folders and copy files in Drive, and write to a job's own spreadsheets.
+- Move, change and cancel visits.
+- Add or update clients, add costs and extras to a job.
+- Raise standard VAT invoices and see what's due to be invoiced.
+- Look things up on the web.
+Limits that stay: emails are drafts only, binning needs your yes, templates and the ledger can't be changed by hand, CIS invoices are raised on the job's Invoices tab.

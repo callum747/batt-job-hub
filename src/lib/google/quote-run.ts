@@ -78,9 +78,29 @@ export const LONG_FORM: Filler<LongQuote> = {
   minPages: 5,
 };
 
-export const buildLongQuote = (jobId: string, q: LongQuote, me: { email: string; name: string }) => buildDocument(jobId, LONG_FORM, q, me);
+/**
+ * keep: leave the job's earlier quotes in place (for a second option the client chooses between). Otherwise a new
+ * quote replaces the old one. label: added to the file name, e.g. "Option 2".
+ */
+export type QuoteOptions = { keep?: boolean; label?: string };
 
-export const buildShortQuote = (jobId: string, q: ShortQuote, me: { email: string; name: string }) => buildDocument(jobId, SHORT_FORM, q, me);
+export const buildLongQuote = (jobId: string, q: LongQuote, me: { email: string; name: string }, o: QuoteOptions = {}) => buildDocument(jobId, LONG_FORM, q, me, o);
+
+export const buildShortQuote = (jobId: string, q: ShortQuote, me: { email: string; name: string }, o: QuoteOptions = {}) => buildDocument(jobId, SHORT_FORM, q, me, o);
+
+/** Puts the job's earlier quote documents and PDFs in Drive's bin (Google keeps them 30 days) and takes them off the job. */
+async function replaceEarlierQuotes(jobId: string, keepId: string, email: string): Promise<number> {
+  const old = await sql<{ id: string; doc_id: string; pdf_file_id: string }[]>`
+    select id, doc_id, pdf_file_id from documents where job_id = ${jobId} and kind = 'quote' and id <> ${keepId} and note not like 'Replaced%'`;
+  for (const d of old) {
+    for (const fileId of [d.doc_id, d.pdf_file_id].filter(Boolean)) {
+      // Already gone or moved by hand is fine: the aim is only that the old version can't be sent by mistake.
+      await google(email, `/drive/v3/files/${encodeURIComponent(fileId)}`, { method: "PATCH", query: { supportsAllDrives: true, fields: "id" }, body: { trashed: true } }).catch(() => null);
+    }
+    await sql`update documents set note = 'Replaced by a newer version (in Drive''s bin)', pdf_url = '', pdf_file_id = '' where id = ${d.id}`;
+  }
+  return old.length;
+}
 
 /**
  * Makes a quote or proposal: copies the template into the job's 01 folder, fills it in three
@@ -91,6 +111,7 @@ export async function buildDocument<Q extends { number: number; total: number; r
   filler: Filler<Q>,
   asked: Q,
   me: { email: string; name: string },
+  options: QuoteOptions = {},
 ): Promise<QuoteOutcome> {
   let q = asked;
   const problems = filler.check(q);
@@ -110,7 +131,8 @@ export async function buildDocument<Q extends { number: number; total: number; r
     const revision = n + 1;
     const ref = quoteRef(job.number, revision);
     q = { ...q, ref };
-    const name = `${ref} – ${(job.site || job.client || "Job").replace(/[\\/]+/g, "-")} – ${filler.label}`;
+    const label = options.label?.replace(/[\\/]+/g, "-").trim();
+    const name = `${ref} – ${(job.site || job.client || "Job").replace(/[\\/]+/g, "-")} – ${filler.label}${label ? ` – ${label}` : ""}`;
 
     const copy = await google<{ id: string; webViewLink?: string }>(me.email, `/drive/v3/files/${await templateId(filler.template)}/copy`, {
       method: "POST",
@@ -144,13 +166,15 @@ export async function buildDocument<Q extends { number: number; total: number; r
     const saved = await uploadPdf(me.email, `${name}.pdf`, folder, pdf);
     await sql`update documents set pdf_file_id = ${saved.id}, pdf_url = ${saved.url}, pages = ${pages}, note = '' where id = ${docRow.id}`;
     await sql`update jobs set quote_draft = ${sql.json({ template: filler.template, ...q } as never)}, updated_at = now() where id = ${jobId}`;
-    await audit(sql, me.email, "quote made", "job", jobId, { template: filler.template, revision, docId: copy.id, pdfId: saved.id, total: q.total, pages });
+    // The client only ever sees one quote for the job: the earlier version goes to Drive's bin unless it's being kept as an option.
+    const replaced = options.keep ? 0 : await replaceEarlierQuotes(jobId, docRow.id, me.email);
+    await audit(sql, me.email, "quote made", "job", jobId, { template: filler.template, revision, docId: copy.id, pdfId: saved.id, total: q.total, pages, replaced });
     return {
       ok: true,
       docUrl,
       pdfUrl: saved.url,
       pages,
-      message: `${filler.label} ${ref} saved to the job's folder: ${pages} pages, ${q.total.toLocaleString("en-GB", { style: "currency", currency: "GBP" })} inc VAT. Open the PDF and read it through before sending.`,
+      message: `${filler.label} ${ref} saved to the job's folder: ${pages} pages, ${q.total.toLocaleString("en-GB", { style: "currency", currency: "GBP" })} inc VAT.${replaced ? ` It replaces the earlier version, which is in Drive's bin.` : ""} Open the PDF and read it through before sending.`,
     };
   } catch (e) {
     return { ok: false, docUrl, message: `The document wasn't finished. ${errorText(e)}${docUrl ? " What was done so far is in the job's folder." : ""}` };

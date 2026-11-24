@@ -8,8 +8,7 @@
  */
 import {
   cellText, findTable, findTableByCell, money, paragraphs, replaceInParagraph, resizeRows, setCell, setParagraph, toBatch,
-  type Doc, type Edit, type FoundTable, type Para, type Request,
-} from "./docs";
+  type Doc, type Edit, type FoundTable, type Para, type Request, paraText } from "./docs";
 
 export type ScheduleGroup = { area: string; items: { item: string; ref: string; works: string }[] };
 export type InvestmentLine = { section: string; description: string; amount: number };
@@ -36,7 +35,11 @@ export type ShortQuote = {
   paymentDays: number;
   exclusions: string[]; // job-specific ones, added after the standard three
   assumptions: string[];
+  /** The heading over the schedule table. Left out, it reads "Schedule of Works". */
+  scheduleHeading?: string;
 };
+
+export const SCHEDULE_HEADING = "Schedule of Works";
 
 const p2 = (n: number) => Math.round(n * 100) / 100;
 const clean = (s: string) => s.replace(/\s+/g, " ").trim();
@@ -149,7 +152,7 @@ export function textPass(doc: Doc, q: ShortQuote): Request[] {
   edits.push(replaceInParagraph(l.projectLine, "[Project name]", clean(q.project)));
   edits.push(setParagraph(l.dates[0], q.date), setParagraph(l.dates[1], q.validUntil));
   edits.push(setParagraph(l.preparedBy, q.preparedBy.name));
-  edits.push(setParagraph(l.summary, clean(q.summary)));
+  edits.push(setParagraph(l.summary, paraText(q.summary)));
   edits.push(setParagraph(l.installation, clean(q.installation)));
 
   // Schedule: a room row then its items, for each area.
@@ -195,7 +198,9 @@ export function textPass(doc: Doc, q: ShortQuote): Request[] {
   edits.push(replaceInParagraph(l.signature, "cameron@battelectrical.com", q.preparedBy.email));
   edits.push(replaceInParagraph(l.signature, "Managing Director", q.preparedBy.title));
   edits.push(replaceInParagraph(l.signature, "Cameron Batt", q.preparedBy.name));
-  return toBatch(edits);
+  // The template's heading says "Room-by-room schedule", which is wrong for a job set out by stage or by site.
+  // Replaced last, as it changes the length of the text the edits above are placed by.
+  return [...toBatch(edits), { replaceAllText: { containsText: { text: "Room-by-room schedule", matchCase: false }, replaceText: clean(q.scheduleHeading ?? "") || SCHEDULE_HEADING } }];
 }
 
 const scheduleTable = (doc: Doc) => need(findTable(doc, ["Item", "Ref", "Works"]), "the schedule table (Item, Ref, Works)");

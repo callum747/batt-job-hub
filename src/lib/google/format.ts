@@ -78,8 +78,11 @@ function plusHour(hhmm: string) {
   return `${String(Math.min(h + 1, 23)).padStart(2, "0")}:${String(h + 1 > 23 ? 59 : m).padStart(2, "0")}`;
 }
 
-/** A quote's own reference: the job number, then which quote it is for that job. #557/1, #557/2, #557/3. */
-export const quoteRef = (number: number, revision: number) => `#${number}/${Math.max(1, revision)}`;
+/**
+ * The reference a client sees on a quote: always the plain job number, #557, however many times the quote has been
+ * remade (Cameron, 24/11/2026). The revision is only kept inside the app.
+ */
+export const quoteRef = (number: number, revision = 1) => (void revision, `#${number}`);
 
 /**
  * Reads a job folder's name the way Batt writes them: "#560 – Client – Site" (an en dash or a hyphen), or the

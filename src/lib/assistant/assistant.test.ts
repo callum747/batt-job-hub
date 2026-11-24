@@ -22,7 +22,7 @@ vi.mock("../google/pricing-run", () => ({
 }));
 vi.mock("../google/quote-run", () => ({ buildShortQuote: vi.fn(), buildLongQuote: vi.fn() }));
 vi.mock("../google/gmail", () => ({ jobThreads: vi.fn(async () => ({ threads: [], problems: [] })), createDraft: vi.fn(), driveFileBytes: vi.fn(), threadText: vi.fn(), inboxThreads: vi.fn(async () => []) }));
-vi.mock("../google/calendar", () => ({ syncVisit: vi.fn(async () => "Added to the calendar (test calendar).") }));
+vi.mock("../google/calendar", () => ({ syncVisit: vi.fn(async () => "Added to the calendar (test calendar)."), removeVisitEvent: vi.fn(async () => undefined) }));
 vi.mock("../google/drive-actions", () => ({ driveFind: vi.fn(async () => []), driveMove: vi.fn(), driveRename: vi.fn(), driveBin: vi.fn() }));
 vi.mock("../google/job-files", () => ({
   listAllJobFiles: vi.fn(async () => ({ files: [{ id: "file-pdf-1", name: "Quote.pdf", folder: "01 - Quote", kind: "PDF", sizeKb: 200, modified: "2026-11-20", link: "https://drive/p", mimeType: "application/pdf" }], more: false })),
@@ -245,7 +245,24 @@ d("the assistant", () => {
     expect(clash).toMatchObject({ booked: false, clashes: [{ who, work: "Fit meter enclosures", job: "#559", start: "09:00" }] });
     expect(JSON.parse((await tools.runTool("book_visit", { job: "558", date: "2026-12-04", people: [who], work: "Survey", even_if_clash: true }, me)).content).booked).toBe(true);
     expect((await sql`select count(*)::int as n from visits where date = '2026-12-04'`)[0].n).toBe(2);
+    // The diary gives each visit's id, so it can be moved or cancelled.
+    const list = JSON.parse((await tools.runTool("diary", { from: "2026-12-04", to: "2026-12-04" }, me)).content);
+    const moved = JSON.parse((await tools.runTool("change_visit", { visit_id: list[0].visit_id, date: "2026-12-07", start: "08:00", end: "12:00", work: "Fit enclosures, morning only" }, me)).content);
+    expect(moved.changed).toBe(true);
+    expect((await sql`select date::text as d, start_time::text as s, work from visits where id = ${list[0].visit_id}`)[0]).toMatchObject({ d: "2026-12-07", s: "08:00:00", work: "Fit enclosures, morning only" });
+    expect(JSON.parse((await tools.runTool("change_visit", { visit_id: list[1].visit_id, cancel: true }, me)).content).cancelled).toBe(true);
+    expect((await sql`select count(*)::int as n from visits`)[0].n).toBe(1);
     expect(JSON.parse((await tools.runTool("book_visit", { job: "558", date: "2026-12-05", people: ["Nobody"], work: "Survey" }, me)).content).message).toMatch(/nobody called "Nobody"/);
+  });
+
+  it("updates a client, and adds a cost and an extra to a job", async () => {
+    expect(JSON.parse((await tools.runTool("update_client", { client: "meterz", contact: "Gwen", email: "ops@example.com", payment_days: 30 }, me)).content)).toMatchObject({ saved: true, added_new_client: false, changed: ["contact", "email", "payment_days"] });
+    expect((await sql`select contact, email, payment_days from clients where name = 'Meterz'`)[0]).toMatchObject({ contact: "Gwen", email: "ops@example.com", payment_days: 30 });
+    expect(JSON.parse((await tools.runTool("update_client", { client: "Brand New Ltd", type: "Commercial" }, me)).content).added_new_client).toBe(true);
+    const cost = JSON.parse((await tools.runTool("add_cost", { job: "559", kind: "Supplier invoice", description: "CEF ALS/104665", amount: 375 }, me)).content);
+    expect(cost).toMatchObject({ saved: true, job: "#559" });
+    expect((await sql`select kind::text, amount::float as amount from costs`)[0]).toMatchObject({ kind: "Supplier invoice", amount: 375 });
+    expect(JSON.parse((await tools.runTool("add_extra", { job: "559", description: "Extra socket", amount: 85, approved: true }, me)).content).saved).toBe(true);
   });
 
   it("runs a turn: calls a tool, answers, and saves the conversation", async () => {

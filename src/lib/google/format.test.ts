@@ -106,8 +106,8 @@ describe("calendar event", () => {
 });
 
 describe("quote references", () => {
-  it("numbers each quote for a job after a slash", async () => {
+  it("is always the plain job number, whichever version of the quote it is", async () => {
     const { quoteRef } = await import("./format");
-    expect([quoteRef(557, 1), quoteRef(557, 2), quoteRef(557, 0)]).toEqual(["#557/1", "#557/2", "#557/1"]);
+    expect([quoteRef(557, 1), quoteRef(557, 6)]).toEqual(["#557", "#557"]);
   });
 });

@@ -5,8 +5,7 @@
  */
 import {
   captureGroupStyles, cellText, findTable, findTableByCell, groupStylePass, money, paragraphs, replaceInParagraph, resizeRows,
-  setCell, setParagraph, toBatch, type Doc, type Edit, type GroupStyles, type Para, type Request,
-} from "./docs";
+  setCell, setParagraph, toBatch, type Doc, type Edit, type GroupStyles, type Para, type Request, paraText } from "./docs";
 import type { Person } from "./quote-short";
 import type { SurveyLine, SurveySite } from "./survey";
 
@@ -115,7 +114,7 @@ export function surveyTextPass(doc: Doc, q: SurveyQuote): Request[] {
   edits.push(replaceInParagraph(l.siteLine, "[Site name]", clean(q.siteName)));
   edits.push(setParagraph(l.dates[0], q.date), setParagraph(l.dates[1], q.validUntil));
   edits.push(setParagraph(l.preparedBy, q.preparedBy.name));
-  edits.push(setParagraph(l.summary, clean(q.summary)));
+  edits.push(setParagraph(l.summary, paraText(q.summary)));
 
   const rows = q.sites.flatMap((s) => [
     [[s.name, s.address, s.postcode].map(clean).filter(Boolean).join(", ").toUpperCase(), "", ""],

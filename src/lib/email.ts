@@ -1,7 +1,7 @@
 /** Email pieces that don't need Google: the draft wording, the raw message Gmail stores, and job searches. Pure, tested. */
 
 export type Attachment = { name: string; mimeType: string; data: Buffer };
-export type DraftInput = { from: string; to: string; cc: string; subject: string; body: string; attachments: Attachment[] };
+export type DraftInput = { from: string; to: string; cc: string; subject: string; body: string; attachments: Attachment[]; /** A draft with nobody in To yet is fine (the person fills it in, or sends it another way). */ allowNoTo?: boolean };
 
 const EMAIL = /^[^\s@<>,;"]+@[^\s@<>,;"]+\.[^\s@<>,;"]+$/;
 
@@ -29,11 +29,11 @@ const wrap76 = (b64: string) => b64.replace(/(.{76})/g, "$1\r\n");
 /** The whole message as Gmail stores it, base64url encoded. Plain text body, any attachments. */
 export function buildRaw(d: DraftInput, boundary = "batt-" + Math.random().toString(36).slice(2)): string {
   const to = parseAddresses(d.to, "To");
-  if (to.length === 0) throw new Error("Put in who it's to.");
+  if (to.length === 0 && !d.allowNoTo) throw new Error("Put in who it's to.");
   const cc = parseAddresses(d.cc, "Cc");
   const headers = [
     `From: ${d.from}`,
-    `To: ${to.join(", ")}`,
+    ...(to.length ? [`To: ${to.join(", ")}`] : []),
     ...(cc.length ? [`Cc: ${cc.join(", ")}`] : []),
     `Subject: ${encodeHeader(d.subject)}`,
     "MIME-Version: 1.0",

@@ -13,14 +13,14 @@ import { google, googleSettings, GoogleError } from "./client";
 import { listAllJobFiles } from "./job-files";
 
 const FOLDER = "application/vnd.google-apps.folder";
-type Item = { id: string; name: string; mimeType: string; parents?: string[]; webViewLink?: string; trashed?: boolean; driveId?: string };
+export type Item = { id: string; name: string; mimeType: string; parents?: string[]; webViewLink?: string; trashed?: boolean; driveId?: string };
 const FIELDS = "id,name,mimeType,parents,webViewLink,trashed,driveId";
 const ALL = { supportsAllDrives: true } as const;
 
-const get = (email: string, id: string) => google<Item>(email, `/drive/v3/files/${encodeURIComponent(id)}`, { query: { ...ALL, fields: FIELDS } });
+export const get = (email: string, id: string) => google<Item>(email, `/drive/v3/files/${encodeURIComponent(id)}`, { query: { ...ALL, fields: FIELDS } });
 
 /** The folders above an item, nearest first, stopping at the top of the drive. */
-async function chain(email: string, item: Item): Promise<Item[]> {
+export async function chain(email: string, item: Item): Promise<Item[]> {
   const out: Item[] = [];
   let at = item;
   for (let i = 0; i < 12 && at.parents?.[0] && at.parents[0] !== at.driveId; i++) {
@@ -30,9 +30,9 @@ async function chain(email: string, item: Item): Promise<Item[]> {
   return out;
 }
 
-type Ground = { mode: "test" | "live"; driveId: string; areas: Record<string, string>; fixed: Set<string>; testRoots: string[] };
+export type Ground = { mode: "test" | "live"; driveId: string; areas: Record<string, string>; fixed: Set<string>; testRoots: string[] };
 
-async function ground(email: string): Promise<Ground> {
+export async function ground(email: string): Promise<Ground> {
   const g = await googleSettings();
   const areas = g[g.mode].folders as Record<string, string>;
   const live = await get(email, g.live.folders.Live);
@@ -44,7 +44,7 @@ async function ground(email: string): Promise<Ground> {
 }
 
 /** Checks an item may be changed, and says where it is. Throws a plain reason if not. */
-async function allowed(email: string, id: string, gr: Ground, what: string) {
+export async function allowed(email: string, id: string, gr: Ground, what: string) {
   const item = await get(email, id);
   if (item.trashed) throw new Error(`"${item.name}" is already in the bin.`);
   if (item.driveId !== gr.driveId) throw new Error(`"${item.name}" isn't in Batt's shared drive, so it can't be ${what} from here.`);

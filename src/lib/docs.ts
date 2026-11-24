@@ -24,6 +24,9 @@ export type Doc = {
 };
 export type Request = Record<string, unknown>;
 
+/** Text that may run to several paragraphs: each line tidied, blank lines dropped, one line break between paragraphs. */
+export const paraText = (s: string) => s.split(/\n+/).map((x) => x.replace(/\s+/g, " ").trim()).filter(Boolean).join("\n");
+
 export type Para = { start: number; end: number; text: string; paragraph: Paragraph };
 export type FoundTable = { start: number; block: Block; table: Table; rows: Para[][][] };
 

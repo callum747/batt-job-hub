@@ -8,8 +8,7 @@
  */
 import {
   cellText, findTable, findTableByCell, money, paragraphs, replaceInParagraph, resizeRows, setCell, setParagraph, toBatch,
-  type Doc, type Edit, type FoundTable, type Para, type Request,
-} from "./docs";
+  type Doc, type Edit, type FoundTable, type Para, type Request, paraText } from "./docs";
 import type { Person } from "./quote-short";
 
 export const POINT_COLUMNS = ["DS", "USB", "WT", "FS", "Data", "DL", "Pend", "EM", "Sw", "Det"] as const;
@@ -180,7 +179,7 @@ export function longTextPass(doc: Doc, q: LongQuote): Request[] {
   if (dates.length !== 2) need(null, "the two dates");
   edits.push(setParagraph(dates[0], q.date), setParagraph(dates[1], q.validUntil));
   edits.push(setParagraph(need(ps[ps.findIndex((p) => p.text.trim() === "PREPARED BY") + 1], "the name under PREPARED BY"), q.preparedBy.name));
-  edits.push(setParagraph(first((p) => p.text.startsWith("[Two or three sentences"), "the project summary placeholder"), clean(q.summary)));
+  edits.push(setParagraph(first((p) => p.text.startsWith("[Two or three sentences"), "the project summary placeholder"), paraText(q.summary)));
   edits.push(setParagraph(first((p) => p.text.startsWith("[Describe the installation"), "the scope of works placeholder"), clean(q.installation)));
 
   const scope = T.scope(doc);

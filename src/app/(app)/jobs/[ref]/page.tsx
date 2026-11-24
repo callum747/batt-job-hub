@@ -4,7 +4,6 @@ import { ChevronLeft, FileText, FolderOpen } from "lucide-react";
 import { Card, LightDot, Stat } from "@/components/ui";
 import { findJob, getPeople, getSettings, jobDetail, listClients } from "@/lib/data";
 import { gbp } from "@/lib/money";
-import { quoteRef } from "@/lib/google/format";
 import { jobLabel, todayUK, ukDate } from "@/lib/jobs-rules";
 import { currentPerson } from "@/lib/auth";
 import { errorText, gmailConnected, googleConnected } from "@/lib/google/client";
@@ -537,7 +536,7 @@ async function QuoteCard({ job, lines, templateChoice }: { job: Awaited<ReturnTy
           {quotes.map((d) => (
             <li key={d.id} className="flex flex-wrap items-center gap-3 px-4 py-3 text-[15px]">
               <span className="min-w-0 flex-1">
-                {job.number !== null && <span className="mr-2 rounded-md bg-surface px-2 py-0.5 text-[13px] font-semibold tabular-nums">{quoteRef(job.number, d.revision)}</span>}
+                {job.number !== null && <span className="mr-2 rounded-md bg-surface px-2 py-0.5 text-[13px] font-semibold tabular-nums">v{d.revision}</span>}
                 <span className="font-medium">{d.name}</span>
                 <span className="block text-[14px] text-muted">
                   {ukDate(d.created_at.slice(0, 10))}
@@ -577,7 +576,7 @@ async function SurveyCard({ job, rates }: { job: Awaited<ReturnType<typeof findJ
           {proposals.map((x) => (
             <li key={x.id} className="flex flex-wrap items-center gap-3 px-4 py-3 text-[15px]">
               <span className="min-w-0 flex-1">
-                {job.number !== null && <span className="mr-2 rounded-md bg-surface px-2 py-0.5 text-[13px] font-semibold tabular-nums">{quoteRef(job.number, x.revision)}</span>}
+                {job.number !== null && <span className="mr-2 rounded-md bg-surface px-2 py-0.5 text-[13px] font-semibold tabular-nums">v{x.revision}</span>}
                 <span className="font-medium">{x.name}</span>
                 <span className="block text-[14px] text-muted">{ukDate(x.created_at.slice(0, 10))}{x.pages ? ` · ${x.pages} pages` : ""}{x.note ? ` · ${x.note}` : ""}</span>
               </span>

@@ -288,7 +288,7 @@ export type DocumentRow = { id: string; kind: string; revision: number; name: st
 
 export async function jobDocuments(jobId: string) {
   return plain(await sql<DocumentRow[]>`
-    select id, kind, revision, name, url, pdf_url, pages, note, created_by, created_at::text from documents where job_id = ${jobId} order by created_at desc`);
+    select id, kind, revision, name, url, pdf_url, pages, note, created_by, created_at::text from documents where job_id = ${jobId} and note not like 'Replaced%' order by created_at desc`);
 }
 
 export async function getPersonByEmail(email: string) {

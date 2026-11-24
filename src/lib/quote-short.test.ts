@@ -170,6 +170,14 @@ describe("pass 2: text", () => {
     expect(o).toContain("not replaced under this scope\nGas and heating works, by others\nParking\nAssumptions");
     expect(o).not.toMatch(/\[/);
   });
+  it("keeps each stage as its own paragraph in the summary, and renames the schedule heading last", () => {
+    const d = afterStructure(quote);
+    const reqs = textPass(d, { ...quote, summary: "Stage 1: replace the fuse.\n\n  Stage 2:   fit three wall lights.  " });
+    expect(JSON.stringify(reqs)).toContain("Stage 1: replace the fuse.\\nStage 2: fit three wall lights.");
+    expect(reqs.at(-1)).toEqual({ replaceAllText: { containsText: { text: "Room-by-room schedule", matchCase: false }, replaceText: "Schedule of Works" } });
+    expect(textPass(d, { ...quote, scheduleHeading: "Stage-by-stage schedule" }).at(-1)).toMatchObject({ replaceAllText: { replaceText: "Stage-by-stage schedule" } });
+  });
+
   it("refuses to fill before the structure pass has run", () => {
     expect(() => textPass(buildDoc(template()), quote)).toThrow(/right number of rows/);
   });
