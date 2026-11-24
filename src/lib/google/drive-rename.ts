@@ -48,6 +48,36 @@ export async function dropQuoteVersions(email: string): Promise<number> {
   return done;
 }
 
+/**
+ * A job whose number was corrected (#2031 became #562): its Drive folder, and the files in it that carry the old
+ * number, are renamed to match. Names only. Does nothing once every folder matches its job.
+ */
+export async function followRenumbering(email: string): Promise<number> {
+  const rows = await sql<{ id: string; number: number; drive_folder_id: string; drive_folder_name: string; also: number[] }[]>`
+    select id, number, drive_folder_id, drive_folder_name, also from jobs
+    where number is not null and drive_folder_id <> '' and merged_into is null and cardinality(also) > 0 and drive_folder_name ~ '^#[0-9]{3,4}'`;
+  let done = 0;
+  for (const j of rows) {
+    const old = Number(j.drive_folder_name.match(/^#(\d{3,4})/)![1]);
+    if (old === j.number || !j.also.includes(old)) continue;
+    const swap = (name: string) => name.replace(new RegExp(`#${old}(?!\\d)`, "g"), `#${j.number}`);
+    const patch = (id: string, name: string) => google(email, `/drive/v3/files/${encodeURIComponent(id)}`, { method: "PATCH", query: { supportsAllDrives: true, fields: "id" }, body: { name } });
+    try {
+      await patch(j.drive_folder_id, swap(j.drive_folder_name));
+      const inside = await listChildren(email, [j.drive_folder_id]);
+      const deeper = await listChildren(email, inside.filter((f) => f.mimeType.endsWith("folder")).map((f) => f.id));
+      for (const f of [...inside, ...deeper]) if (swap(f.name) !== f.name) await patch(f.id, swap(f.name)).catch(() => null);
+      await sql`update jobs set drive_folder_name = ${swap(j.drive_folder_name)} where id = ${j.id}`;
+      await sql`update documents set name = replace(name, ${`#${old}`}, ${`#${j.number}`}) where job_id = ${j.id}`;
+      await audit(sql, email, "Drive folder renamed to the corrected job number", "job", j.id, { from: old, to: j.number });
+      done++;
+    } catch {
+      // Left for the next check: the job itself is already right.
+    }
+  }
+  return done;
+}
+
 export async function renameToHash(email: string): Promise<{ renamed: number; failed: string[]; left: number }> {
   const plan = new Map<string, { from: string; to: string }>();
   for (const f of await searchQ(email)) {

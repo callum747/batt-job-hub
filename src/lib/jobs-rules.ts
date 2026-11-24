@@ -62,9 +62,16 @@ export function parseJobNumber(text: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
-/** Next number = highest number in use (including numbers merged into other jobs) plus one. */
+/**
+ * Next number = highest number in use (including numbers merged into other jobs) plus one.
+ * Numbers that look like years (2000 to 2099) are left out while the real run is nowhere near them: a year folder
+ * in Drive was once read as job "2026", and the numbering then carried on from there instead of from the 560s.
+ */
 export function nextNumber(used: number[]) {
-  return used.length ? Math.max(...used) + 1 : 1;
+  const below = used.filter((n) => n < 2000);
+  const top = below.length ? Math.max(...below) : 0;
+  const real = top >= 1900 ? used : used.filter((n) => n < 2000 || n > 2099);
+  return real.length ? Math.max(...real) + 1 : 1;
 }
 
 /** Dates a person sees are always UK format. */

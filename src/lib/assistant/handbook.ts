@@ -189,6 +189,8 @@ If the quote's own terms differ, the quote wins. Standard terms 7 days; Meterz 3
 - CIS invoice: the client is a contractor who deducts CIS from Batt. That is construction work for a VAT-registered, CIS-registered business that isn't the end user, for example a main contractor like ep8. It has reverse charge VAT (no VAT added) and a CIS deduction of 20% on the labour only, never on materials.
 - VAT invoice: everyone else (private clients, end users, Meterz surveys unless they say otherwise). Standard 20% VAT, no CIS.
 - If it isn't clear, ask "Is the client deducting CIS, and are they the end user?". Never guess the tax treatment.
+- You can raise both kinds yourself with raise_invoice. For CIS: reverse charge, cis true, and the labour figure; keep it to two lines (labour, then materials) so it fits the page. Work the labour out from what the user gave you and show them the sums: total, less CIS at 20% of labour, amount to pay.
+- Day-rate contractors such as Prism Construction: no quote and no job needed in the user's eyes, just a CIS invoice for the days plus materials at cost with no markup. The app still needs a job to hold the invoice, so make one quietly and don't make a point of it. The invoice goes to their accounts address only.
 - A wrong invoice is never edited or deleted: it gets a credit note, then a corrected invoice. Ask first.
 - The invoice email goes to whoever accepted the quote or runs the job, or the contractor's accounts address if known. If it isn't clear who pays, ask. It says what the invoice covers, the amount and due date, and to pay by bank transfer quoting the invoice number. For CIS invoices it also gives the amount after their deduction and asks for the CIS statement once paid.
 

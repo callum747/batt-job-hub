@@ -284,3 +284,9 @@ Limits that stay: emails are drafts only, binning needs your yes, templates and 
 - An invoice with no job number on it is now matched to a job by where it was delivered. The same postcode, or the same house number and street, puts it on the job. Only a street or place name matching ("Oaken Grove") makes it a suggestion: the job number is filled in ready in the Inbox for you to confirm, and Claude is told the suggestion too.
 - If two jobs share an address, the one that's still open is used. Deliveries to Batt's own office are never matched.
 - A job number on the invoice still comes first.
+
+## Claude raises CIS invoices; job numbers back in line
+- Claude can now raise reverse charge CIS invoices as well as standard VAT ones: no VAT added, 20% of the labour taken off what's paid, filed in the CIS folder and on the ledger. He keeps a CIS invoice to two lines (labour, then materials) so it fits the page.
+- Job numbers had jumped into the 2000s (#2030, #2031) because a year folder in Drive was once read as a job. Those jobs are renumbered to the next proper numbers, oldest first. The old number stays on the job, so searching "#2031" still finds it, and the job's notes say what changed.
+- Their Drive folders and the files in them are renamed to the corrected number by the regular Drive check.
+- New numbers can't be thrown off by a year again.

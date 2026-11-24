@@ -1,6 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { folderAreaFor, jobLabel, needsNumber, nextNumber, parseJobNumber, todayUK, ukDate } from "./jobs-rules";
 
+describe("the next job number", () => {
+  it("is one more than the highest in use", async () => {
+    const { nextNumber } = await import("./jobs-rules");
+    expect(nextNumber([559, 560, 561])).toBe(562);
+    expect(nextNumber([])).toBe(1);
+  });
+  it("isn't thrown by a year that was once read as a job number", async () => {
+    const { nextNumber } = await import("./jobs-rules");
+    expect(nextNumber([559, 561, 2026, 2030, 2031])).toBe(562);
+    expect(nextNumber([1998, 1999])).toBe(2000);
+    expect(nextNumber([1999, 2000, 2001])).toBe(2002);
+  });
+});
+
 describe("job numbers", () => {
   it("shows a number as #557", () => expect(jobLabel({ number: 557 })).toBe("#557"));
   it("keeps old references as they were", () => expect(jobLabel({ number: null, legacy_ref: "23-001" })).toBe("23-001"));

@@ -795,160 +795,46 @@ const tools: Tool[] = [
   },
   {
     name: "raise_invoice",
-    label: (i) => `Raising an invoice on job ${i.job ?? ""}`,
+    label: (i) => `Raising ${i.cis ? "a CIS" : "an"} invoice on job ${i.job ?? ""}`,
     description:
-      "Raise a standard VAT invoice on a job from Batt's invoice template: takes the next invoice number, makes the document and PDF, files them by VAT quarter and adds the row to the ledger. It is not sent; draft the email separately. Use invoice_options first for the right amount and stage. Lines are ex VAT. Standard 20% VAT only: if the client is a contractor who deducts CIS, or it should be reverse charge, don't raise it here; say it needs doing on the job's Invoices tab where the CIS figures are entered. Never raise an invoice the user hasn't asked for.",
+      "Raise an invoice on a job from Batt's invoice template: takes the next invoice number, makes the document and PDF, files them by VAT quarter (VAT or CIS folder) and adds the row to the ledger. It is not sent; draft the email separately. Use invoice_options first. Lines are ex VAT. Two kinds. (1) Standard: vat \"Standard 20%\", cis false: private clients, end users, Meterz. (2) CIS with reverse charge: vat \"Reverse charge\", cis true, and cis_labour = the labour part of the invoice in pounds: for a contractor who deducts CIS (a main contractor, a builder such as Prism). No VAT is added, and 20% of the labour is taken off what they pay; materials are never included in cis_labour. The labour figure must come from the lines the user gave you or the job's pricing; never estimate it. If you can't tell which kind it is, ask \"Is the client deducting CIS, and are they the end user?\". The invoice must fit on one page: a CIS invoice has room for about two lines, a standard one about seven, so on a CIS invoice put the labour on one line (dates and hours in the description) and the materials on another. If it comes back saying it ran to two pages, shorten the descriptions and raise it again. Never raise an invoice the user hasn't asked for.",
     schema: z.object({
       job: jobRef,
       type: z.enum(INVOICE_TYPES as unknown as [string, ...string[]]),
       stage_label: z.string().default("").describe("For a deposit or stage payment, the stage's label exactly as invoice_options gives it."),
       lines: z.array(z.object({ description: z.string().min(1), qty: z.number().positive(), unit: z.number() })).min(1).max(7),
+      vat: z.enum(["Standard 20%", "Reverse charge"]).default("Standard 20%"),
+      cis: z.boolean().default(false).describe("True when the client deducts CIS from the payment."),
+      cis_labour: z.number().positive().optional().describe("With cis true: the labour in the invoice, in pounds ex VAT. The 20% deduction is worked out on this."),
       invoice_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-      supply_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Date of supply: when the work was done. Defaults to the invoice date."),
+      supply_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Date of supply: when the work was done (the last day, for several). Defaults to the invoice date."),
       terms_days: z.number().int().min(0).max(120).optional(),
       notes: z.string().default(""),
     }),
-    run: async (i: { job: string; type: string; stage_label: string; lines: { description: string; qty: number; unit: number }[]; invoice_date?: string; supply_date?: string; terms_days?: number; notes: string }, me: Me) => {
+    run: async (i: { job: string; type: string; stage_label: string; lines: { description: string; qty: number; unit: number }[]; vat: "Standard 20%" | "Reverse charge"; cis: boolean; cis_labour?: number; invoice_date?: string; supply_date?: string; terms_days?: number; notes: string }, me: Me) => {
       const job = await mustFind(i.job);
       const s = await invoiceStart(job);
-      if (s.client.contractor) return { ok: false, message: `${s.client.name} is down as a contractor, so this is likely a CIS invoice with reverse charge VAT. Raise it on the job's Invoices tab, where the labour figure for the CIS deduction is entered.` };
       if (!s.client.name) return { ok: false, message: "The job has no client. Add the client first (update_job)." };
+      const net = Math.round(i.lines.reduce((sum, l) => sum + l.qty * l.unit, 0) * 100) / 100;
+      if (i.cis) {
+        if (i.vat !== "Reverse charge") return { ok: false, message: "A CIS invoice to a contractor is reverse charge: set vat to \"Reverse charge\". If this client really is charged VAT and also deducts CIS, raise it on the job's Invoices tab." };
+        if (i.cis_labour === undefined) return { ok: false, message: "Give cis_labour: the labour part of the invoice in pounds. The CIS deduction is 20% of it. Materials are not included." };
+        if (i.cis_labour > net + 0.005) return { ok: false, message: `The labour (£${i.cis_labour.toFixed(2)}) can't be more than the invoice's total (£${net.toFixed(2)}).` };
+      } else if (s.client.contractor && i.vat === "Standard 20%") {
+        return { ok: false, message: `${s.client.name} is down as a contractor, so this is most likely a CIS invoice: vat "Reverse charge", cis true, and cis_labour. If they really are charged VAT with no CIS on this one, ask the user to confirm, then raise it on the job's Invoices tab.` };
+      }
       const date = i.invoice_date ?? s.today;
       const r = await makeInvoice(job.id, {
-        type: i.type as never, stageLabel: i.stage_label, vat: "Standard 20%", cis: false, cisLabour: null,
+        type: i.type as never, stageLabel: i.stage_label, vat: i.vat, cis: i.cis, cisLabour: i.cis ? i.cis_labour! : null,
         invoiceDate: date, supplyDate: i.supply_date ?? date, termsDays: i.terms_days ?? s.termsDays,
         clientName: s.client.name, clientEmail: s.client.email, billingAddress: s.client.address, site: s.site, lines: i.lines, notes: i.notes,
       }, me);
-      return { ...r, ...(s.test ? { test_mode: "The app is in test mode, so this is a test invoice in the test folder and test ledger." } : {}) };
-    },
-  },
-  {
-    name: "vehicles",
-    label: () => "Looking at the vehicles",
-    description: "Batt's vans and other vehicles: registration, make and model, who drives each, when the MOT, road tax, insurance and service are due (with what's overdue or due within 30 days), miles per gallon, finance details, notes and the link to each one's folder in Drive (inside 06 - Vehicles & Equipment › 01 - Vehicles).",
-    schema: z.object({}),
-    run: async () => {
-      const today = todayUK();
-      const all = await listVehicles(true);
-      const logs = await Promise.all(all.map((v) => vehicleEvents(v.id)));
+      const deducted = i.cis ? Math.round(i.cis_labour! * 20) / 100 : 0;
       return {
-        vehicles: all.map((v, n) => ({
-          ...v, vehicle_id: v.id,
-          due: dueItems(v, today).map((d) => ({ what: d.what, on: d.on, state: d.state, in_words: dueText(d) })),
-          last: lastOfEach(logs[n]).map((e) => ({ what: e.kind, on: e.date, mileage: e.mileage, cost: e.cost, notes: e.notes, paperwork: e.file_url || null })),
-          log_entries: logs[n].length,
-        })),
+        ...r,
+        ...(r.ok ? { net, vat_added: i.vat === "Standard 20%" ? Math.round(net * 20) / 100 : 0, ...(i.cis ? { cis_deducted: deducted, to_pay: Math.round((net - deducted) * 100) / 100 } : {}) } : {}),
+        ...(s.test ? { test_mode: "The app is in test mode, so this is a test invoice in the test folder and test ledger." } : {}),
       };
-    },
-  },
-  {
-    name: "save_vehicle",
-    label: (i) => (i.vehicle_id ? "Updating a vehicle" : `Adding the vehicle ${i.name ?? ""}`),
-    description: "Add a vehicle, or change one (give its vehicle_id from vehicles): name, registration, make and model, driver (a person's name), the dates the MOT, road tax, insurance and next service are due, real miles per gallon, finance or lease details, notes. Only send what's changing. Dates and figures must come from the user or a document (a V5, an MOT certificate, an insurance schedule); never guess one.",
-    schema: z.object({
-      vehicle_id: z.string().uuid().optional(), name: z.string().min(1).optional(), registration: z.string().optional(), make_model: z.string().optional(),
-      driver: z.string().optional().describe("The person's name as in Settings, or empty for nobody."),
-      mot_due: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(), tax_due: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
-      insurance_due: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(), service_due: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
-      mpg: z.number().min(5).max(150).nullable().optional(), finance: z.string().optional(), notes: z.string().optional(), no_longer_ours: z.boolean().optional(),
-      make_drive_folder: z.boolean().default(false).describe("True to give it its own folder in Drive's Vehicles folder."),
-    }),
-    run: async (i: { vehicle_id?: string; name?: string; registration?: string; make_model?: string; driver?: string; mot_due?: string | null; tax_due?: string | null; insurance_due?: string | null; service_due?: string | null; mpg?: number | null; finance?: string; notes?: string; no_longer_ours?: boolean; make_drive_folder: boolean }, me: Me) => {
-      let driver_id: string | null | undefined;
-      if (i.driver !== undefined) {
-        if (!i.driver.trim()) driver_id = null;
-        else {
-          const [p] = await sql<{ id: string }[]>`select id from people where lower(short_name) = lower(${i.driver.trim()}) or lower(full_name) = lower(${i.driver.trim()}) limit 1`;
-          if (!p) return { ok: false, message: `There's nobody called "${i.driver}" on the People list in Settings.` };
-          driver_id = p.id;
-        }
-      }
-      const id = await saveVehicle(i.vehicle_id ?? null, {
-        name: i.name, registration: i.registration, make_model: i.make_model, driver_id, mot_due: i.mot_due, tax_due: i.tax_due, insurance_due: i.insurance_due, service_due: i.service_due,
-        mpg: i.mpg, finance: i.finance, notes: i.notes, ...(i.no_longer_ours !== undefined ? { active: !i.no_longer_ours } : {}),
-      }, me.email);
-      const folder = i.make_drive_folder ? await ensureVehicleFolder(id, me.email) : undefined;
-      return { saved: true, vehicle_id: id, ...(folder ? { folder } : {}) };
-    },
-  },
-  {
-    name: "training",
-    label: () => "Looking at the training matrix",
-    description: "The training matrix: every person's qualifications and cards (ECS card, 18th Edition, 2391, AM2, IPAF, first aid, asbestos awareness and so on) with card numbers, when each was gained and when it runs out, what has expired or runs out within 60 days, and the link to each certificate. Use it for \"who holds what\", \"what's running out\", and for the qualifications to put in a tender or RAMS.",
-    schema: z.object({}),
-    run: async () => {
-      const today = todayUK();
-      const all = await listQualifications(true);
-      return { qualifications: all.map((q) => ({ ...q, state: q.active ? qualState(q, today) : "no longer held", in_words: q.active ? expiryText(q, today) : undefined })) };
-    },
-  },
-  {
-    name: "save_qualification",
-    label: (i) => (i.qualification_id ? "Updating a qualification" : `Adding a qualification for ${i.person ?? ""}`),
-    description: "Add a qualification or card to a person, or change one (give its qualification_id from training): the name of it, the card or certificate number, the date gained, the date it runs out (null if it never does), a Drive link to the certificate, notes. Only what the user tells you or a certificate shows; never guess a date or a number.",
-    schema: z.object({
-      qualification_id: z.string().uuid().optional(), person: z.string().optional().describe("The person's name, needed when adding."), name: z.string().min(1).optional(), number: z.string().optional(),
-      issued: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(), expires: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
-      file_link: z.string().optional(), notes: z.string().optional(), no_longer_held: z.boolean().optional(),
-    }),
-    run: async (i: { qualification_id?: string; person?: string; name?: string; number?: string; issued?: string | null; expires?: string | null; file_link?: string; notes?: string; no_longer_held?: boolean }, me: Me) => {
-      let person_id: string | undefined;
-      if (!i.qualification_id) {
-        const who = (i.person ?? "").trim();
-        const [p] = await sql<{ id: string }[]>`select id from people where lower(short_name) = lower(${who}) or lower(full_name) = lower(${who}) limit 1`;
-        if (!p) return { ok: false, message: `There's nobody called "${who}" on the People list in Settings.` };
-        person_id = p.id;
-      }
-      const id = await saveQualification(i.qualification_id ?? null, { person_id, name: i.name, number: i.number, issued: i.issued, expires: i.expires, file_url: i.file_link, notes: i.notes, ...(i.no_longer_held !== undefined ? { active: !i.no_longer_held } : {}) }, me.email);
-      return { saved: true, qualification_id: id };
-    },
-  },
-  {
-    name: "supplier_invoices",
-    label: (i) => (i.check_now ? "Checking the info mailbox for wholesaler invoices" : "Looking at the wholesaler invoices"),
-    description:
-      "Wholesaler and supplier invoices that arrive in the info@ mailbox (CEF and others). With check_now true it reads any new ones now: each PDF is read, and an invoice whose order reference carries a job number is put on that job as a cost automatically. Returns what was filed, and the ones waiting for a person (no job number on them, totals that don't add up, not made out to Batt) with the reason for each. Use it for \"pull the invoices\", \"update the jobs with the CEF invoices\", \"what have we spent on 557\".",
-    schema: z.object({ check_now: z.boolean().default(true) }),
-    run: async (i: { check_now: boolean }, me: Me) => {
-      const scan = i.check_now ? await scanInvoices({ force: true, actor: me.email }) : null;
-      const [waiting, filed] = await Promise.all([queuedInvoices(), recentlyFiled()]);
-      return {
-        ...(scan ? { check: { ran: scan.ran, message: scan.message, put_on_jobs: scan.filed, waiting_for_a_person: scan.queued, ignored: scan.ignored } } : {}),
-        waiting: waiting.map((w) => ({ id: w.id, supplier: w.supplier || w.email_from, invoice: w.invoice_number, date: w.invoice_date, credit_note: w.credit_note, net: w.net, vat: w.vat, gross: w.gross, order_reference: w.order_reference, suggested_job: w.suggested_job ? `#${w.suggested_job}` : null, why_waiting: w.reason, email_subject: w.email_subject, attachment: w.attachment, mailbox: w.mailbox, thread_or_message_id: w.message_id })),
-        recently_put_on_jobs: filed.map((f) => ({ supplier: f.supplier, invoice: f.invoice_number, net: f.net, job: f.job_number ? `#${f.job_number}` : null, by: f.decided_by })),
-      };
-    },
-  },
-  {
-    name: "file_supplier_invoice",
-    label: (i) => (i.not_a_job_cost ? "Marking a wholesaler invoice as not a job cost" : `Putting a wholesaler invoice on job ${i.job ?? ""}`),
-    description: "Deal with a wholesaler invoice that's waiting (id from supplier_invoices): put it on a job as a cost at its net amount, or mark it as not a job cost (stock, tools, overheads). Only put it on a job when you're sure which job it's for: the user said so, or the invoice or its email plainly shows it. If you can't tell, ask.",
-    schema: z.object({ id: z.string().uuid(), job: z.string().optional(), net: z.number().optional().describe("The amount before VAT. Leave out to use the invoice's own net."), not_a_job_cost: z.boolean().default(false) }),
-    run: async (i: { id: string; job?: string; net?: number; not_a_job_cost: boolean }, me: Me) => {
-      if (i.not_a_job_cost) {
-        await ignoreInvoice(i.id, me);
-        return { done: true, marked: "not a job cost" };
-      }
-      if (!i.job) return { ok: false, message: "Say which job it's for, or set not_a_job_cost." };
-      const inv = (await queuedInvoices()).find((q) => q.id === i.id);
-      if (!inv) return { ok: false, message: "That invoice isn't waiting any more. Use supplier_invoices to see the list." };
-      const net = i.net ?? inv.net;
-      if (net === null || net === undefined) return { ok: false, message: "The invoice's net amount couldn't be read. Open the attachment (read_attachment) and give the net." };
-      const job = await fileInvoice(i.id, i.job, net, me);
-      return { done: true, job: jobLabel(job), cost_added: inv.credit_note ? -Math.abs(net) : net };
-    },
-  },
-  {
-    name: "log_vehicle",
-    label: (i) => `Adding ${i.kind ?? "an entry"} to a vehicle's log`,
-    description: "Add an entry to a vehicle's log: an MOT, a service, an insurance renewal, road tax, a repair, tyres. Give the date it was done and, for an MOT, service, insurance or road tax, the next date it's due, which moves the reminder on. Mileage and cost if known. To attach its paperwork, file the document into the van's Drive folder (file_attachment, or the user uploads it on the van's page). Dates and figures only from the user or a document.",
-    schema: z.object({
-      vehicle_id: z.string().uuid().describe("From vehicles."), kind: z.enum(EVENT_KINDS as unknown as [string, ...string[]]), date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-      next_due: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().default(null), mileage: z.number().int().nonnegative().nullable().default(null), cost: z.number().nonnegative().nullable().default(null), notes: z.string().default(""),
-    }),
-    run: async (i: { vehicle_id: string; kind: string; date: string; next_due: string | null; mileage: number | null; cost: number | null; notes: string }, me: Me) => {
-      const id = await addVehicleEvent(i.vehicle_id, { kind: i.kind as never, date: i.date, mileage: i.mileage, cost: i.cost, notes: i.notes, nextDue: i.next_due }, null, me);
-      return { saved: true, id, ...(i.next_due ? { reminder_moved_to: i.next_due } : {}) };
     },
   },
   {
